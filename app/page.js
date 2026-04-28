@@ -545,7 +545,7 @@ Echipa Cashless Payment Systems`;
   
   try {
     MailApp.sendEmail({
-      to: email,
+      to: email,`
       subject: subject,
       body: body,
       replyTo: "recrutarifestival@gmail.com",
