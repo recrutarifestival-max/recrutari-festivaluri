@@ -1,10 +1,10 @@
 "use client";
 import { useState, useMemo, useEffect, useRef } from "react";
-
+ 
 const C = { accent: "#72F94C", accentDark: "#4AD42F", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
 const API_URL = "https://script.google.com/macros/s/AKfycbyBvRDNA7V9HDpwqQTKeLh6q_thnddCcSMGKlYZHMuNvV-5plWUEDHxGkUpv9hGzRltXQ/exec";
 const VIEWS = { HOME: "home", APPLY: "apply", STATUS: "status" };
-
+ 
 function Nav({ view, setView }) {
   return (
     <nav style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(15,15,26,0.92)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "0 16px" }}>
@@ -28,7 +28,7 @@ function Nav({ view, setView }) {
     </nav>
   );
 }
-
+ 
 function Hero({ setView }) {
   return (
     <div style={{ textAlign: "center", padding: "48px 20px 40px" }}>
@@ -61,7 +61,7 @@ function Hero({ setView }) {
     </div>
   );
 }
-
+ 
 function InfoCards() {
   const cards = [
     { icon: "💰", title: "Plată", desc: "15 lei net/oră, 40-42 ore pe săptămână. Plata se face după festival." },
@@ -83,7 +83,7 @@ function InfoCards() {
     </div>
   );
 }
-
+ 
 function FAQ() {
   const [open, setOpen] = useState(null);
   const items = [
@@ -117,7 +117,7 @@ function FAQ() {
     </div>
   );
 }
-
+ 
 function HomePage({ setView }) {
   return (<>
     <Hero setView={setView} />
@@ -132,9 +132,9 @@ function HomePage({ setView }) {
     </div>
   </>);
 }
-
+ 
 const STEPS = ["Date personale", "Screening", "Date CI", "Confirmare"];
-
+ 
 function FormField({ label, required, children, error }) {
   return (
     <div style={{ marginBottom: 16 }}>
@@ -146,7 +146,7 @@ function FormField({ label, required, children, error }) {
     </div>
   );
 }
-
+ 
 function Input({ value, onChange, placeholder, type = "text", ...props }) {
   return (
     <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
@@ -161,7 +161,7 @@ function Input({ value, onChange, placeholder, type = "text", ...props }) {
     />
   );
 }
-
+ 
 function Select({ value, onChange, options, placeholder }) {
   return (
     <select value={value} onChange={e => onChange(e.target.value)}
@@ -175,7 +175,7 @@ function Select({ value, onChange, options, placeholder }) {
     </select>
   );
 }
-
+ 
 function TextArea({ value, onChange, placeholder, rows = 3 }) {
   return (
     <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={rows}
@@ -189,7 +189,7 @@ function TextArea({ value, onChange, placeholder, rows = 3 }) {
     />
   );
 }
-
+ 
 function ApplyPage({ setView }) {
   const [step, setStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
@@ -200,15 +200,15 @@ function ApplyPage({ setView }) {
   const fileRef = useRef(null);
   const [form, setForm] = useState({
     nume: "", prenume: "", telefon: "", email: "", oras: "", dataNasterii: "", socialType: "", socialLink: "",
-    cazare: "", experienta: "", motivatie: "",
+    situatie: "", cazare: "", experienta: "", motivatie: "",
     serieCi: "", numarCi: "", cnp: "", eliberatDe: "", dataCi: "", domiciliu: "", orasCi: "", judet: "", cetatenie: "",
     selfie: null,
     confirm1: false, confirm2: false, confirm3: false, confirm4: false, gdprConsent: false, gdprMarketing: false,
   });
   const [errors, setErrors] = useState({});
-
+ 
   const upd = (key, val) => { setForm(prev => ({ ...prev, [key]: val })); setErrors(prev => ({ ...prev, [key]: null })); };
-
+ 
   function validateStep() {
     const e = {};
     if (step === 0) {
@@ -226,6 +226,7 @@ function ApplyPage({ setView }) {
       if (!form.socialLink.trim()) e.socialLink = "Obligatoriu";
     }
     if (step === 1) {
+      if (!form.situatie) e.situatie = "Selectează o opțiune";
       if (!form.cazare) e.cazare = "Selectează o opțiune";
       if (!form.experienta) e.experienta = "Selectează o opțiune";
       if (!form.motivatie.trim() || form.motivatie.length < 20) e.motivatie = "Minim 20 de caractere";
@@ -252,7 +253,7 @@ function ApplyPage({ setView }) {
     setErrors(e);
     return Object.keys(e).length === 0;
   }
-
+ 
   async function next() {
     if (!validateStep()) return;
     if (step < 3) { setStep(step + 1); window.scrollTo(0, 0); return; }
@@ -271,7 +272,7 @@ function ApplyPage({ setView }) {
       delete payload.confirm2;
       delete payload.confirm3;
       delete payload.confirm4;
-
+ 
       const resp = await fetch(API_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
@@ -290,7 +291,7 @@ function ApplyPage({ setView }) {
     }
     setSubmitting(false);
   }
-
+ 
   function handleSelfie(e) {
     const file = e.target.files[0];
     if (file) {
@@ -303,7 +304,7 @@ function ApplyPage({ setView }) {
       reader.readAsDataURL(file);
     }
   }
-
+ 
   if (submitted) {
     return (
       <div style={{ textAlign: "center", padding: "80px 20px" }}>
@@ -319,11 +320,11 @@ function ApplyPage({ setView }) {
       </div>
     );
   }
-
+ 
   return (
     <div style={{ padding: "24px 16px 40px", maxWidth: 520, margin: "0 auto" }}>
       <h2 style={{ fontSize: 22, fontWeight: 700, color: "#fff", margin: "0 0 24px", textAlign: "center" }}>Formular de aplicare</h2>
-
+ 
       {/* Progress */}
       <div style={{ display: "flex", gap: 4, marginBottom: 28 }}>
         {STEPS.map((s, i) => (
@@ -333,7 +334,7 @@ function ApplyPage({ setView }) {
           </div>
         ))}
       </div>
-
+ 
       {/* Step 0: Personal */}
       {step === 0 && (<div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -353,9 +354,19 @@ function ApplyPage({ setView }) {
           </FormField>
         </div>
       </div>)}
-
+ 
       {/* Step 1: Screening */}
       {step === 1 && (<div>
+        <FormField label="Care e situația ta actuală?" required error={errors.situatie}>
+          <Select value={form.situatie} onChange={v => upd("situatie", v)} options={[
+            "Elev XII (dau BAC 2026)",
+            "Elev (alt an)",
+            "Student",
+            "Lucrez part-time / sezonier",
+            "Lucrez full-time cu contract",
+            "Nu lucrez și nu sunt la școală"
+          ]} placeholder="Selectează..." />
+        </FormField>
         <FormField label="Ai cazare asigurată în zona festivalului?" required error={errors.cazare}>
           <Select value={form.cazare} onChange={v => upd("cazare", v)} options={["Da, am cazare proprie", "Doresc loc de cort în camping", "Îmi voi asigura cazare singur/ă"]} placeholder="Selectează..." />
         </FormField>
@@ -389,7 +400,7 @@ function ApplyPage({ setView }) {
           <input ref={fileRef} type="file" accept="image/*" capture="user" onChange={handleSelfie} style={{ display: "none" }} />
         </FormField>
       </div>)}
-
+ 
       {/* Step 2: CI Data */}
       {step === 2 && (<div>
         <div style={{ background: "rgba(114,249,76,0.08)", border: "1px solid rgba(114,249,76,0.15)", borderRadius: 10, padding: 12, marginBottom: 20, fontSize: 12, color: "rgba(232,230,227,0.5)", lineHeight: 1.5 }}>
@@ -411,7 +422,7 @@ function ApplyPage({ setView }) {
         </div>
         <FormField label="Cetățenie" required error={errors.cetatenie}><Input value={form.cetatenie} onChange={v => upd("cetatenie", v)} placeholder="Română" /></FormField>
       </div>)}
-
+ 
       {/* Step 3: Confirm */}
       {step === 3 && (<div>
         <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: 16, marginBottom: 20 }}>
@@ -420,7 +431,8 @@ function ApplyPage({ setView }) {
             {[
               ["Nume", `${form.nume} ${form.prenume}`], ["Telefon", form.telefon],
               ["Email", form.email], ["Oraș", form.oras],
-              ["Cazare", form.cazare], ["Profil", `${form.socialType}: ${form.socialLink}`],
+              ["Situație", form.situatie], ["Cazare", form.cazare],
+              ["Profil", `${form.socialType}: ${form.socialLink}`],
             ].map(([k, v]) => (
               <div key={k}>
                 <div style={{ fontSize: 11, color: "rgba(232,230,227,0.35)" }}>{k}</div>
@@ -429,7 +441,7 @@ function ApplyPage({ setView }) {
             ))}
           </div>
         </div>
-
+ 
         {[
           { key: "confirm1", text: "Confirm că am citit și înțeles condițiile: plata este de 15 lei/oră, se oferă loc de cort în camping, nu se oferă parcare, voi avea tură zilnic." },
           { key: "confirm2", text: "Confirm că datele introduse sunt corecte și reale. Înțeleg că orice neconcordanță duce la excludere." },
@@ -449,7 +461,7 @@ function ApplyPage({ setView }) {
             <span style={{ fontSize: 13, color: "rgba(232,230,227,0.6)", lineHeight: 1.5 }}>{c.text}</span>
           </label>
         ))}
-
+ 
         {/* GDPR Section */}
         <div style={{ marginTop: 20, padding: 16, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(232,230,227,0.7)", marginBottom: 10 }}>Protecția datelor personale (GDPR)</div>
@@ -460,7 +472,7 @@ function ApplyPage({ setView }) {
             Ai dreptul de acces, rectificare, ștergere, restricționare, portabilitate și de a te opune prelucrării, precum și dreptul de a depune plângere la ANSPDCP.
             Îți poți retrage consimțământul în orice moment prin email la recrutarifestival@gmail.com, fără a afecta legalitatea prelucrării anterioare.
           </div>
-
+ 
           <label style={{ display: "flex", gap: 10, marginBottom: 14, cursor: "pointer", alignItems: "flex-start" }}>
             <div onClick={() => upd("gdprConsent", !form.gdprConsent)} style={{
               width: 22, height: 22, borderRadius: 6, flexShrink: 0, marginTop: 2,
@@ -475,7 +487,7 @@ function ApplyPage({ setView }) {
             </span>
           </label>
           {errors.gdprConsent && <div style={{ fontSize: 12, color: "#ff6b6b", marginTop: -8, marginBottom: 10, paddingLeft: 32 }}>{errors.gdprConsent}</div>}
-
+ 
           <label style={{ display: "flex", gap: 10, cursor: "pointer", alignItems: "flex-start" }}>
             <div onClick={() => upd("gdprMarketing", !form.gdprMarketing)} style={{
               width: 22, height: 22, borderRadius: 6, flexShrink: 0, marginTop: 2,
@@ -491,14 +503,14 @@ function ApplyPage({ setView }) {
           </label>
         </div>
       </div>)}
-
+ 
       {/* Submit error */}
       {submitError && (
         <div style={{ background: "rgba(226,75,74,0.1)", border: "1px solid rgba(226,75,74,0.3)", borderRadius: 10, padding: 12, marginTop: 16, fontSize: 13, color: "#ff6b6b", textAlign: "center" }}>
           {submitError}
         </div>
       )}
-
+ 
       {/* Navigation */}
       <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
         {step > 0 && !submitting && (
@@ -518,12 +530,12 @@ function ApplyPage({ setView }) {
     </div>
   );
 }
-
+ 
 function StatusPage() {
   const [phone, setPhone] = useState("");
   const [status, setStatus] = useState(null);
   const [searching, setSearching] = useState(false);
-
+ 
   async function checkStatus() {
     if (phone.length < 10) return;
     setSearching(true);
@@ -545,7 +557,7 @@ function StatusPage() {
     }
     setSearching(false);
   }
-
+ 
   return (
     <div style={{ padding: "40px 16px", maxWidth: 520, margin: "0 auto" }}>
       <div style={{ textAlign: "center", marginBottom: 32 }}>
@@ -553,7 +565,7 @@ function StatusPage() {
         <h2 style={{ fontSize: 22, fontWeight: 700, color: "#fff", margin: "0 0 8px" }}>Verifică statusul</h2>
         <p style={{ fontSize: 14, color: "rgba(232,230,227,0.45)" }}>Introdu numărul de telefon cu care ai aplicat</p>
       </div>
-
+ 
       <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
         <input type="tel" value={phone} onChange={e => { setPhone(e.target.value.replace(/[^0-9]/g, "")); setStatus(null); }}
           placeholder="07xxxxxxxx" maxLength={10}
@@ -569,11 +581,11 @@ function StatusPage() {
           color: phone.length >= 10 ? "#0a0a0a" : "rgba(232,230,227,0.3)", cursor: phone.length >= 10 ? "pointer" : "default",
         }}>Caută</button>
       </div>
-
+ 
       {searching && (
         <div style={{ textAlign: "center", padding: 40, color: "rgba(232,230,227,0.4)", fontSize: 14 }}>Se caută...</div>
       )}
-
+ 
       {status && !searching && (
         <div>
           {status.found ? (
@@ -627,10 +639,10 @@ function StatusPage() {
     </div>
   );
 }
-
+ 
 export default function App() {
   const [view, setView] = useState(VIEWS.HOME);
-
+ 
   return (
     <div style={{
       minHeight: "100vh",
@@ -645,22 +657,22 @@ export default function App() {
         input::placeholder, textarea::placeholder { color: rgba(232,230,227,0.3); }
         select option { background: #1a1a2e; color: #e8e6e3; }
       `}</style>
-
+ 
       <div style={{ position: "fixed", inset: 0, opacity: 0.03, pointerEvents: "none",
         backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
       }} />
       <div style={{ position: "fixed", top: "-30%", right: "-20%", width: "60vw", height: "60vw",
         background: "radial-gradient(circle, rgba(114,249,76,0.05) 0%, transparent 70%)", pointerEvents: "none",
       }} />
-
+ 
       <Nav view={view} setView={setView} />
-
+ 
       <div style={{ position: "relative", zIndex: 1 }}>
         {view === VIEWS.HOME && <HomePage setView={setView} />}
         {view === VIEWS.APPLY && <ApplyPage setView={setView} />}
         {view === VIEWS.STATUS && <StatusPage />}
       </div>
-
+ 
       <div style={{ textAlign: "center", padding: "24px 16px 32px", borderTop: "1px solid rgba(255,255,255,0.05)", fontSize: 11, color: "rgba(232,230,227,0.2)", fontFamily: "monospace" }}>
         Cashless Payment Systems · Beach Please 2026<br />
         Contact: recrutarifestival@gmail.com
