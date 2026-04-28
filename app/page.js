@@ -595,21 +595,510 @@ function ApplyPage({ setView }) {
   );
 }
 
+// ============================================
+// SIGNATURE PAD MODAL
+// ============================================
+
+function SignaturePadModal({ isOpen, onClose, onSave, title, docName }) {
+  const canvasRef = useRef(null);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [hasDrawn, setHasDrawn] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    // Setup canvas
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = "#0a0a0a";
+    // Fill white background
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, rect.width, rect.height);
+    setHasDrawn(false);
+    setError(null);
+  }, [isOpen]);
+
+  function getEventPos(e) {
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    if (e.touches && e.touches[0]) {
+      return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+    }
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  function startDrawing(e) {
+    e.preventDefault();
+    setIsDrawing(true);
+    const ctx = canvasRef.current.getContext("2d");
+    const pos = getEventPos(e);
+    ctx.beginPath();
+    ctx.moveTo(pos.x, pos.y);
+  }
+
+  function draw(e) {
+    if (!isDrawing) return;
+    e.preventDefault();
+    const ctx = canvasRef.current.getContext("2d");
+    const pos = getEventPos(e);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.stroke();
+    setHasDrawn(true);
+  }
+
+  function stopDrawing(e) {
+    if (e) e.preventDefault();
+    setIsDrawing(false);
+  }
+
+  function clearSignature() {
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    const rect = canvas.getBoundingClientRect();
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, rect.width, rect.height);
+    setHasDrawn(false);
+    setError(null);
+  }
+
+  function saveSignature() {
+    if (!hasDrawn) {
+      setError("Te rog desenează semnătura ta.");
+      return;
+    }
+    const canvas = canvasRef.current;
+    // Generate PNG with white background trimmed (we already have white BG)
+    const dataUrl = canvas.toDataURL("image/png");
+    const base64 = dataUrl.split(",")[1];
+    onSave(base64);
+  }
+
+  if (!isOpen) return null;
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.85)", zIndex: 100,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 12,
+    }} onClick={onClose}>
+      <div style={{
+        background: C.darkMid, borderRadius: 16, padding: 20, maxWidth: 480, width: "100%",
+        border: "1px solid rgba(255,255,255,0.1)",
+      }} onClick={e => e.stopPropagation()}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 4 }}>{title}</div>
+        <div style={{ fontSize: 12, color: "rgba(232,230,227,0.5)", marginBottom: 16 }}>
+          Document: {docName}
+        </div>
+        <div style={{ fontSize: 11, color: "rgba(232,230,227,0.45)", marginBottom: 8, lineHeight: 1.5 }}>
+          Desenează semnătura ta în spațiul de mai jos. Folosește mouse-ul (desktop) sau degetul (mobil).
+        </div>
+        <canvas
+          ref={canvasRef}
+          style={{
+            width: "100%", height: 180, background: "#ffffff",
+            borderRadius: 10, border: "1px solid rgba(255,255,255,0.15)",
+            touchAction: "none", display: "block",
+          }}
+          onMouseDown={startDrawing}
+          onMouseMove={draw}
+          onMouseUp={stopDrawing}
+          onMouseLeave={stopDrawing}
+          onTouchStart={startDrawing}
+          onTouchMove={draw}
+          onTouchEnd={stopDrawing}
+        />
+        {error && <div style={{ fontSize: 12, color: "#ff6b6b", marginTop: 6 }}>{error}</div>}
+        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+          <button onClick={clearSignature} style={{
+            flex: 1, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 10, padding: "12px", fontSize: 14, color: "rgba(232,230,227,0.7)", cursor: "pointer",
+          }}>Șterge</button>
+          <button onClick={onClose} style={{
+            flex: 1, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 10, padding: "12px", fontSize: 14, color: "rgba(232,230,227,0.7)", cursor: "pointer",
+          }}>Anulează</button>
+          <button onClick={saveSignature} style={{
+            flex: 2, background: `linear-gradient(135deg, #72F94C, #4AD42F)`, border: "none",
+            borderRadius: 10, padding: "12px", fontSize: 14, fontWeight: 700, color: "#0a0a0a", cursor: "pointer",
+          }}>Semnează</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// DOCUMENT CARD
+// ============================================
+
+function DocumentCard({ title, signed, signedDate, viewUrl, pdfUrl, onSign, busy }) {
+  return (
+    <div style={{
+      background: signed ? "rgba(114,249,76,0.06)" : "rgba(255,255,255,0.04)",
+      border: signed ? "1px solid rgba(114,249,76,0.3)" : "1px solid rgba(255,255,255,0.08)",
+      borderRadius: 12, padding: 14, marginBottom: 10,
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: signed ? 0 : 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 18 }}>{signed ? "✅" : "📄"}</span>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#fff" }}>{title}</div>
+            {signed && <div style={{ fontSize: 11, color: C.accent, marginTop: 2 }}>Semnat</div>}
+          </div>
+        </div>
+      </div>
+      {!signed && (
+        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {viewUrl && (
+            <a href={viewUrl} target="_blank" rel="noopener noreferrer" style={{
+              flex: "1 1 auto", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "rgba(232,230,227,0.7)",
+              textAlign: "center", textDecoration: "none", cursor: "pointer",
+            }}>👁 Citește</a>
+          )}
+          {pdfUrl && (
+            <a href={pdfUrl} target="_blank" rel="noopener noreferrer" style={{
+              flex: "1 1 auto", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "rgba(232,230,227,0.7)",
+              textAlign: "center", textDecoration: "none", cursor: "pointer",
+            }}>⬇ PDF</a>
+          )}
+          <button onClick={onSign} disabled={busy} style={{
+            flex: "2 1 auto", background: busy ? "rgba(114,249,76,0.3)" : `linear-gradient(135deg, #72F94C, #4AD42F)`,
+            border: "none", borderRadius: 8, padding: "8px 12px", fontSize: 12, fontWeight: 700,
+            color: "#0a0a0a", cursor: busy ? "wait" : "pointer", opacity: busy ? 0.6 : 1,
+          }}>{busy ? "Se procesează..." : "✍ Semnează"}</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================
+// CI UPLOAD CARD
+// ============================================
+
+function CIUploadCard({ uploaded, onUpload, busy }) {
+  const fileRef = useRef(null);
+  const [preview, setPreview] = useState(null);
+  const [error, setError] = useState(null);
+
+  function handleFile(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    setError(null);
+    
+    // Validare dimensiune (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Fișierul este prea mare (max 5MB).");
+      return;
+    }
+    
+    // Validare tip
+    if (!file.type.match(/^image\/(jpeg|png|jpg)$/) && file.type !== "application/pdf") {
+      setError("Doar JPG, PNG sau PDF.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const base64 = ev.target.result.split(",")[1];
+      setPreview(file.type.startsWith("image/") ? ev.target.result : null);
+      onUpload(base64, file.type, file.name);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  return (
+    <div style={{
+      background: uploaded ? "rgba(114,249,76,0.06)" : "rgba(255,255,255,0.04)",
+      border: uploaded ? "1px solid rgba(114,249,76,0.3)" : "1px solid rgba(255,255,255,0.08)",
+      borderRadius: 12, padding: 14, marginBottom: 10,
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: uploaded ? 0 : 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 18 }}>{uploaded ? "✅" : "🪪"}</span>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#fff" }}>Copie CI</div>
+            {uploaded && <div style={{ fontSize: 11, color: C.accent, marginTop: 2 }}>Încărcat</div>}
+            {!uploaded && <div style={{ fontSize: 11, color: "rgba(232,230,227,0.45)", marginTop: 2 }}>Foto sau scan al cărții de identitate</div>}
+          </div>
+        </div>
+      </div>
+      {!uploaded && (
+        <>
+          <button onClick={() => fileRef.current?.click()} disabled={busy} style={{
+            width: "100%", padding: "12px", borderRadius: 8,
+            border: "2px dashed rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.03)",
+            color: "rgba(232,230,227,0.6)", fontSize: 13, cursor: busy ? "wait" : "pointer",
+            opacity: busy ? 0.5 : 1,
+          }}>📎 {busy ? "Se încarcă..." : "Alege fișier (JPG, PNG, PDF)"}</button>
+          <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/jpg,application/pdf"
+            onChange={handleFile} style={{ display: "none" }} />
+          {error && <div style={{ fontSize: 12, color: "#ff6b6b", marginTop: 6 }}>{error}</div>}
+        </>
+      )}
+    </div>
+  );
+}
+
+// ============================================
+// ACCEPTED FLOW (pagina principală pentru status="accepted")
+// ============================================
+
+function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
+  const [documents, setDocuments] = useState(null);
+  const [signModal, setSignModal] = useState(null); // { type, title, docName }
+  const [busyDoc, setBusyDoc] = useState(null); // "contract" | "fisa" | "roi" | "ci"
+  const [error, setError] = useState(null);
+  const [allComplete, setAllComplete] = useState(false);
+
+  // Load document URLs when component mounts
+  useEffect(() => {
+    if (!phone) return;
+    fetch(`${API_URL}?action=documents&phone=${encodeURIComponent(phone)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.success && data.documents) {
+          setDocuments(data.documents);
+        }
+      })
+      .catch(err => setError("Nu pot încărca documentele: " + err.message));
+  }, [phone]);
+
+  // Check if all complete
+  useEffect(() => {
+    if (statusInfo) {
+      const all = statusInfo.contractSemnat && statusInfo.fisaSemnat && 
+                  statusInfo.roiSemnat && statusInfo.ciIncarcat;
+      setAllComplete(all);
+    }
+  }, [statusInfo]);
+
+  async function handleSign(docType, signatureBase64) {
+    setBusyDoc(docType);
+    setError(null);
+    setSignModal(null);
+    try {
+      const resp = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({
+          action: "sign",
+          phone: phone,
+          docType: docType,
+          signatureBase64: signatureBase64,
+        }),
+      });
+      const result = await resp.json();
+      if (result.success) {
+        await refreshStatus();
+      } else {
+        setError(result.error || "Eroare la semnare.");
+      }
+    } catch (err) {
+      setError("Eroare conexiune: " + err.message);
+    }
+    setBusyDoc(null);
+  }
+
+  async function handleCIUpload(base64, mimeType, fileName) {
+    setBusyDoc("ci");
+    setError(null);
+    try {
+      const resp = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({
+          action: "uploadCI",
+          phone: phone,
+          fileBase64: base64,
+          mimeType: mimeType,
+          fileName: fileName,
+        }),
+      });
+      const result = await resp.json();
+      if (result.success) {
+        await refreshStatus();
+      } else {
+        setError(result.error || "Eroare la upload.");
+      }
+    } catch (err) {
+      setError("Eroare conexiune: " + err.message);
+    }
+    setBusyDoc(null);
+  }
+
+  async function handleFinalize() {
+    setBusyDoc("finalize");
+    try {
+      const resp = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ action: "finalize", phone: phone }),
+      });
+      const result = await resp.json();
+      if (result.success) {
+        await refreshStatus();
+      }
+    } catch (err) {
+      setError("Eroare conexiune: " + err.message);
+    }
+    setBusyDoc(null);
+  }
+
+  // Display "Complete" state
+  if (statusInfo?.statusFinal === "Complete") {
+    return (
+      <div style={{ background: "rgba(99,153,34,0.08)", border: "1px solid rgba(99,153,34,0.3)", borderRadius: 16, padding: 24, textAlign: "center" }}>
+        <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div>
+        <div style={{ fontSize: 20, fontWeight: 700, color: "#97C459", marginBottom: 8 }}>Totul e gata!</div>
+        <div style={{ fontSize: 13, color: "rgba(232,230,227,0.6)", lineHeight: 1.6, maxWidth: 320, margin: "0 auto" }}>
+          Toate documentele tale au fost trimise cu succes. Vei primi în curând un email cu detaliile finale și informații despre training-uri.
+        </div>
+        <div style={{ fontSize: 12, color: "rgba(232,230,227,0.4)", marginTop: 16, fontFamily: "monospace" }}>
+          Ne vedem la Beach Please! 🏖️
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{ background: "rgba(99,153,34,0.08)", border: "1px solid rgba(99,153,34,0.2)", borderRadius: 16, padding: 18, textAlign: "center", marginBottom: 16 }}>
+        <div style={{ fontSize: 28, marginBottom: 6 }}>✅</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: "#97C459", marginBottom: 4 }}>
+          Felicitări{firstName ? `, ${firstName}` : ""}!
+        </div>
+        <div style={{ fontSize: 13, color: "rgba(232,230,227,0.6)", lineHeight: 1.5 }}>
+          Aplicația ta a fost acceptată. Mai ai câțiva pași simpli de făcut.
+        </div>
+      </div>
+
+      {/* GDPR Disclaimer */}
+      <div style={{ background: "rgba(114,249,76,0.05)", border: "1px solid rgba(114,249,76,0.15)", borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 11, color: "rgba(232,230,227,0.55)", lineHeight: 1.6 }}>
+        ⚠️ <strong style={{ color: "rgba(232,230,227,0.8)" }}>Notă:</strong> Prin semnarea electronică a documentelor de mai jos, confirmi acordul tău cu modul de semnare prevăzut în Regulamentul de Ordine Interioară (OUG 36/2021, Legea 208/2021). Fiecare semnătură este înregistrată cu timestamp și hash criptografic ca dovadă a autenticității.
+      </div>
+
+      <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginBottom: 10 }}>Documente de semnat</div>
+
+      <DocumentCard
+        title="Contract Individual de Muncă"
+        signed={statusInfo?.contractSemnat}
+        viewUrl={documents?.contract?.url}
+        pdfUrl={documents?.contract?.pdfUrl}
+        onSign={() => setSignModal({ type: "contract", title: "Semnează contractul", docName: "Contract Individual de Muncă" })}
+        busy={busyDoc === "contract"}
+      />
+
+      <DocumentCard
+        title="Fișa Postului"
+        signed={statusInfo?.fisaSemnat}
+        viewUrl={documents?.fisa?.url}
+        pdfUrl={documents?.fisa?.pdfUrl}
+        onSign={() => setSignModal({ type: "fisa", title: "Semnează fișa postului", docName: "Fișa Postului" })}
+        busy={busyDoc === "fisa"}
+      />
+
+      <DocumentCard
+        title="Regulament de Ordine Interioară"
+        signed={statusInfo?.roiSemnat}
+        viewUrl={documents?.roi?.url}
+        pdfUrl={documents?.roi?.pdfUrl}
+        onSign={() => setSignModal({ type: "roi", title: "Semnează ROI", docName: "Regulament de Ordine Interioară" })}
+        busy={busyDoc === "roi"}
+      />
+
+      <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginTop: 16, marginBottom: 10 }}>Documente de încărcat</div>
+
+      <CIUploadCard
+        uploaded={statusInfo?.ciIncarcat}
+        onUpload={handleCIUpload}
+        busy={busyDoc === "ci"}
+      />
+
+      {/* Error message */}
+      {error && (
+        <div style={{ background: "rgba(226,75,74,0.1)", border: "1px solid rgba(226,75,74,0.3)", borderRadius: 10, padding: 12, marginTop: 12, fontSize: 13, color: "#ff6b6b" }}>
+          {error}
+        </div>
+      )}
+
+      {/* Progress summary + Finalize button */}
+      <div style={{ marginTop: 24, padding: 16, background: "rgba(255,255,255,0.04)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.08)" }}>
+        <div style={{ fontSize: 12, color: "rgba(232,230,227,0.5)", marginBottom: 8 }}>
+          Progres: {[statusInfo?.contractSemnat, statusInfo?.fisaSemnat, statusInfo?.roiSemnat, statusInfo?.ciIncarcat].filter(Boolean).length} / 4
+        </div>
+        <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden", marginBottom: 14 }}>
+          <div style={{
+            width: `${[statusInfo?.contractSemnat, statusInfo?.fisaSemnat, statusInfo?.roiSemnat, statusInfo?.ciIncarcat].filter(Boolean).length / 4 * 100}%`,
+            height: "100%", background: `linear-gradient(90deg, ${C.accent}, #F9F871)`,
+            transition: "width 0.4s",
+          }} />
+        </div>
+        <button onClick={handleFinalize} disabled={!allComplete || busyDoc} style={{
+          width: "100%",
+          background: allComplete ? `linear-gradient(135deg, #72F94C, #4AD42F)` : "rgba(255,255,255,0.06)",
+          border: allComplete ? "none" : "1px solid rgba(255,255,255,0.1)",
+          borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700,
+          color: allComplete ? "#0a0a0a" : "rgba(232,230,227,0.3)",
+          cursor: allComplete && !busyDoc ? "pointer" : "default",
+        }}>
+          {busyDoc === "finalize" ? "Se finalizează..." : 
+           allComplete ? "✓ Trimite tot" : "Completează toate documentele"}
+        </button>
+      </div>
+
+      {/* Signature Modal */}
+      <SignaturePadModal
+        isOpen={!!signModal}
+        onClose={() => setSignModal(null)}
+        title={signModal?.title}
+        docName={signModal?.docName}
+        onSave={(base64) => {
+          if (signModal) handleSign(signModal.type, base64);
+        }}
+      />
+    </div>
+  );
+}
+
 function StatusPage() {
   const [phone, setPhone] = useState("");
   const [status, setStatus] = useState(null);
   const [searching, setSearching] = useState(false);
 
-  async function checkStatus() {
-    if (phone.length < 10) return;
+  async function checkStatus(phoneToCheck) {
+    const targetPhone = phoneToCheck || phone;
+    if (targetPhone.length < 10) return;
     setSearching(true);
     try {
-      const resp = await fetch(`${API_URL}?action=status&phone=${encodeURIComponent(phone)}`);
+      const resp = await fetch(`${API_URL}?action=status&phone=${encodeURIComponent(targetPhone)}`);
       const result = await resp.json();
       if (result.success) {
         if (result.found) {
           const statusMap = { "În așteptare": "pending", "Acceptat": "accepted", "Respins": "rejected", "Confirmat": "confirmed" };
-          setStatus({ found: true, status: statusMap[result.status] || "pending", name: result.name });
+          setStatus({
+            found: true,
+            status: statusMap[result.status] || "pending",
+            name: result.name,
+            firstName: result.firstName,
+            // Flags pentru documents (din API v4)
+            contractSemnat: result.contractSemnat,
+            fisaSemnat: result.fisaSemnat,
+            roiSemnat: result.roiSemnat,
+            ciIncarcat: result.ciIncarcat,
+            statusFinal: result.statusFinal,
+          });
         } else {
           setStatus({ found: false });
         }
@@ -620,6 +1109,11 @@ function StatusPage() {
       setStatus({ found: false, error: "Eroare de conexiune." });
     }
     setSearching(false);
+  }
+
+  // Refresh function pentru AcceptedFlow (după sign/upload)
+  async function refreshStatus() {
+    await checkStatus(phone);
   }
 
   return (
@@ -663,26 +1157,12 @@ function StatusPage() {
                 </div>
               )}
               {status.status === "accepted" && (
-                <div>
-                  <div style={{ background: "rgba(99,153,34,0.08)", border: "1px solid rgba(99,153,34,0.2)", borderRadius: 16, padding: 20, textAlign: "center", marginBottom: 16 }}>
-                    <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
-                    <div style={{ fontSize: 18, fontWeight: 700, color: "#97C459", marginBottom: 4 }}>Acceptat!</div>
-                    <div style={{ fontSize: 13, color: "rgba(232,230,227,0.45)" }}>Felicitări! Descarcă documentele de mai jos.</div>
-                  </div>
-                  <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 12, padding: 16 }}>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginBottom: 12 }}>Documente de semnat</div>
-                    {["Contract de muncă", "Fișa postului", "Regulament de ordine internă"].map(doc => (
-                      <div key={doc} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 0", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
-                        <span style={{ fontSize: 13, color: "rgba(232,230,227,0.7)" }}>{doc}</span>
-                        <button style={{ background: "rgba(114,249,76,0.12)", border: "none", borderRadius: 8, padding: "6px 12px", fontSize: 12, color: C.accent, cursor: "pointer" }}>Descarcă</button>
-                      </div>
-                    ))}
-                    <div style={{ marginTop: 16 }}>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: "rgba(232,230,227,0.6)", marginBottom: 8 }}>Upload acte semnate + copie CI</div>
-                      <button style={{ width: "100%", padding: "14px", borderRadius: 10, border: "2px dashed rgba(255,255,255,0.12)", background: "rgba(255,255,255,0.03)", color: "rgba(232,230,227,0.4)", fontSize: 13, cursor: "pointer" }}>📎 Adaugă fișiere</button>
-                    </div>
-                  </div>
-                </div>
+                <AcceptedFlow
+                  phone={phone}
+                  firstName={status.firstName}
+                  statusInfo={status}
+                  refreshStatus={refreshStatus}
+                />
               )}
               {status.status === "rejected" && (
                 <div style={{ background: "rgba(226,75,74,0.08)", border: "1px solid rgba(226,75,74,0.2)", borderRadius: 16, padding: 20, textAlign: "center" }}>
