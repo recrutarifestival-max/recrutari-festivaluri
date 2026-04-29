@@ -14,22 +14,29 @@ function Nav({ view, setView, hasShifts, hasTeam }) {
   if (hasShifts) buttons.push({ v: VIEWS.SHIFTS, l: "Turele mele" });
   if (hasTeam) buttons.push({ v: VIEWS.TEAM, l: "Echipa mea" });
   
+  // Pe ecran mai îngust (sub 600px), ascundem brand-ul ca să încapă tab-urile
+  const compactBrand = buttons.length > 4;
+  
   return (
-    <nav style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(15,15,26,0.92)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "0 16px" }}>
-      <div style={{ maxWidth: 520, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: 56 }}>
-        <button onClick={() => setView(VIEWS.HOME)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+    <nav style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(15,15,26,0.92)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "0 12px" }}>
+      <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: 56, gap: 8 }}>
+        <button onClick={() => setView(VIEWS.HOME)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <div style={{ width: 28, height: 28, borderRadius: 6, background: `linear-gradient(135deg, #72F94C, #4AD42F)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: "#fff", fontWeight: 700 }}>C</div>
-          <span style={{ fontSize: 14, fontWeight: 600, color: "#fff", letterSpacing: "0.02em" }}>Cashless Payment Systems</span>
+          <span style={{ 
+            fontSize: 13, fontWeight: 600, color: "#fff", letterSpacing: "0.02em",
+            display: compactBrand ? "none" : "inline",
+          }} className="nav-brand-text">Cashless</span>
         </button>
-        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
+        <div style={{ display: "flex", gap: 2, justifyContent: "flex-end", overflow: "hidden", flex: 1 }}>
           {buttons.map(b => (
             <button key={b.v} onClick={() => setView(b.v)} style={{
               background: view === b.v ? "rgba(114,249,76,0.15)" : "transparent",
               border: view === b.v ? "1px solid rgba(114,249,76,0.3)" : "1px solid transparent",
-              borderRadius: 20, padding: "6px 12px", fontSize: 12, fontWeight: 500, cursor: "pointer",
+              borderRadius: 18, padding: "6px 10px", fontSize: 12, fontWeight: 500, cursor: "pointer",
               color: view === b.v ? C.accent : "rgba(232,230,227,0.6)",
               transition: "all 0.2s",
               whiteSpace: "nowrap",
+              flexShrink: 0,
             }}>{b.l}</button>
           ))}
         </div>
@@ -1001,24 +1008,29 @@ function MyShifts({ phone }) {
               borderRadius: 12, padding: 12, marginBottom: 6,
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>
-                  {s.isNight && <span style={{ marginRight: 6 }}>🌙</span>}
-                  {s.isNight === false && <span style={{ marginRight: 6 }}>☀️</span>}
-                  {s.time || "—"}
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#fff", display: "flex", alignItems: "center", gap: 6 }}>
+                  {s.isNight && <span>🌙</span>}
+                  {s.isNight === false && <span>☀️</span>}
+                  <span>{s.time || "—"}</span>
+                  {s.myRole === "Supervizor" && (
+                    <span style={{ fontSize: 9, color: "#FFB347", background: "rgba(255,179,71,0.12)", border: "1px solid rgba(255,179,71,0.3)", padding: "2px 6px", borderRadius: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Supervizor</span>
+                  )}
                 </div>
                 {s.cp && <div style={{ fontSize: 11, color: C.accent, fontFamily: "monospace", background: "rgba(114,249,76,0.1)", padding: "2px 8px", borderRadius: 6 }}>{s.cp}</div>}
               </div>
               {s.zone && (
                 <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginBottom: 4 }}>📍 {s.zone}</div>
               )}
-              {s.supervisor && (
+              {s.supervisor && s.myRole !== "Supervizor" && (
                 <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)", marginBottom: 4 }}>
                   👤 Supervizor: <span style={{ color: "rgba(232,230,227,0.85)" }}>{s.supervisor}</span>
                 </div>
               )}
               {s.team && s.team.length > 0 && (
                 <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-                  <div style={{ fontSize: 11, color: "rgba(232,230,227,0.5)", marginBottom: 4, fontWeight: 600 }}>👥 Echipa ({s.team.length}):</div>
+                  <div style={{ fontSize: 11, color: "rgba(232,230,227,0.5)", marginBottom: 4, fontWeight: 600 }}>
+                    👥 {s.myRole === "Supervizor" ? "Echipa ta" : "Echipa"} ({s.team.length}):
+                  </div>
                   <div style={{ fontSize: 11, color: "rgba(232,230,227,0.7)", lineHeight: 1.6 }}>
                     {s.team.join(" • ")}
                   </div>
