@@ -3,15 +3,16 @@ import { useState, useMemo, useEffect, useRef } from "react";
 
 const C = { accent: "#72F94C", accentDark: "#4AD42F", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
 const API_URL = "https://script.google.com/macros/s/AKfycbyBvRDNA7V9HDpwqQTKeLh6q_thnddCcSMGKlYZHMuNvV-5plWUEDHxGkUpv9hGzRltXQ/exec";
-const VIEWS = { HOME: "home", APPLY: "apply", STATUS: "status", SHIFTS: "shifts" };
+const VIEWS = { HOME: "home", APPLY: "apply", STATUS: "status", SHIFTS: "shifts", TEAM: "team" };
 
-function Nav({ view, setView, hasShifts }) {
+function Nav({ view, setView, hasShifts, hasTeam }) {
   const buttons = [
     { v: VIEWS.HOME, l: "Acasă" },
     { v: VIEWS.APPLY, l: "Aplică" },
     { v: VIEWS.STATUS, l: "Status" },
   ];
   if (hasShifts) buttons.push({ v: VIEWS.SHIFTS, l: "Turele mele" });
+  if (hasTeam) buttons.push({ v: VIEWS.TEAM, l: "Echipa mea" });
   
   return (
     <nav style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(15,15,26,0.92)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "0 16px" }}>
@@ -1298,6 +1299,247 @@ function ShiftsPage({ phone, onLogout }) {
 }
 
 
+// ============================================
+// TEAM PAGE - tab dedicat "Echipa mea" (doar pentru Supervizori)
+// ============================================
+
+function TeamPage({ phone, onLogout }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [copiedShift, setCopiedShift] = useState(null);
+  
+  async function loadTeam() {
+    setError(null);
+    try {
+      const url = `${API_URL}?action=team&phone=${encodeURIComponent(phone)}&t=${Date.now()}`;
+      const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
+      const text = await resp.text();
+      const result = JSON.parse(text);
+      if (result.success) {
+        setData(result);
+      } else {
+        setError(result.error || "Eroare la încărcarea echipei");
+      }
+    } catch (err) {
+      setError("Eroare conexiune: " + err.message);
+    }
+    setLoading(false);
+    setRefreshing(false);
+  }
+  
+  useEffect(() => {
+    if (phone) loadTeam();
+  }, [phone]);
+  
+  async function handleRefresh() {
+    setRefreshing(true);
+    await loadTeam();
+  }
+  
+  function copyPhones(team, shiftKey) {
+    const phones = team.filter(t => t.phone).map(t => t.phone).join(", ");
+    if (!phones) {
+      alert("Niciun telefon disponibil în această echipă.");
+      return;
+    }
+    
+    // Try modern clipboard API first
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(phones).then(() => {
+        setCopiedShift(shiftKey);
+        setTimeout(() => setCopiedShift(null), 2000);
+      }).catch(() => fallbackCopy(phones, shiftKey));
+    } else {
+      fallbackCopy(phones, shiftKey);
+    }
+  }
+  
+  function fallbackCopy(text, shiftKey) {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+      document.execCommand("copy");
+      setCopiedShift(shiftKey);
+      setTimeout(() => setCopiedShift(null), 2000);
+    } catch (e) {
+      alert("Nu am putut copia. Selectează manual:\n\n" + text);
+    }
+    document.body.removeChild(textarea);
+  }
+  
+  function openWhatsApp(team) {
+    const phones = team.filter(t => t.phone).map(t => t.phone);
+    if (phones.length === 0) {
+      alert("Niciun telefon disponibil în această echipă.");
+      return;
+    }
+    if (phones.length === 1) {
+      // Direct la o singură persoană
+      const cleanPhone = phones[0].replace(/\D/g, "").replace(/^0/, "40");
+      window.open(`https://wa.me/${cleanPhone}`, "_blank");
+    } else {
+      // Pentru mai multe: deschidem WhatsApp generic și utilizatorul alege contactele
+      // wa.me nu suportă mass messaging, deci doar deschidem WhatsApp
+      const message = encodeURIComponent("Salut! Mesaj pentru echipa mea de tură.");
+      // Pe Android/iOS: whatsapp://send? funcționează; pe web: web.whatsapp.com
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      if (isMobile) {
+        window.open(`whatsapp://send?text=${message}`, "_blank");
+      } else {
+        window.open(`https://web.whatsapp.com/`, "_blank");
+      }
+    }
+  }
+  
+  if (!phone) {
+    return (
+      <div style={{ padding: "40px 16px", maxWidth: 520, margin: "0 auto", textAlign: "center" }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>👥</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 8 }}>Echipa mea</div>
+        <div style={{ fontSize: 13, color: "rgba(232,230,227,0.5)", lineHeight: 1.6, maxWidth: 320, margin: "0 auto" }}>
+          Această secțiune e doar pentru supervizori. Mergi la "Status" pentru a verifica.
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <div style={{ padding: "32px 16px", maxWidth: 520, margin: "0 auto" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: "#fff", margin: 0 }}>👥 Echipa mea</h2>
+        <button onClick={handleRefresh} disabled={refreshing} style={{
+          background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+          borderRadius: 8, padding: "6px 12px", fontSize: 11, color: "rgba(232,230,227,0.6)", cursor: "pointer",
+        }}>{refreshing ? "..." : "🔄"}</button>
+      </div>
+      
+      {loading && (
+        <div style={{ textAlign: "center", padding: 24, color: "rgba(232,230,227,0.4)", fontSize: 13 }}>
+          Se încarcă echipa...
+        </div>
+      )}
+      
+      {error && (
+        <div style={{ background: "rgba(226,75,74,0.08)", border: "1px solid rgba(226,75,74,0.2)", borderRadius: 12, padding: 16, fontSize: 13, color: "#ff9999" }}>
+          {error}
+        </div>
+      )}
+      
+      {!loading && data && !data.published && (
+        <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: 18, textAlign: "center" }}>
+          <div style={{ fontSize: 28, marginBottom: 8 }}>📅</div>
+          <div style={{ fontSize: 12, color: "rgba(232,230,227,0.5)", lineHeight: 1.6 }}>
+            {data.message || "Echipa va fi disponibilă când programul e gata."}
+          </div>
+        </div>
+      )}
+      
+      {!loading && data && data.empty && (
+        <div style={{ background: "rgba(186,117,23,0.08)", border: "1px solid rgba(186,117,23,0.2)", borderRadius: 12, padding: 18, textAlign: "center" }}>
+          <div style={{ fontSize: 28, marginBottom: 8 }}>🤔</div>
+          <div style={{ fontSize: 12, color: "rgba(232,230,227,0.5)", lineHeight: 1.6 }}>
+            {data.message || "Nu am găsit ture ca supervizor pentru tine."}
+          </div>
+        </div>
+      )}
+      
+      {/* Carduri per tură */}
+      {!loading && data && data.shifts && data.shifts.map((s, i) => {
+        const shiftKey = `${s.date}_${s.cp}_${i}`;
+        const phonesAvailable = s.team.filter(t => t.phone).length;
+        return (
+          <div key={shiftKey} style={{
+            background: s.isNight ? "rgba(74,144,226,0.06)" : "rgba(255,255,255,0.04)",
+            border: s.isNight ? "1px solid rgba(74,144,226,0.2)" : "1px solid rgba(255,255,255,0.08)",
+            borderRadius: 12, padding: 14, marginBottom: 12,
+          }}>
+            {/* Header tură */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+              <div>
+                <div style={{ fontSize: 13, color: "rgba(232,230,227,0.6)", marginBottom: 2 }}>{s.label}</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>
+                  {s.isNight ? "🌙" : "☀️"} {s.time}
+                </div>
+              </div>
+              <div style={{ fontSize: 11, color: C.accent, fontFamily: "monospace", background: "rgba(114,249,76,0.1)", padding: "3px 8px", borderRadius: 6 }}>{s.cp}</div>
+            </div>
+            
+            {s.zone && (
+              <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)", marginBottom: 8 }}>📍 {s.zone}</div>
+            )}
+            
+            {/* Lista echipei */}
+            <div style={{ marginTop: 10, padding: 10, background: "rgba(0,0,0,0.15)", borderRadius: 8 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(232,230,227,0.6)", marginBottom: 6 }}>
+                ECHIPA ({s.team.length} {s.team.length === 1 ? "casier" : "casieri"})
+              </div>
+              {s.team.map((member, idx) => (
+                <div key={idx} style={{ 
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                  padding: "6px 0", borderBottom: idx < s.team.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none",
+                }}>
+                  <div style={{ fontSize: 13, color: "rgba(232,230,227,0.85)" }}>
+                    {member.fullName}
+                  </div>
+                  {member.phone ? (
+                    <a href={`tel:${member.phone}`} style={{ fontSize: 12, color: C.accent, textDecoration: "none", fontFamily: "monospace" }}>
+                      📞 {member.phone}
+                    </a>
+                  ) : (
+                    <span style={{ fontSize: 11, color: "rgba(232,230,227,0.3)", fontStyle: "italic" }}>fără tel.</span>
+                  )}
+                </div>
+              ))}
+            </div>
+            
+            {/* Butoane acțiuni */}
+            {phonesAvailable > 0 && (
+              <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+                <button onClick={() => copyPhones(s.team, shiftKey)} style={{
+                  flex: 1, background: copiedShift === shiftKey ? "rgba(114,249,76,0.2)" : "rgba(255,255,255,0.06)",
+                  border: copiedShift === shiftKey ? "1px solid rgba(114,249,76,0.4)" : "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: 8, padding: "10px", fontSize: 12, fontWeight: 600,
+                  color: copiedShift === shiftKey ? C.accent : "rgba(232,230,227,0.7)", cursor: "pointer",
+                  transition: "all 0.2s",
+                }}>
+                  {copiedShift === shiftKey ? "✓ Copiat!" : "📋 Copiază telefoane"}
+                </button>
+                <button onClick={() => openWhatsApp(s.team)} style={{
+                  flex: 1, background: "rgba(37,211,102,0.1)", border: "1px solid rgba(37,211,102,0.3)",
+                  borderRadius: 8, padding: "10px", fontSize: 12, fontWeight: 600,
+                  color: "#25D366", cursor: "pointer",
+                }}>
+                  💬 WhatsApp
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+      
+      {/* Logout */}
+      {onLogout && (
+        <div style={{ textAlign: "center", marginTop: 24 }}>
+          <button onClick={() => {
+            if (confirm("Sigur vrei să deconectezi acest dispozitiv?")) onLogout();
+          }} style={{
+            background: "transparent", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8,
+            padding: "8px 16px", fontSize: 11, color: "rgba(232,230,227,0.4)", cursor: "pointer",
+          }}>Deconectare</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+function StatusPage({ onCompleteDetected }) {
   const [phone, setPhone] = useState("");
   const [status, setStatus] = useState(null);
   const [searching, setSearching] = useState(false);
@@ -1352,10 +1594,11 @@ function ShiftsPage({ phone, onLogout }) {
             roiSemnat: result.roiSemnat,
             ciIncarcat: result.ciIncarcat,
             statusFinal: result.statusFinal,
+            position: result.position || "Casier",
           });
-          // Dacă e Complete, activează tab-ul "Turele mele" pentru această sesiune
+          // Dacă e Complete, activează tab-uri pentru această sesiune
           if (result.statusFinal === "Complete" && onCompleteDetected) {
-            onCompleteDetected(targetPhone);
+            onCompleteDetected(targetPhone, result.position || "Casier");
           }
         } else {
           setStatus({ found: false });
@@ -1469,29 +1712,40 @@ function ShiftsPage({ phone, onLogout }) {
 export default function App() {
   const [view, setView] = useState(VIEWS.HOME);
   // Telefonul utilizatorului care a făcut status check și e Complete
-  // Activează tab-ul "Turele mele" și permite ShiftsPage să-l folosească
   const [completePhone, setCompletePhone] = useState(null);
+  const [userPosition, setUserPosition] = useState("Casier");
   
   // Restore din localStorage la primul render
   useEffect(() => {
     if (typeof window !== "undefined") {
       try {
         const saved = window.localStorage.getItem("bp_complete_phone");
+        const savedPos = window.localStorage.getItem("bp_user_position");
         if (saved) setCompletePhone(saved);
+        if (savedPos) setUserPosition(savedPos);
       } catch (e) {}
     }
   }, []);
   
   // Salvează în localStorage când se schimbă
-  function updateCompletePhone(phone) {
+  function updateCompletePhone(phone, position) {
     setCompletePhone(phone);
+    if (position) setUserPosition(position);
     try {
       if (phone) {
         window.localStorage.setItem("bp_complete_phone", phone);
+        if (position) window.localStorage.setItem("bp_user_position", position);
       } else {
         window.localStorage.removeItem("bp_complete_phone");
+        window.localStorage.removeItem("bp_user_position");
       }
     } catch (e) {}
+  }
+  
+  function handleLogout() {
+    updateCompletePhone(null, null);
+    setUserPosition("Casier");
+    setView(VIEWS.HOME);
   }
 
   return (
@@ -1516,13 +1770,16 @@ export default function App() {
         background: "radial-gradient(circle, rgba(114,249,76,0.05) 0%, transparent 70%)", pointerEvents: "none",
       }} />
 
-      <Nav view={view} setView={setView} hasShifts={!!completePhone} />
+      <Nav view={view} setView={setView} 
+        hasShifts={!!completePhone}
+        hasTeam={!!completePhone && userPosition === "Supervizor"} />
 
       <div style={{ position: "relative", zIndex: 1 }}>
         {view === VIEWS.HOME && <HomePage setView={setView} />}
         {view === VIEWS.APPLY && <ApplyPage setView={setView} />}
         {view === VIEWS.STATUS && <StatusPage onCompleteDetected={updateCompletePhone} />}
-        {view === VIEWS.SHIFTS && <ShiftsPage phone={completePhone} onLogout={() => updateCompletePhone(null)} />}
+        {view === VIEWS.SHIFTS && <ShiftsPage phone={completePhone} onLogout={handleLogout} />}
+        {view === VIEWS.TEAM && <TeamPage phone={completePhone} onLogout={handleLogout} />}
       </div>
 
       <div style={{ textAlign: "center", padding: "24px 16px 32px", borderTop: "1px solid rgba(255,255,255,0.05)", fontSize: 11, color: "rgba(232,230,227,0.2)", fontFamily: "monospace" }}>
