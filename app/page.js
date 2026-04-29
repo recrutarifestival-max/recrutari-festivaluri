@@ -854,6 +854,182 @@ function CIUploadCard({ uploaded, onUpload, busy }) {
 // ACCEPTED FLOW (pagina principală pentru status="accepted")
 // ============================================
 
+// ============================================
+// MY SHIFTS - turele mele
+// ============================================
+
+function MyShifts({ phone }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  async function loadShifts() {
+    setError(null);
+    try {
+      const url = `${API_URL}?action=schedule&phone=${encodeURIComponent(phone)}&t=${Date.now()}`;
+      const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
+      const text = await resp.text();
+      const result = JSON.parse(text);
+      if (result.success) {
+        setData(result);
+      } else {
+        setError(result.error || "Eroare la încărcarea programului");
+      }
+    } catch (err) {
+      setError("Eroare conexiune: " + err.message);
+    }
+    setLoading(false);
+    setRefreshing(false);
+  }
+
+  useEffect(() => {
+    if (phone) loadShifts();
+  }, [phone]);
+
+  async function handleRefresh() {
+    setRefreshing(true);
+    await loadShifts();
+  }
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: "center", padding: 24, color: "rgba(232,230,227,0.4)", fontSize: 13 }}>
+        Se încarcă programul...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ background: "rgba(226,75,74,0.08)", border: "1px solid rgba(226,75,74,0.2)", borderRadius: 12, padding: 16, fontSize: 13, color: "#ff9999" }}>
+        {error}
+        <button onClick={handleRefresh} style={{
+          display: "block", marginTop: 12, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+          borderRadius: 8, padding: "8px 16px", fontSize: 12, color: "rgba(232,230,227,0.7)", cursor: "pointer",
+        }}>Reîncearcă</button>
+      </div>
+    );
+  }
+
+  // Programul nu e încă publicat / candidatul nu e Complete
+  if (data && !data.published) {
+    return (
+      <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: 18, textAlign: "center" }}>
+        <div style={{ fontSize: 28, marginBottom: 8 }}>📅</div>
+        <div style={{ fontSize: 15, fontWeight: 600, color: "#fff", marginBottom: 6 }}>Programul tău</div>
+        <div style={{ fontSize: 12, color: "rgba(232,230,227,0.5)", lineHeight: 1.6 }}>
+          {data.message || "Programul va fi publicat cu ~7 zile înainte de festival."}
+        </div>
+      </div>
+    );
+  }
+
+  // Empty - nu am găsit ture pentru tine
+  if (data && data.empty) {
+    return (
+      <div style={{ background: "rgba(186,117,23,0.08)", border: "1px solid rgba(186,117,23,0.2)", borderRadius: 12, padding: 18, textAlign: "center" }}>
+        <div style={{ fontSize: 28, marginBottom: 8 }}>🤔</div>
+        <div style={{ fontSize: 15, fontWeight: 600, color: "#EF9F27", marginBottom: 6 }}>Nu am găsit turele tale</div>
+        <div style={{ fontSize: 12, color: "rgba(232,230,227,0.5)", lineHeight: 1.6 }}>
+          {data.message || "Contactează coordonatorul pentru detalii."}
+        </div>
+        <button onClick={handleRefresh} disabled={refreshing} style={{
+          marginTop: 12, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+          borderRadius: 8, padding: "8px 16px", fontSize: 12, color: "rgba(232,230,227,0.7)", cursor: "pointer",
+        }}>{refreshing ? "Se reîncarcă..." : "🔄 Reîncearcă"}</button>
+      </div>
+    );
+  }
+
+  // Avem ture - le grupăm pe zi
+  const shiftsByDay = {};
+  (data?.shifts || []).forEach(s => {
+    const key = s.date || "necunoscut";
+    if (!shiftsByDay[key]) shiftsByDay[key] = { label: s.label, shifts: [] };
+    shiftsByDay[key].shifts.push(s);
+  });
+  const sortedDays = Object.keys(shiftsByDay).sort();
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <div style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>📅 Turele mele</div>
+        <button onClick={handleRefresh} disabled={refreshing} style={{
+          background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+          borderRadius: 8, padding: "6px 12px", fontSize: 11, color: "rgba(232,230,227,0.6)", cursor: "pointer",
+        }}>{refreshing ? "..." : "🔄"}</button>
+      </div>
+
+      {/* Summary */}
+      {data?.summary && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 14 }}>
+          <div style={{ background: "rgba(114,249,76,0.08)", border: "1px solid rgba(114,249,76,0.15)", borderRadius: 10, padding: 10, textAlign: "center" }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{data.summary.totalShifts}</div>
+            <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>ture</div>
+          </div>
+          <div style={{ background: "rgba(114,249,76,0.08)", border: "1px solid rgba(114,249,76,0.15)", borderRadius: 10, padding: 10, textAlign: "center" }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{data.summary.totalHours}</div>
+            <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>ore</div>
+          </div>
+          <div style={{ background: "rgba(114,249,76,0.08)", border: "1px solid rgba(114,249,76,0.15)", borderRadius: 10, padding: 10, textAlign: "center" }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{data.summary.zones?.length || 0}</div>
+            <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>{data.summary.zones?.length === 1 ? "zonă" : "zone"}</div>
+          </div>
+        </div>
+      )}
+
+      {/* Shifts grouped by day */}
+      {sortedDays.map(day => (
+        <div key={day} style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, color: "rgba(232,230,227,0.7)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            {shiftsByDay[day].label}
+          </div>
+          {shiftsByDay[day].shifts.map((s, i) => (
+            <div key={i} style={{
+              background: s.isNight ? "rgba(74,144,226,0.08)" : "rgba(255,255,255,0.04)",
+              border: s.isNight ? "1px solid rgba(74,144,226,0.25)" : "1px solid rgba(255,255,255,0.08)",
+              borderRadius: 12, padding: 12, marginBottom: 6,
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>
+                  {s.isNight && <span style={{ marginRight: 6 }}>🌙</span>}
+                  {s.isNight === false && <span style={{ marginRight: 6 }}>☀️</span>}
+                  {s.time || "—"}
+                </div>
+                {s.cp && <div style={{ fontSize: 11, color: C.accent, fontFamily: "monospace", background: "rgba(114,249,76,0.1)", padding: "2px 8px", borderRadius: 6 }}>{s.cp}</div>}
+              </div>
+              {s.zone && (
+                <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginBottom: 4 }}>📍 {s.zone}</div>
+              )}
+              {s.coordinator && s.coordinator.name && (
+                <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)", marginBottom: 4 }}>
+                  👤 Coordonator: {s.coordinator.name}
+                  {s.coordinator.phone && (
+                    <a href={`tel:${s.coordinator.phone}`} style={{ marginLeft: 6, color: C.accent, textDecoration: "none" }}>
+                      📞 {s.coordinator.phone}
+                    </a>
+                  )}
+                </div>
+              )}
+              {s.programCasuta && (
+                <div style={{ fontSize: 11, color: "rgba(232,230,227,0.4)", marginBottom: 4 }}>
+                  ⏰ Program căsuță: {s.programCasuta}
+                </div>
+              )}
+              {s.colleagues && s.colleagues.length > 0 && (
+                <div style={{ fontSize: 11, color: "rgba(232,230,227,0.45)", marginTop: 6 }}>
+                  Colegi: {s.colleagues.join(", ")}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
   const [documents, setDocuments] = useState(null);
   const [signModal, setSignModal] = useState(null); // { type, title, docName }
@@ -958,15 +1134,20 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
   // Display "Complete" state
   if (statusInfo?.statusFinal === "Complete") {
     return (
-      <div style={{ background: "rgba(99,153,34,0.08)", border: "1px solid rgba(99,153,34,0.3)", borderRadius: 16, padding: 24, textAlign: "center" }}>
-        <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div>
-        <div style={{ fontSize: 20, fontWeight: 700, color: "#97C459", marginBottom: 8 }}>Totul e gata!</div>
-        <div style={{ fontSize: 13, color: "rgba(232,230,227,0.6)", lineHeight: 1.6, maxWidth: 320, margin: "0 auto" }}>
-          Toate documentele tale au fost trimise cu succes. Vei primi în curând un email cu detaliile finale și informații despre training-uri.
+      <div>
+        <div style={{ background: "rgba(99,153,34,0.08)", border: "1px solid rgba(99,153,34,0.3)", borderRadius: 16, padding: 24, textAlign: "center", marginBottom: 16 }}>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "#97C459", marginBottom: 8 }}>Totul e gata!</div>
+          <div style={{ fontSize: 13, color: "rgba(232,230,227,0.6)", lineHeight: 1.6, maxWidth: 320, margin: "0 auto" }}>
+            Toate documentele tale au fost trimise cu succes. Vei primi în curând un email cu detaliile finale și informații despre training-uri.
+          </div>
+          <div style={{ fontSize: 12, color: "rgba(232,230,227,0.4)", marginTop: 16, fontFamily: "monospace" }}>
+            Ne vedem la Beach Please! 🏖️
+          </div>
         </div>
-        <div style={{ fontSize: 12, color: "rgba(232,230,227,0.4)", marginTop: 16, fontFamily: "monospace" }}>
-          Ne vedem la Beach Please! 🏖️
-        </div>
+        
+        {/* My Shifts Section */}
+        <MyShifts phone={phone} />
       </div>
     );
   }
