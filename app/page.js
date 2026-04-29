@@ -3,9 +3,16 @@ import { useState, useMemo, useEffect, useRef } from "react";
 
 const C = { accent: "#72F94C", accentDark: "#4AD42F", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
 const API_URL = "https://script.google.com/macros/s/AKfycbyBvRDNA7V9HDpwqQTKeLh6q_thnddCcSMGKlYZHMuNvV-5plWUEDHxGkUpv9hGzRltXQ/exec";
-const VIEWS = { HOME: "home", APPLY: "apply", STATUS: "status" };
+const VIEWS = { HOME: "home", APPLY: "apply", STATUS: "status", SHIFTS: "shifts" };
 
-function Nav({ view, setView }) {
+function Nav({ view, setView, hasShifts }) {
+  const buttons = [
+    { v: VIEWS.HOME, l: "Acasă" },
+    { v: VIEWS.APPLY, l: "Aplică" },
+    { v: VIEWS.STATUS, l: "Status" },
+  ];
+  if (hasShifts) buttons.push({ v: VIEWS.SHIFTS, l: "Turele mele" });
+  
   return (
     <nav style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(15,15,26,0.92)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "0 16px" }}>
       <div style={{ maxWidth: 520, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: 56 }}>
@@ -13,14 +20,15 @@ function Nav({ view, setView }) {
           <div style={{ width: 28, height: 28, borderRadius: 6, background: `linear-gradient(135deg, #72F94C, #4AD42F)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: "#fff", fontWeight: 700 }}>C</div>
           <span style={{ fontSize: 14, fontWeight: 600, color: "#fff", letterSpacing: "0.02em" }}>Cashless Payment Systems</span>
         </button>
-        <div style={{ display: "flex", gap: 4 }}>
-          {[{ v: VIEWS.HOME, l: "Acasă" }, { v: VIEWS.APPLY, l: "Aplică" }, { v: VIEWS.STATUS, l: "Status" }].map(b => (
+        <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
+          {buttons.map(b => (
             <button key={b.v} onClick={() => setView(b.v)} style={{
               background: view === b.v ? "rgba(114,249,76,0.15)" : "transparent",
               border: view === b.v ? "1px solid rgba(114,249,76,0.3)" : "1px solid transparent",
-              borderRadius: 20, padding: "6px 14px", fontSize: 13, fontWeight: 500, cursor: "pointer",
+              borderRadius: 20, padding: "6px 12px", fontSize: 12, fontWeight: 500, cursor: "pointer",
               color: view === b.v ? C.accent : "rgba(232,230,227,0.6)",
               transition: "all 0.2s",
+              whiteSpace: "nowrap",
             }}>{b.l}</button>
           ))}
         </div>
@@ -1002,24 +1010,17 @@ function MyShifts({ phone }) {
               {s.zone && (
                 <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginBottom: 4 }}>📍 {s.zone}</div>
               )}
-              {s.coordinator && s.coordinator.name && (
+              {s.supervisor && (
                 <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)", marginBottom: 4 }}>
-                  👤 Coordonator: {s.coordinator.name}
-                  {s.coordinator.phone && (
-                    <a href={`tel:${s.coordinator.phone}`} style={{ marginLeft: 6, color: C.accent, textDecoration: "none" }}>
-                      📞 {s.coordinator.phone}
-                    </a>
-                  )}
+                  👤 Supervizor: <span style={{ color: "rgba(232,230,227,0.85)" }}>{s.supervisor}</span>
                 </div>
               )}
-              {s.programCasuta && (
-                <div style={{ fontSize: 11, color: "rgba(232,230,227,0.4)", marginBottom: 4 }}>
-                  ⏰ Program căsuță: {s.programCasuta}
-                </div>
-              )}
-              {s.colleagues && s.colleagues.length > 0 && (
-                <div style={{ fontSize: 11, color: "rgba(232,230,227,0.45)", marginTop: 6 }}>
-                  Colegi: {s.colleagues.join(", ")}
+              {s.team && s.team.length > 0 && (
+                <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                  <div style={{ fontSize: 11, color: "rgba(232,230,227,0.5)", marginBottom: 4, fontWeight: 600 }}>👥 Echipa ({s.team.length}):</div>
+                  <div style={{ fontSize: 11, color: "rgba(232,230,227,0.7)", lineHeight: 1.6 }}>
+                    {s.team.join(" • ")}
+                  </div>
                 </div>
               )}
             </div>
@@ -1146,8 +1147,13 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
           </div>
         </div>
         
-        {/* My Shifts Section */}
-        <MyShifts phone={phone} />
+        <div style={{ background: "rgba(114,249,76,0.06)", border: "1px solid rgba(114,249,76,0.2)", borderRadius: 12, padding: 16, textAlign: "center" }}>
+          <div style={{ fontSize: 20, marginBottom: 6 }}>📅</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginBottom: 4 }}>Programul tău e disponibil</div>
+          <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)", lineHeight: 1.5 }}>
+            Mergi la tab-ul <strong style={{ color: C.accent }}>"Turele mele"</strong> din meniul de sus pentru a vedea turele tale.
+          </div>
+        </div>
       </div>
     );
   }
@@ -1253,7 +1259,45 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
   );
 }
 
-function StatusPage() {
+// ============================================
+// SHIFTS PAGE - tab dedicat "Turele mele"
+// ============================================
+
+function ShiftsPage({ phone, onLogout }) {
+  if (!phone) {
+    return (
+      <div style={{ padding: "40px 16px", maxWidth: 520, margin: "0 auto", textAlign: "center" }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>📅</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 8 }}>Turele mele</div>
+        <div style={{ fontSize: 13, color: "rgba(232,230,227,0.5)", lineHeight: 1.6, maxWidth: 320, margin: "0 auto" }}>
+          Mergi la tab-ul "Status", introdu numărul de telefon, și după ce confirmi că ai semnat toate documentele, vei putea vedea turele tale aici.
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <div style={{ padding: "32px 16px", maxWidth: 520, margin: "0 auto" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: "#fff", margin: 0 }}>📅 Turele mele</h2>
+        {onLogout && (
+          <button onClick={() => {
+            if (confirm("Sigur vrei să deconectezi acest dispozitiv? Va trebui să verifici din nou statusul.")) {
+              onLogout();
+            }
+          }} style={{
+            background: "transparent", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8,
+            padding: "6px 12px", fontSize: 11, color: "rgba(232,230,227,0.5)", cursor: "pointer",
+          }}>Deconectare</button>
+        )}
+      </div>
+      
+      <MyShifts phone={phone} />
+    </div>
+  );
+}
+
+
   const [phone, setPhone] = useState("");
   const [status, setStatus] = useState(null);
   const [searching, setSearching] = useState(false);
@@ -1309,6 +1353,10 @@ function StatusPage() {
             ciIncarcat: result.ciIncarcat,
             statusFinal: result.statusFinal,
           });
+          // Dacă e Complete, activează tab-ul "Turele mele" pentru această sesiune
+          if (result.statusFinal === "Complete" && onCompleteDetected) {
+            onCompleteDetected(targetPhone);
+          }
         } else {
           setStatus({ found: false });
         }
@@ -1420,6 +1468,31 @@ function StatusPage() {
 
 export default function App() {
   const [view, setView] = useState(VIEWS.HOME);
+  // Telefonul utilizatorului care a făcut status check și e Complete
+  // Activează tab-ul "Turele mele" și permite ShiftsPage să-l folosească
+  const [completePhone, setCompletePhone] = useState(null);
+  
+  // Restore din localStorage la primul render
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = window.localStorage.getItem("bp_complete_phone");
+        if (saved) setCompletePhone(saved);
+      } catch (e) {}
+    }
+  }, []);
+  
+  // Salvează în localStorage când se schimbă
+  function updateCompletePhone(phone) {
+    setCompletePhone(phone);
+    try {
+      if (phone) {
+        window.localStorage.setItem("bp_complete_phone", phone);
+      } else {
+        window.localStorage.removeItem("bp_complete_phone");
+      }
+    } catch (e) {}
+  }
 
   return (
     <div style={{
@@ -1443,12 +1516,13 @@ export default function App() {
         background: "radial-gradient(circle, rgba(114,249,76,0.05) 0%, transparent 70%)", pointerEvents: "none",
       }} />
 
-      <Nav view={view} setView={setView} />
+      <Nav view={view} setView={setView} hasShifts={!!completePhone} />
 
       <div style={{ position: "relative", zIndex: 1 }}>
         {view === VIEWS.HOME && <HomePage setView={setView} />}
         {view === VIEWS.APPLY && <ApplyPage setView={setView} />}
-        {view === VIEWS.STATUS && <StatusPage />}
+        {view === VIEWS.STATUS && <StatusPage onCompleteDetected={updateCompletePhone} />}
+        {view === VIEWS.SHIFTS && <ShiftsPage phone={completePhone} onLogout={() => updateCompletePhone(null)} />}
       </div>
 
       <div style={{ textAlign: "center", padding: "24px 16px 32px", borderTop: "1px solid rgba(255,255,255,0.05)", fontSize: 11, color: "rgba(232,230,227,0.2)", fontFamily: "monospace" }}>
