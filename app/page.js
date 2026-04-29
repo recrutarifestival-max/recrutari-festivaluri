@@ -1078,12 +1078,41 @@ function StatusPage() {
   const [searching, setSearching] = useState(false);
 
   async function checkStatus(phoneToCheck) {
-    const targetPhone = phoneToCheck || phone;
-    if (targetPhone.length < 10) return;
+    let targetPhone = (phoneToCheck || phone || "").replace(/[^0-9]/g, "");
+    // Normalizare: dacă începe cu 40 și are 11+ cifre, asumăm prefix internațional
+    if (targetPhone.startsWith("40") && targetPhone.length >= 11) {
+      targetPhone = "0" + targetPhone.substring(2);
+    }
+    if (targetPhone.length < 10) {
+      setStatus({ found: false, error: "Numărul trebuie să aibă 10 cifre. Ai introdus: " + targetPhone.length + " cifre." });
+      return;
+    }
+    
     setSearching(true);
+    setStatus(null);
+    
     try {
-      const resp = await fetch(`${API_URL}?action=status&phone=${encodeURIComponent(targetPhone)}`);
-      const result = await resp.json();
+      const url = `${API_URL}?action=status&phone=${encodeURIComponent(targetPhone)}&t=${Date.now()}`;
+      const resp = await fetch(url, { 
+        method: "GET",
+        cache: "no-store",
+        credentials: "omit",
+      });
+      
+      // Defensive parsing - unele browsere mobile parsează JSON ciudat
+      const responseText = await resp.text();
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseErr) {
+        setStatus({ 
+          found: false, 
+          error: "Eroare parsare răspuns. Răspuns primit: " + responseText.substring(0, 100) 
+        });
+        setSearching(false);
+        return;
+      }
+      
       if (result.success) {
         if (result.found) {
           const statusMap = { "În așteptare": "pending", "Acceptat": "accepted", "Respins": "rejected", "Confirmat": "confirmed" };
@@ -1125,15 +1154,34 @@ function StatusPage() {
       </div>
 
       <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
-        <input type="tel" value={phone} onChange={e => { setPhone(e.target.value.replace(/[^0-9]/g, "")); setStatus(null); }}
-          placeholder="07xxxxxxxx" maxLength={10}
+        <input
+          type="tel"
+          inputMode="numeric"
+          autoComplete="tel-national"
+          value={phone}
+          onChange={e => { 
+            let v = e.target.value;
+            // Eliminăm tot ce nu e cifră
+            v = v.replace(/[^0-9]/g, "");
+            // Dacă începe cu 40 (prefix RO fără +), tăiem
+            if (v.startsWith("40") && v.length > 10) v = v.substring(2);
+            // Dacă începe cu 0040, tăiem
+            if (v.startsWith("0040")) v = "0" + v.substring(4);
+            // Limităm la 10 cifre
+            if (v.length > 10) v = v.substring(0, 10);
+            setPhone(v); 
+            setStatus(null); 
+          }}
+          placeholder="07xxxxxxxx"
+          maxLength={14}
           style={{
             flex: 1, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
             borderRadius: 12, padding: "14px 16px", fontSize: 16, color: "#e8e6e3", outline: "none",
+            WebkitAppearance: "none",
           }}
           onKeyDown={e => e.key === "Enter" && checkStatus()}
         />
-        <button onClick={checkStatus} disabled={phone.length < 10} style={{
+        <button onClick={() => checkStatus()} disabled={phone.length < 10} style={{
           background: phone.length >= 10 ? `linear-gradient(135deg, #72F94C, #4AD42F)` : "rgba(255,255,255,0.06)",
           border: "none", borderRadius: 12, padding: "14px 20px", fontSize: 15, fontWeight: 600,
           color: phone.length >= 10 ? "#0a0a0a" : "rgba(232,230,227,0.3)", cursor: phone.length >= 10 ? "pointer" : "default",
@@ -1176,6 +1224,11 @@ function StatusPage() {
             <div style={{ textAlign: "center", padding: 32, color: "rgba(232,230,227,0.4)" }}>
               <div style={{ fontSize: 14, marginBottom: 4 }}>Nu am găsit nicio aplicație</div>
               <div style={{ fontSize: 12 }}>Verifică numărul de telefon sau aplică mai întâi.</div>
+              {status.error && (
+                <div style={{ marginTop: 12, padding: 8, background: "rgba(226,75,74,0.1)", border: "1px solid rgba(226,75,74,0.2)", borderRadius: 8, fontSize: 11, color: "#ff9999" }}>
+                  Detalii: {status.error}
+                </div>
+              )}
             </div>
           )}
         </div>
