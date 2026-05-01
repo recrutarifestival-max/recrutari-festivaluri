@@ -3,7 +3,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 
 const C = { accent: "#72F94C", accentDark: "#4AD42F", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
 const API_URL = "https://script.google.com/macros/s/AKfycbyBvRDNA7V9HDpwqQTKeLh6q_thnddCcSMGKlYZHMuNvV-5plWUEDHxGkUpv9hGzRltXQ/exec";
-const VIEWS = { HOME: "home", APPLY: "apply", STATUS: "status", SHIFTS: "shifts", TEAM: "team" };
+const VIEWS = { HOME: "home", APPLY: "apply", STATUS: "status", SHIFTS: "shifts", PAST_SHIFTS: "past_shifts", TEAM: "team" };
 
 function Nav({ view, setView, hasShifts, hasTeam }) {
   const buttons = [
@@ -12,6 +12,7 @@ function Nav({ view, setView, hasShifts, hasTeam }) {
     { v: VIEWS.STATUS, l: "Status" },
   ];
   if (hasShifts) buttons.push({ v: VIEWS.SHIFTS, l: "Turele mele" });
+  if (hasShifts) buttons.push({ v: VIEWS.PAST_SHIFTS, l: "Ture complete" });
   if (hasTeam) buttons.push({ v: VIEWS.TEAM, l: "Echipa mea" });
   
   // Pe ecran mai îngust (sub 600px), ascundem brand-ul ca să încapă tab-urile
@@ -80,7 +81,7 @@ function Hero({ setView }) {
 
 function InfoCards() {
   const cards = [
-    { icon: "💰", title: "Plată", desc: "15 lei net/oră, 40-42 ore pe săptămână. Plata se face după festival." },
+    { icon: "💰", title: "Plată", desc: "20 RON net/oră, 40-42 ore pe săptămână. Plata se face după festival." },
     { icon: "🏕️", title: "Camping inclus", desc: "Loc de cort în camping disponibil din 7 Iulie. Dacă preferi altceva, îți asiguri cazarea proprie." },
     { icon: "🎪", title: "Acces festival", desc: "Ai acces în perimetrul festivalului și în afara turelor de lucru." },
     { icon: "🍕", title: "Mâncare + apă", desc: "Primești mâncare și apă pe durata turei de lucru." },
@@ -523,7 +524,7 @@ function ApplyPage({ setView }) {
         </div>
 
         {[
-          { key: "confirm1", text: "Confirm că am citit și înțeles condițiile: plata este de 15 lei/oră, se oferă loc de cort în camping, nu se oferă parcare, voi avea tură zilnic." },
+          { key: "confirm1", text: "Confirm că am citit și înțeles condițiile: plata este de 20 RON/oră, se oferă loc de cort în camping, nu se oferă parcare, voi avea tură zilnic." },
           { key: "confirm2", text: "Confirm că datele introduse sunt corecte și reale. Înțeleg că orice neconcordanță duce la excludere." },
           { key: "confirm3", text: "Mă angajez să fiu disponibil/ă pentru toată durata festivalului (8-12 Iulie) și pentru training-urile premergătoare." },
           { key: "confirm4", text: "Am citit și sunt de acord cu Regulamentul de Ordine Interioară. Înțeleg că nerespectarea acestuia poate duce la încetarea colaborării." },
@@ -874,7 +875,7 @@ function CIUploadCard({ uploaded, onUpload, busy }) {
 // MY SHIFTS - turele mele
 // ============================================
 
-function MyShifts({ phone }) {
+function MyShifts({ phone, pastOnly = false }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -958,19 +959,62 @@ function MyShifts({ phone }) {
     );
   }
 
+  // Filtrare după trecut/actual
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const allShifts = data?.shifts || [];
+  const filteredShifts = allShifts.filter(s => {
+    if (!s.date) return !pastOnly;
+    const shiftDate = new Date(s.date);
+    if (pastOnly) return shiftDate < today;
+    return shiftDate >= today;
+  });
+  
+  // Recalculăm summary
+  let filteredHours = 0;
+  const filteredZones = new Set();
+  filteredShifts.forEach(s => {
+    filteredHours += s.hours || 0;
+    if (s.zone) filteredZones.add(s.zone);
+  });
+  const filteredSummary = {
+    totalShifts: filteredShifts.length,
+    totalHours: Math.round(filteredHours * 10) / 10,
+    zones: [...filteredZones],
+  };
+  
+  // Empty state pentru filtru
+  if (filteredShifts.length === 0 && allShifts.length > 0) {
+    return (
+      <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: 18, textAlign: "center" }}>
+        <div style={{ fontSize: 28, marginBottom: 8 }}>{pastOnly ? "📜" : "✨"}</div>
+        <div style={{ fontSize: 13, color: "rgba(232,230,227,0.5)", lineHeight: 1.6 }}>
+          {pastOnly 
+            ? "Nu ai ture trecute deocamdată. Aici vor apărea turele după ce sunt finalizate."
+            : "Nu ai ture viitoare. Verifică tab-ul \"Ture complete\" pentru istoric."}
+        </div>
+      </div>
+    );
+  }
+  
   // Avem ture - le grupăm pe zi
   const shiftsByDay = {};
-  (data?.shifts || []).forEach(s => {
+  filteredShifts.forEach(s => {
     const key = s.date || "necunoscut";
     if (!shiftsByDay[key]) shiftsByDay[key] = { label: s.label, shifts: [] };
     shiftsByDay[key].shifts.push(s);
   });
-  const sortedDays = Object.keys(shiftsByDay).sort();
+  const sortedDays = Object.keys(shiftsByDay).sort((a, b) => 
+    pastOnly ? b.localeCompare(a) : a.localeCompare(b)
+  );
 
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>📅 Turele mele</div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>
+          {pastOnly ? "📜 Ture complete" : "📅 Turele mele"}
+        </div>
         <button onClick={handleRefresh} disabled={refreshing} style={{
           background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
           borderRadius: 8, padding: "6px 12px", fontSize: 11, color: "rgba(232,230,227,0.6)", cursor: "pointer",
@@ -978,19 +1022,19 @@ function MyShifts({ phone }) {
       </div>
 
       {/* Summary */}
-      {data?.summary && (
+      {filteredSummary.totalShifts > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 14 }}>
           <div style={{ background: "rgba(114,249,76,0.08)", border: "1px solid rgba(114,249,76,0.15)", borderRadius: 10, padding: 10, textAlign: "center" }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{data.summary.totalShifts}</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{filteredSummary.totalShifts}</div>
             <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>ture</div>
           </div>
           <div style={{ background: "rgba(114,249,76,0.08)", border: "1px solid rgba(114,249,76,0.15)", borderRadius: 10, padding: 10, textAlign: "center" }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{data.summary.totalHours}</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{filteredSummary.totalHours}</div>
             <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>ore</div>
           </div>
           <div style={{ background: "rgba(114,249,76,0.08)", border: "1px solid rgba(114,249,76,0.15)", borderRadius: 10, padding: 10, textAlign: "center" }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{data.summary.zones?.length || 0}</div>
-            <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>{data.summary.zones?.length === 1 ? "zonă" : "zone"}</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{filteredSummary.zones?.length || 0}</div>
+            <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>{filteredSummary.zones?.length === 1 ? "zonă" : "zone"}</div>
           </div>
         </div>
       )}
@@ -1050,6 +1094,10 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
   const [busyDoc, setBusyDoc] = useState(null); // "contract" | "fisa" | "roi" | "ci"
   const [error, setError] = useState(null);
   const [allComplete, setAllComplete] = useState(false);
+  // Optimistic UI: marchează documente ca semnate instant local
+  const [optimisticSigned, setOptimisticSigned] = useState({
+    contract: false, fisa: false, roi: false, ci: false
+  });
 
   // Load document URLs when component mounts
   useEffect(() => {
@@ -1064,19 +1112,29 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
       .catch(err => setError("Nu pot încărca documentele: " + err.message));
   }, [phone]);
 
-  // Check if all complete
+  // Check if all complete (optimistic + real)
   useEffect(() => {
-    if (statusInfo) {
-      const all = statusInfo.contractSemnat && statusInfo.fisaSemnat && 
-                  statusInfo.roiSemnat && statusInfo.ciIncarcat;
-      setAllComplete(all);
-    }
-  }, [statusInfo]);
+    const real = {
+      contract: !!statusInfo?.contractSemnat,
+      fisa: !!statusInfo?.fisaSemnat,
+      roi: !!statusInfo?.roiSemnat,
+      ci: !!statusInfo?.ciIncarcat,
+    };
+    const all = (real.contract || optimisticSigned.contract) &&
+                (real.fisa || optimisticSigned.fisa) &&
+                (real.roi || optimisticSigned.roi) &&
+                (real.ci || optimisticSigned.ci);
+    setAllComplete(all);
+  }, [statusInfo, optimisticSigned]);
 
   async function handleSign(docType, signatureBase64) {
-    setBusyDoc(docType);
     setError(null);
     setSignModal(null);
+    
+    // OPTIMISTIC: marcăm documentul ca semnat instant
+    setOptimisticSigned(prev => ({ ...prev, [docType]: true }));
+    setBusyDoc(docType);
+    
     try {
       const resp = await fetch(API_URL, {
         method: "POST",
@@ -1090,19 +1148,28 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
       });
       const result = await resp.json();
       if (result.success) {
+        // Backend confirmă - reîncărcăm statusul real
         await refreshStatus();
       } else {
-        setError(result.error || "Eroare la semnare.");
+        // Eșec - revertăm optimistic
+        setOptimisticSigned(prev => ({ ...prev, [docType]: false }));
+        setError(result.error || "Eroare la semnare. Încearcă din nou.");
       }
     } catch (err) {
+      // Eșec rețea - revertăm optimistic
+      setOptimisticSigned(prev => ({ ...prev, [docType]: false }));
       setError("Eroare conexiune: " + err.message);
     }
     setBusyDoc(null);
   }
 
   async function handleCIUpload(base64, mimeType, fileName) {
-    setBusyDoc("ci");
     setError(null);
+    
+    // OPTIMISTIC
+    setOptimisticSigned(prev => ({ ...prev, ci: true }));
+    setBusyDoc("ci");
+    
     try {
       const resp = await fetch(API_URL, {
         method: "POST",
@@ -1119,9 +1186,11 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
       if (result.success) {
         await refreshStatus();
       } else {
+        setOptimisticSigned(prev => ({ ...prev, ci: false }));
         setError(result.error || "Eroare la upload.");
       }
     } catch (err) {
+      setOptimisticSigned(prev => ({ ...prev, ci: false }));
       setError("Eroare conexiune: " + err.message);
     }
     setBusyDoc(null);
@@ -1193,7 +1262,7 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
 
       <DocumentCard
         title="Contract Individual de Muncă"
-        signed={statusInfo?.contractSemnat}
+        signed={!!statusInfo?.contractSemnat || optimisticSigned.contract}
         viewUrl={documents?.contract?.url}
         pdfUrl={documents?.contract?.pdfUrl}
         onSign={() => setSignModal({ type: "contract", title: "Semnează contractul", docName: "Contract Individual de Muncă" })}
@@ -1202,7 +1271,7 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
 
       <DocumentCard
         title="Fișa Postului"
-        signed={statusInfo?.fisaSemnat}
+        signed={!!statusInfo?.fisaSemnat || optimisticSigned.fisa}
         viewUrl={documents?.fisa?.url}
         pdfUrl={documents?.fisa?.pdfUrl}
         onSign={() => setSignModal({ type: "fisa", title: "Semnează fișa postului", docName: "Fișa Postului" })}
@@ -1211,7 +1280,7 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
 
       <DocumentCard
         title="Regulament de Ordine Interioară"
-        signed={statusInfo?.roiSemnat}
+        signed={!!statusInfo?.roiSemnat || optimisticSigned.roi}
         viewUrl={documents?.roi?.url}
         pdfUrl={documents?.roi?.pdfUrl}
         onSign={() => setSignModal({ type: "roi", title: "Semnează ROI", docName: "Regulament de Ordine Interioară" })}
@@ -1221,7 +1290,7 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
       <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginTop: 16, marginBottom: 10 }}>Documente de încărcat</div>
 
       <CIUploadCard
-        uploaded={statusInfo?.ciIncarcat}
+        uploaded={!!statusInfo?.ciIncarcat || optimisticSigned.ci}
         onUpload={handleCIUpload}
         busy={busyDoc === "ci"}
       />
@@ -1235,16 +1304,28 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
 
       {/* Progress summary + Finalize button */}
       <div style={{ marginTop: 24, padding: 16, background: "rgba(255,255,255,0.04)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.08)" }}>
-        <div style={{ fontSize: 12, color: "rgba(232,230,227,0.5)", marginBottom: 8 }}>
-          Progres: {[statusInfo?.contractSemnat, statusInfo?.fisaSemnat, statusInfo?.roiSemnat, statusInfo?.ciIncarcat].filter(Boolean).length} / 4
-        </div>
-        <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden", marginBottom: 14 }}>
-          <div style={{
-            width: `${[statusInfo?.contractSemnat, statusInfo?.fisaSemnat, statusInfo?.roiSemnat, statusInfo?.ciIncarcat].filter(Boolean).length / 4 * 100}%`,
-            height: "100%", background: `linear-gradient(90deg, ${C.accent}, #F9F871)`,
-            transition: "width 0.4s",
-          }} />
-        </div>
+        {(() => {
+          const done = [
+            !!statusInfo?.contractSemnat || optimisticSigned.contract,
+            !!statusInfo?.fisaSemnat || optimisticSigned.fisa,
+            !!statusInfo?.roiSemnat || optimisticSigned.roi,
+            !!statusInfo?.ciIncarcat || optimisticSigned.ci,
+          ].filter(Boolean).length;
+          return (
+            <>
+              <div style={{ fontSize: 12, color: "rgba(232,230,227,0.5)", marginBottom: 8 }}>
+                Progres: {done} / 4
+              </div>
+              <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden", marginBottom: 14 }}>
+                <div style={{
+                  width: `${done / 4 * 100}%`,
+                  height: "100%", background: `linear-gradient(90deg, ${C.accent}, #F9F871)`,
+                  transition: "width 0.4s",
+                }} />
+              </div>
+            </>
+          );
+        })()}
         <button onClick={handleFinalize} disabled={!allComplete || busyDoc} style={{
           width: "100%",
           background: allComplete ? `linear-gradient(135deg, #72F94C, #4AD42F)` : "rgba(255,255,255,0.06)",
@@ -1276,12 +1357,14 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
 // SHIFTS PAGE - tab dedicat "Turele mele"
 // ============================================
 
-function ShiftsPage({ phone, onLogout }) {
+function ShiftsPage({ phone, onLogout, pastOnly = false }) {
   if (!phone) {
     return (
       <div style={{ padding: "40px 16px", maxWidth: 520, margin: "0 auto", textAlign: "center" }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>📅</div>
-        <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 8 }}>Turele mele</div>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>{pastOnly ? "📜" : "📅"}</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 8 }}>
+          {pastOnly ? "Ture complete" : "Turele mele"}
+        </div>
         <div style={{ fontSize: 13, color: "rgba(232,230,227,0.5)", lineHeight: 1.6, maxWidth: 320, margin: "0 auto" }}>
           Mergi la tab-ul "Status", introdu numărul de telefon, și după ce confirmi că ai semnat toate documentele, vei putea vedea turele tale aici.
         </div>
@@ -1292,7 +1375,9 @@ function ShiftsPage({ phone, onLogout }) {
   return (
     <div style={{ padding: "32px 16px", maxWidth: 520, margin: "0 auto" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-        <h2 style={{ fontSize: 22, fontWeight: 700, color: "#fff", margin: 0 }}>📅 Turele mele</h2>
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: "#fff", margin: 0 }}>
+          {pastOnly ? "📜 Ture complete" : "📅 Turele mele"}
+        </h2>
         {onLogout && (
           <button onClick={() => {
             if (confirm("Sigur vrei să deconectezi acest dispozitiv? Va trebui să verifici din nou statusul.")) {
@@ -1305,7 +1390,7 @@ function ShiftsPage({ phone, onLogout }) {
         )}
       </div>
       
-      <MyShifts phone={phone} />
+      <MyShifts phone={phone} pastOnly={pastOnly} />
     </div>
   );
 }
@@ -1461,18 +1546,38 @@ function TeamPage({ phone, onLogout }) {
         </div>
       )}
       
-      {/* Carduri per tură */}
-      {!loading && data && data.shifts && data.shifts.map((s, i) => {
-        const shiftKey = `${s.date}_${s.cp}_${i}`;
-        const phonesAvailable = s.team.filter(t => t.phone).length;
-        return (
-          <div key={shiftKey} style={{
-            background: s.isNight ? "rgba(74,144,226,0.06)" : "rgba(255,255,255,0.04)",
-            border: s.isNight ? "1px solid rgba(74,144,226,0.2)" : "1px solid rgba(255,255,255,0.08)",
-            borderRadius: 12, padding: 14, marginBottom: 12,
-          }}>
-            {/* Header tură */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+      {/* Carduri per tură - doar viitoare/azi */}
+      {(() => {
+        if (!data || !data.shifts) return null;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const futureShifts = data.shifts.filter(s => {
+          if (!s.date) return true;
+          return new Date(s.date) >= today;
+        });
+        
+        if (futureShifts.length === 0 && data.shifts.length > 0) {
+          return (
+            <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: 18, textAlign: "center" }}>
+              <div style={{ fontSize: 28, marginBottom: 8 }}>✨</div>
+              <div style={{ fontSize: 13, color: "rgba(232,230,227,0.5)", lineHeight: 1.6 }}>
+                Nu mai ai ture viitoare ca supervizor.
+              </div>
+            </div>
+          );
+        }
+        
+        return futureShifts.map((s, i) => {
+          const shiftKey = `${s.date}_${s.cp}_${i}`;
+          const phonesAvailable = s.team.filter(t => t.phone).length;
+          return (
+            <div key={shiftKey} style={{
+              background: s.isNight ? "rgba(74,144,226,0.06)" : "rgba(255,255,255,0.04)",
+              border: s.isNight ? "1px solid rgba(74,144,226,0.2)" : "1px solid rgba(255,255,255,0.08)",
+              borderRadius: 12, padding: 14, marginBottom: 12,
+            }}>
+              {/* Header tură */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.08em" }}>{s.label}</div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>
@@ -1533,7 +1638,8 @@ function TeamPage({ phone, onLogout }) {
             )}
           </div>
         );
-      })}
+      });
+      })()}
       
       {/* Logout */}
       {onLogout && (
@@ -1791,6 +1897,7 @@ export default function App() {
         {view === VIEWS.APPLY && <ApplyPage setView={setView} />}
         {view === VIEWS.STATUS && <StatusPage onCompleteDetected={updateCompletePhone} />}
         {view === VIEWS.SHIFTS && <ShiftsPage phone={completePhone} onLogout={handleLogout} />}
+        {view === VIEWS.PAST_SHIFTS && <ShiftsPage phone={completePhone} onLogout={handleLogout} pastOnly={true} />}
         {view === VIEWS.TEAM && <TeamPage phone={completePhone} onLogout={handleLogout} />}
       </div>
 
