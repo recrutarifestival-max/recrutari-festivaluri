@@ -998,7 +998,7 @@ function MyShifts({ phone }) {
       {/* Shifts grouped by day */}
       {sortedDays.map(day => (
         <div key={day} style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: "rgba(232,230,227,0.7)", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em" }}>
             {shiftsByDay[day].label}
           </div>
           {shiftsByDay[day].shifts.map((s, i) => (
@@ -1474,7 +1474,7 @@ function TeamPage({ phone, onLogout }) {
             {/* Header tură */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
               <div>
-                <div style={{ fontSize: 13, color: "rgba(232,230,227,0.6)", marginBottom: 2 }}>{s.label}</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.08em" }}>{s.label}</div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>
                   {s.isNight ? "🌙" : "☀️"} {s.time}
                 </div>
