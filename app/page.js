@@ -3,9 +3,9 @@ import { useState, useMemo, useEffect, useRef } from "react";
 
 const C = { accent: "#72F94C", accentDark: "#4AD42F", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
 const API_URL = "https://script.google.com/macros/s/AKfycbyBvRDNA7V9HDpwqQTKeLh6q_thnddCcSMGKlYZHMuNvV-5plWUEDHxGkUpv9hGzRltXQ/exec";
-const VIEWS = { HOME: "home", APPLY: "apply", STATUS: "status", SHIFTS: "shifts", TEAM: "team" };
+const VIEWS = { HOME: "home", APPLY: "apply", STATUS: "status", SHIFTS: "shifts", TEAM: "team", ADMIN: "admin" };
 
-function Nav({ view, setView, hasShifts, hasTeam }) {
+function Nav({ view, setView, hasShifts, hasTeam, isAdmin }) {
   const buttons = [
     { v: VIEWS.HOME, l: "Acasă" },
     { v: VIEWS.APPLY, l: "Aplică" },
@@ -13,6 +13,7 @@ function Nav({ view, setView, hasShifts, hasTeam }) {
   ];
   if (hasShifts) buttons.push({ v: VIEWS.SHIFTS, l: "Turele mele" });
   if (hasTeam) buttons.push({ v: VIEWS.TEAM, l: "Echipa mea" });
+  if (isAdmin) buttons.push({ v: VIEWS.ADMIN, l: "Admin" });
   
   // Pe ecran mai îngust (sub 600px), ascundem brand-ul ca să încapă tab-urile
   const compactBrand = buttons.length > 4;
@@ -1759,6 +1760,404 @@ function TeamPage({ phone, onLogout }) {
 }
 
 
+// ============================================
+// ADMIN PAGE - acces admin pentru a vedea turele oricui
+// ============================================
+
+function AdminPage({ isAdmin, setIsAdmin }) {
+  const [code, setCode] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [error, setError] = useState(null);
+  
+  // Date după autentificare
+  const [position, setPosition] = useState("Casier");
+  const [candidates, setCandidates] = useState([]);
+  const [loadingCandidates, setLoadingCandidates] = useState(false);
+  const [selectedPhone, setSelectedPhone] = useState("");
+  const [scheduleData, setScheduleData] = useState(null);
+  const [loadingSchedule, setLoadingSchedule] = useState(false);
+  
+  // Persistăm codul în localStorage (după login)
+  function getStoredCode() {
+    try {
+      return window.localStorage.getItem("bp_admin_code") || "";
+    } catch (e) { return ""; }
+  }
+  
+  function storeCode(c) {
+    try {
+      if (c) window.localStorage.setItem("bp_admin_code", c);
+      else window.localStorage.removeItem("bp_admin_code");
+    } catch (e) {}
+  }
+  
+  // Login automat dacă există cod stocat
+  useEffect(() => {
+    if (!isAdmin) {
+      const stored = getStoredCode();
+      if (stored) verifyCode(stored, true);
+    }
+  }, []);
+  
+  // Încarcă candidați când se schimbă poziția (după login)
+  useEffect(() => {
+    if (isAdmin) loadCandidates(position);
+  }, [isAdmin, position]);
+  
+  async function verifyCode(codeToCheck, silent = false) {
+    if (!silent) setVerifying(true);
+    setError(null);
+    try {
+      const url = `${API_URL}?action=adminVerify&code=${encodeURIComponent(codeToCheck)}&t=${Date.now()}`;
+      const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
+      const result = await resp.json();
+      if (result.success) {
+        storeCode(codeToCheck);
+        setIsAdmin(true);
+        setError(null);
+      } else {
+        if (!silent) setError(result.error || "Cod incorect");
+        else storeCode(""); // dacă codul stocat nu mai e valid, îl ștergem
+      }
+    } catch (err) {
+      if (!silent) setError("Eroare conexiune: " + err.message);
+    }
+    setVerifying(false);
+  }
+  
+  async function loadCandidates(pos) {
+    setLoadingCandidates(true);
+    setSelectedPhone("");
+    setScheduleData(null);
+    try {
+      const stored = getStoredCode();
+      const url = `${API_URL}?action=adminCandidates&code=${encodeURIComponent(stored)}&position=${encodeURIComponent(pos)}&t=${Date.now()}`;
+      const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
+      const result = await resp.json();
+      if (result.success) {
+        setCandidates(result.candidates || []);
+      } else {
+        setError(result.error || "Eroare la încărcare");
+      }
+    } catch (err) {
+      setError("Eroare conexiune: " + err.message);
+    }
+    setLoadingCandidates(false);
+  }
+  
+  async function loadSchedule(phone) {
+    setSelectedPhone(phone);
+    if (!phone) { setScheduleData(null); return; }
+    
+    setLoadingSchedule(true);
+    setScheduleData(null);
+    try {
+      const stored = getStoredCode();
+      const url = `${API_URL}?action=adminSchedule&code=${encodeURIComponent(stored)}&phone=${encodeURIComponent(phone)}&t=${Date.now()}`;
+      const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
+      const result = await resp.json();
+      if (result.success) {
+        setScheduleData(result);
+      } else {
+        setError(result.error || "Eroare la încărcare program");
+      }
+    } catch (err) {
+      setError("Eroare conexiune: " + err.message);
+    }
+    setLoadingSchedule(false);
+  }
+  
+  function logout() {
+    storeCode("");
+    setIsAdmin(false);
+    setCandidates([]);
+    setSelectedPhone("");
+    setScheduleData(null);
+  }
+  
+  // ECRAN LOGIN
+  if (!isAdmin) {
+    return (
+      <div style={{ padding: "60px 20px", maxWidth: 360, margin: "0 auto", textAlign: "center" }}>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>🔐</div>
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: "#fff", margin: "0 0 8px" }}>Acces Admin</h2>
+        <p style={{ fontSize: 13, color: "rgba(232,230,227,0.5)", marginBottom: 24 }}>
+          Introdu codul de acces.
+        </p>
+        <input
+          type="password"
+          inputMode="numeric"
+          maxLength={6}
+          value={code}
+          onChange={e => { setCode(e.target.value.replace(/[^0-9]/g, "")); setError(null); }}
+          onKeyDown={e => e.key === "Enter" && code.length === 6 && verifyCode(code)}
+          placeholder="••••••"
+          style={{
+            width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 12, padding: "16px", fontSize: 24, color: "#e8e6e3", outline: "none",
+            textAlign: "center", letterSpacing: "0.5em", fontFamily: "monospace",
+          }}
+        />
+        {error && (
+          <div style={{ fontSize: 12, color: "#ff6b6b", marginTop: 12 }}>{error}</div>
+        )}
+        <button
+          onClick={() => verifyCode(code)}
+          disabled={code.length !== 6 || verifying}
+          style={{
+            width: "100%", marginTop: 16,
+            background: code.length === 6 ? `linear-gradient(135deg, #72F94C, #4AD42F)` : "rgba(255,255,255,0.06)",
+            border: "none", borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700,
+            color: code.length === 6 ? "#0a0a0a" : "rgba(232,230,227,0.3)",
+            cursor: code.length === 6 ? "pointer" : "default",
+          }}
+        >
+          {verifying ? "Verific..." : "Intră"}
+        </button>
+      </div>
+    );
+  }
+  
+  // ECRAN ADMIN
+  return (
+    <div style={{ padding: "32px 16px", maxWidth: 600, margin: "0 auto" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: "#fff", margin: 0 }}>🔐 Admin</h2>
+        <button onClick={logout} style={{
+          background: "transparent", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8,
+          padding: "6px 12px", fontSize: 11, color: "rgba(232,230,227,0.5)", cursor: "pointer",
+        }}>Ieșire</button>
+      </div>
+      
+      {error && (
+        <div style={{ background: "rgba(226,75,74,0.1)", border: "1px solid rgba(226,75,74,0.3)", borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 13, color: "#ff9999" }}>
+          {error}
+        </div>
+      )}
+      
+      {/* Selector poziție */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
+        {["Casier", "Supervizor"].map(p => (
+          <button key={p} onClick={() => setPosition(p)} style={{
+            padding: "12px",
+            background: position === p ? "rgba(114,249,76,0.15)" : "rgba(255,255,255,0.04)",
+            border: position === p ? "1px solid rgba(114,249,76,0.4)" : "1px solid rgba(255,255,255,0.08)",
+            borderRadius: 10, fontSize: 13, fontWeight: 600,
+            color: position === p ? C.accent : "rgba(232,230,227,0.7)",
+            cursor: "pointer",
+          }}>{p}</button>
+        ))}
+      </div>
+      
+      {/* Dropdown candidați */}
+      <div style={{ marginBottom: 16 }}>
+        <label style={{ display: "block", fontSize: 12, color: "rgba(232,230,227,0.6)", marginBottom: 6, fontWeight: 600 }}>
+          {loadingCandidates ? "Se încarcă..." : `${candidates.length} ${position === "Casier" ? "casieri" : "supervizori"} cu Status Complete`}
+        </label>
+        <select 
+          value={selectedPhone}
+          onChange={e => loadSchedule(e.target.value)}
+          disabled={loadingCandidates || candidates.length === 0}
+          style={{
+            width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 10, padding: "12px 14px", fontSize: 14, color: "#e8e6e3", outline: "none",
+            appearance: "none",
+          }}
+        >
+          <option value="" style={{ background: "#1a1a2e" }}>
+            {candidates.length === 0 ? "— niciun candidat —" : "— selectează —"}
+          </option>
+          {candidates.map(c => (
+            <option key={c.telefon} value={c.telefon} style={{ background: "#1a1a2e" }}>
+              {c.nume} {c.prenume} ({c.telefon})
+            </option>
+          ))}
+        </select>
+      </div>
+      
+      {/* Schedule view */}
+      {loadingSchedule && (
+        <div style={{ textAlign: "center", padding: 24, color: "rgba(232,230,227,0.4)", fontSize: 13 }}>
+          Se încarcă programul...
+        </div>
+      )}
+      
+      {scheduleData && !loadingSchedule && (
+        <div>
+          <div style={{ background: "rgba(114,249,76,0.06)", border: "1px solid rgba(114,249,76,0.2)", borderRadius: 12, padding: 14, marginBottom: 16 }}>
+            <div style={{ fontSize: 11, color: "rgba(232,230,227,0.5)", marginBottom: 4 }}>Vezi programul pentru:</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>
+              {scheduleData.name}
+              <span style={{ marginLeft: 8, fontSize: 11, color: "#FFB347", background: "rgba(255,179,71,0.12)", border: "1px solid rgba(255,179,71,0.3)", padding: "2px 6px", borderRadius: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                {scheduleData.position}
+              </span>
+            </div>
+          </div>
+          
+          {/* Reuse logică din MyShifts pentru afișare */}
+          <AdminScheduleView shifts={scheduleData.shifts || []} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Componentă pentru afișarea turelor în Admin (similar cu MyShifts dar fără fetch)
+function AdminScheduleView({ shifts }) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const enrichedShifts = shifts.map(s => {
+    let isPast = false;
+    if (s.date) {
+      const shiftDate = new Date(s.date);
+      isPast = shiftDate < today;
+    }
+    return { ...s, isPast };
+  });
+  
+  // Summary
+  let totalHours = 0;
+  let workedHours = 0;
+  let remainingHours = 0;
+  enrichedShifts.forEach(s => {
+    const h = s.hours || 0;
+    totalHours += h;
+    if (s.isPast) workedHours += h;
+    else remainingHours += h;
+  });
+  const summary = {
+    totalShifts: enrichedShifts.length,
+    totalHours: Math.round(totalHours * 10) / 10,
+    workedHours: Math.round(workedHours * 10) / 10,
+    remainingHours: Math.round(remainingHours * 10) / 10,
+  };
+  
+  if (enrichedShifts.length === 0) {
+    return (
+      <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: 18, textAlign: "center" }}>
+        <div style={{ fontSize: 28, marginBottom: 8 }}>📅</div>
+        <div style={{ fontSize: 13, color: "rgba(232,230,227,0.5)" }}>
+          Nu există ture pentru acest candidat.
+        </div>
+      </div>
+    );
+  }
+  
+  // Grupare pe zile
+  const shiftsByDay = {};
+  enrichedShifts.forEach(s => {
+    const key = s.date || "necunoscut";
+    if (!shiftsByDay[key]) shiftsByDay[key] = { label: s.label, shifts: [] };
+    shiftsByDay[key].shifts.push(s);
+  });
+  const sortedDays = Object.keys(shiftsByDay).sort((a, b) => a.localeCompare(b));
+  
+  return (
+    <div>
+      {/* Summary 4 carduri */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 14 }}>
+        <div style={{ background: "rgba(114,249,76,0.08)", border: "1px solid rgba(114,249,76,0.15)", borderRadius: 10, padding: 10, textAlign: "center" }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{summary.totalShifts}</div>
+          <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>ture</div>
+        </div>
+        <div style={{ background: "rgba(114,249,76,0.08)", border: "1px solid rgba(114,249,76,0.15)", borderRadius: 10, padding: 10, textAlign: "center" }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{summary.totalHours}</div>
+          <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>ore total</div>
+        </div>
+        <div style={{ background: "rgba(99,153,34,0.10)", border: "1px solid rgba(99,153,34,0.25)", borderRadius: 10, padding: 10, textAlign: "center" }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: "#97C459" }}>{summary.workedHours}</div>
+          <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>ore lucrate</div>
+        </div>
+        <div style={{ background: "rgba(186,117,23,0.08)", border: "1px solid rgba(186,117,23,0.2)", borderRadius: 10, padding: 10, textAlign: "center" }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: "#EF9F27" }}>{summary.remainingHours}</div>
+          <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>ore rămase</div>
+        </div>
+      </div>
+      
+      {/* Carduri ture grupate pe zi */}
+      {sortedDays.map(day => (
+        <div key={day} style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            {shiftsByDay[day].label}
+          </div>
+          {shiftsByDay[day].shifts.map((s, i) => (
+            <div key={`${s.date}_${i}`} style={{
+              background: s.isNight ? "rgba(74,144,226,0.08)" : "rgba(255,255,255,0.04)",
+              border: s.isNight ? "1px solid rgba(74,144,226,0.25)" : "1px solid rgba(255,255,255,0.08)",
+              borderRadius: 12, padding: 12, marginBottom: 6,
+              opacity: s.isPast ? 0.7 : 1,
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6, flexWrap: "wrap", gap: 4 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#fff", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                  {s.isNight && <span>🌙</span>}
+                  {s.isNight === false && <span>☀️</span>}
+                  <span>{s.time || "—"}</span>
+                  {s.myRole === "Supervizor" && (
+                    <span style={{ fontSize: 9, color: "#FFB347", background: "rgba(255,179,71,0.12)", border: "1px solid rgba(255,179,71,0.3)", padding: "2px 6px", borderRadius: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Supervizor</span>
+                  )}
+                  {s.isPast ? (
+                    <span style={{ fontSize: 9, color: "#97C459", background: "rgba(99,153,34,0.15)", border: "1px solid rgba(99,153,34,0.3)", padding: "2px 6px", borderRadius: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>✓ Completă</span>
+                  ) : (
+                    <span style={{ fontSize: 9, color: "#EF9F27", background: "rgba(186,117,23,0.12)", border: "1px solid rgba(186,117,23,0.3)", padding: "2px 6px", borderRadius: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Programată</span>
+                  )}
+                </div>
+                <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                  {s.cps && s.cps.length > 0 ? (
+                    s.cps.map(cp => (
+                      <div key={cp} style={{ fontSize: 11, color: C.accent, fontFamily: "monospace", background: "rgba(114,249,76,0.1)", padding: "2px 8px", borderRadius: 6 }}>{cp}</div>
+                    ))
+                  ) : s.cp ? (
+                    <div style={{ fontSize: 11, color: C.accent, fontFamily: "monospace", background: "rgba(114,249,76,0.1)", padding: "2px 8px", borderRadius: 6 }}>{s.cp}</div>
+                  ) : null}
+                </div>
+              </div>
+              {s.zones && s.zones.length > 0 ? (
+                <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginBottom: 4 }}>📍 {s.zones.join(", ")}</div>
+              ) : s.zone ? (
+                <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginBottom: 4 }}>📍 {s.zone}</div>
+              ) : null}
+              {s.supervisor && s.myRole !== "Supervizor" && (
+                <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)", marginBottom: 4 }}>
+                  👤 Supervizor: <span style={{ color: "rgba(232,230,227,0.85)" }}>{s.supervisor}</span>
+                </div>
+              )}
+              {s.teamsByCP && s.teamsByCP.length > 0 ? (
+                <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                  {s.teamsByCP.map((tc, idx) => (
+                    <div key={tc.cp + idx} style={{ marginBottom: idx < s.teamsByCP.length - 1 ? 8 : 0 }}>
+                      <div style={{ fontSize: 11, color: "rgba(232,230,227,0.5)", marginBottom: 3, fontWeight: 600 }}>
+                        <span style={{ color: C.accent }}>{tc.cp}</span>
+                        {tc.zone && <span style={{ color: "rgba(232,230,227,0.5)" }}> · {tc.zone}</span>}
+                        {tc.team && tc.team.length > 0 && <span style={{ color: "rgba(232,230,227,0.4)" }}> · {tc.team.length} casieri</span>}
+                      </div>
+                      {tc.team && tc.team.length > 0 && (
+                        <div style={{ fontSize: 11, color: "rgba(232,230,227,0.7)", lineHeight: 1.6 }}>
+                          {tc.team.join(" • ")}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : s.team && s.team.length > 0 ? (
+                <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                  <div style={{ fontSize: 11, color: "rgba(232,230,227,0.5)", marginBottom: 4, fontWeight: 600 }}>
+                    👥 Echipa ({s.team.length}):
+                  </div>
+                  <div style={{ fontSize: 11, color: "rgba(232,230,227,0.7)", lineHeight: 1.6 }}>
+                    {s.team.join(" • ")}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+
 function StatusPage({ onCompleteDetected }) {
   const [phone, setPhone] = useState("");
   const [status, setStatus] = useState(null);
@@ -1934,6 +2333,7 @@ export default function App() {
   // Telefonul utilizatorului care a făcut status check și e Complete
   const [completePhone, setCompletePhone] = useState(null);
   const [userPosition, setUserPosition] = useState("Casier");
+  const [isAdmin, setIsAdmin] = useState(false);
   
   // Restore din localStorage la primul render
   useEffect(() => {
@@ -1941,8 +2341,10 @@ export default function App() {
       try {
         const saved = window.localStorage.getItem("bp_complete_phone");
         const savedPos = window.localStorage.getItem("bp_user_position");
+        const savedAdmin = window.localStorage.getItem("bp_admin_code");
         if (saved) setCompletePhone(saved);
         if (savedPos) setUserPosition(savedPos);
+        if (savedAdmin) setIsAdmin(true);
       } catch (e) {}
     }
   }, []);
@@ -1992,7 +2394,8 @@ export default function App() {
 
       <Nav view={view} setView={setView} 
         hasShifts={!!completePhone}
-        hasTeam={!!completePhone && userPosition === "Supervizor"} />
+        hasTeam={!!completePhone && userPosition === "Supervizor"}
+        isAdmin={isAdmin} />
 
       <div style={{ position: "relative", zIndex: 1 }}>
         {view === VIEWS.HOME && <HomePage setView={setView} />}
@@ -2000,6 +2403,15 @@ export default function App() {
         {view === VIEWS.STATUS && <StatusPage onCompleteDetected={updateCompletePhone} />}
         {view === VIEWS.SHIFTS && <ShiftsPage phone={completePhone} onLogout={handleLogout} />}
         {view === VIEWS.TEAM && <TeamPage phone={completePhone} onLogout={handleLogout} />}
+        {view === VIEWS.ADMIN && <AdminPage isAdmin={isAdmin} setIsAdmin={setIsAdmin} />}
+      </div>
+
+      {/* Acces ascuns admin: link mic în footer */}
+      <div style={{ textAlign: "center", padding: "8px", fontSize: 10, color: "rgba(232,230,227,0.15)" }}>
+        <button onClick={() => setView(VIEWS.ADMIN)} style={{
+          background: "transparent", border: "none", color: "inherit", fontSize: "inherit",
+          cursor: "pointer", textDecoration: "underline", padding: 4,
+        }}>admin</button>
       </div>
 
       <div style={{ textAlign: "center", padding: "24px 16px 32px", borderTop: "1px solid rgba(255,255,255,0.05)", fontSize: 11, color: "rgba(232,230,227,0.2)", fontFamily: "monospace" }}>
