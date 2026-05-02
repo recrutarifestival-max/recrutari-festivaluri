@@ -1021,25 +1021,6 @@ function MyShifts({ phone, pastOnly = false }) {
         }}>{refreshing ? "..." : "🔄"}</button>
       </div>
 
-      {/* DEBUG INFO TEMPORAR */}
-      <details style={{ marginBottom: 12, padding: 8, background: "rgba(0,0,0,0.3)", borderRadius: 6, fontSize: 10, color: "rgba(255,255,255,0.5)", fontFamily: "monospace" }}>
-        <summary style={{ cursor: "pointer" }}>Debug info (click pentru detalii)</summary>
-        <div>Total ture primite: {allShifts.length}</div>
-        <div>După filtrare ({pastOnly ? "trecut" : "viitor"}): {filteredShifts.length}</div>
-        <div>Today: {today.toISOString().substring(0, 10)}</div>
-        <div style={{ marginTop: 6 }}>Toate turele:</div>
-        {allShifts.map((s, i) => (
-          <div key={i} style={{ paddingLeft: 12 }}>
-            #{i+1}: {s.date} {s.cp} {s.time} {s.zone} → {(() => {
-              if (!s.date) return "(fără dată) → " + (pastOnly ? "exclus" : "inclus");
-              const sd = new Date(s.date);
-              const ok = pastOnly ? sd < today : sd >= today;
-              return ok ? "✓ inclus" : "✗ exclus";
-            })()}
-          </div>
-        ))}
-      </details>
-      
       {/* Summary */}
       {filteredSummary.totalShifts > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 14 }}>
@@ -1079,17 +1060,47 @@ function MyShifts({ phone, pastOnly = false }) {
                     <span style={{ fontSize: 9, color: "#FFB347", background: "rgba(255,179,71,0.12)", border: "1px solid rgba(255,179,71,0.3)", padding: "2px 6px", borderRadius: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Supervizor</span>
                   )}
                 </div>
-                {s.cp && <div style={{ fontSize: 11, color: C.accent, fontFamily: "monospace", background: "rgba(114,249,76,0.1)", padding: "2px 8px", borderRadius: 6 }}>{s.cp}</div>}
+                {/* CP-uri (suportă și grupare) */}
+                <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  {s.cps && s.cps.length > 0 ? (
+                    s.cps.map(cp => (
+                      <div key={cp} style={{ fontSize: 11, color: C.accent, fontFamily: "monospace", background: "rgba(114,249,76,0.1)", padding: "2px 8px", borderRadius: 6 }}>{cp}</div>
+                    ))
+                  ) : s.cp ? (
+                    <div style={{ fontSize: 11, color: C.accent, fontFamily: "monospace", background: "rgba(114,249,76,0.1)", padding: "2px 8px", borderRadius: 6 }}>{s.cp}</div>
+                  ) : null}
+                </div>
               </div>
-              {s.zone && (
+              {/* Zone (suportă și multiple) */}
+              {s.zones && s.zones.length > 0 ? (
+                <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginBottom: 4 }}>📍 {s.zones.join(", ")}</div>
+              ) : s.zone ? (
                 <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginBottom: 4 }}>📍 {s.zone}</div>
-              )}
+              ) : null}
               {s.supervisor && s.myRole !== "Supervizor" && (
                 <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)", marginBottom: 4 }}>
                   👤 Supervizor: <span style={{ color: "rgba(232,230,227,0.85)" }}>{s.supervisor}</span>
                 </div>
               )}
-              {s.team && s.team.length > 0 && (
+              {/* Echipa: dacă avem teamsByCP (supervizor cu mai multe CP-uri), afișăm separat per CP */}
+              {s.teamsByCP && s.teamsByCP.length > 0 ? (
+                <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                  {s.teamsByCP.map((tc, idx) => (
+                    <div key={tc.cp + idx} style={{ marginBottom: idx < s.teamsByCP.length - 1 ? 8 : 0 }}>
+                      <div style={{ fontSize: 11, color: "rgba(232,230,227,0.5)", marginBottom: 3, fontWeight: 600 }}>
+                        <span style={{ color: C.accent }}>{tc.cp}</span>
+                        {tc.zone && <span style={{ color: "rgba(232,230,227,0.5)" }}> · {tc.zone}</span>}
+                        {tc.team && tc.team.length > 0 && <span style={{ color: "rgba(232,230,227,0.4)" }}> · {tc.team.length} casieri</span>}
+                      </div>
+                      {tc.team && tc.team.length > 0 && (
+                        <div style={{ fontSize: 11, color: "rgba(232,230,227,0.7)", lineHeight: 1.6 }}>
+                          {tc.team.join(" • ")}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : s.team && s.team.length > 0 ? (
                 <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
                   <div style={{ fontSize: 11, color: "rgba(232,230,227,0.5)", marginBottom: 4, fontWeight: 600 }}>
                     👥 {s.myRole === "Supervizor" ? "Echipa ta" : "Echipa"} ({s.team.length}):
@@ -1098,7 +1109,7 @@ function MyShifts({ phone, pastOnly = false }) {
                     {s.team.join(" • ")}
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
           ))}
         </div>
@@ -1587,8 +1598,30 @@ function TeamPage({ phone, onLogout }) {
         }
         
         return futureShifts.map((s, i) => {
-          const shiftKey = `${s.date}_${s.cp}_${i}`;
-          const phonesAvailable = s.team.filter(t => t.phone).length;
+          const shiftKey = `${s.date}_${s.cps ? s.cps.join("_") : s.cp}_${s.time}_${i}`;
+          
+          // Aplatizăm toate echipele într-o listă unică pentru butoane (combinate)
+          const allMembers = [];
+          if (s.teamsByCP && s.teamsByCP.length > 0) {
+            s.teamsByCP.forEach(tc => {
+              (tc.team || []).forEach(member => {
+                // teamsByCP din parseSupervisorShifts vine cu obiecte {fullName, nume, prenume, phone}
+                allMembers.push(member);
+              });
+            });
+          } else if (s.team) {
+            // Backward compat
+            s.team.forEach(m => allMembers.push(m));
+          }
+          
+          const phonesAvailable = allMembers.filter(m => m.phone).length;
+          const totalMembers = s.totalMembers || allMembers.length;
+          
+          // Lista CP-urilor pentru badge
+          const cpList = s.cps && s.cps.length > 0 ? s.cps : (s.cp ? [s.cp] : []);
+          // Lista zonelor
+          const zoneList = s.zones && s.zones.length > 0 ? s.zones : (s.zone ? [s.zone] : []);
+          
           return (
             <div key={shiftKey} style={{
               background: s.isNight ? "rgba(74,144,226,0.06)" : "rgba(255,255,255,0.04)",
@@ -1596,68 +1629,105 @@ function TeamPage({ phone, onLogout }) {
               borderRadius: 12, padding: 14, marginBottom: 12,
             }}>
               {/* Header tură */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.08em" }}>{s.label}</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>
-                  {s.isNight ? "🌙" : "☀️"} {s.time}
-                </div>
-              </div>
-              <div style={{ fontSize: 11, color: C.accent, fontFamily: "monospace", background: "rgba(114,249,76,0.1)", padding: "3px 8px", borderRadius: 6 }}>{s.cp}</div>
-            </div>
-            
-            {s.zone && (
-              <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)", marginBottom: 8 }}>📍 {s.zone}</div>
-            )}
-            
-            {/* Lista echipei */}
-            <div style={{ marginTop: 10, padding: 10, background: "rgba(0,0,0,0.15)", borderRadius: 8 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(232,230,227,0.6)", marginBottom: 6 }}>
-                ECHIPA ({s.team.length} {s.team.length === 1 ? "casier" : "casieri"})
-              </div>
-              {s.team.map((member, idx) => (
-                <div key={idx} style={{ 
-                  display: "flex", justifyContent: "space-between", alignItems: "center",
-                  padding: "6px 0", borderBottom: idx < s.team.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none",
-                }}>
-                  <div style={{ fontSize: 13, color: "rgba(232,230,227,0.85)" }}>
-                    {member.fullName}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8, gap: 8 }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.08em" }}>{s.label}</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>
+                    {s.isNight ? "🌙" : "☀️"} {s.time}
                   </div>
-                  {member.phone ? (
-                    <a href={`tel:${member.phone}`} style={{ fontSize: 12, color: C.accent, textDecoration: "none", fontFamily: "monospace" }}>
-                      📞 {member.phone}
-                    </a>
-                  ) : (
-                    <span style={{ fontSize: 11, color: "rgba(232,230,227,0.3)", fontStyle: "italic" }}>fără tel.</span>
-                  )}
                 </div>
-              ))}
-            </div>
-            
-            {/* Butoane acțiuni */}
-            {phonesAvailable > 0 && (
-              <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
-                <button onClick={() => copyPhones(s.team, shiftKey)} style={{
-                  flex: 1, background: copiedShift === shiftKey ? "rgba(114,249,76,0.2)" : "rgba(255,255,255,0.06)",
-                  border: copiedShift === shiftKey ? "1px solid rgba(114,249,76,0.4)" : "1px solid rgba(255,255,255,0.1)",
-                  borderRadius: 8, padding: "10px", fontSize: 12, fontWeight: 600,
-                  color: copiedShift === shiftKey ? C.accent : "rgba(232,230,227,0.7)", cursor: "pointer",
-                  transition: "all 0.2s",
-                }}>
-                  {copiedShift === shiftKey ? "✓ Copiat!" : "📋 Copiază telefoane"}
-                </button>
-                <button onClick={() => openWhatsApp(s.team)} style={{
-                  flex: 1, background: "rgba(37,211,102,0.1)", border: "1px solid rgba(37,211,102,0.3)",
-                  borderRadius: 8, padding: "10px", fontSize: 12, fontWeight: 600,
-                  color: "#25D366", cursor: "pointer",
-                }}>
-                  💬 WhatsApp
-                </button>
+                {/* CP badges */}
+                <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  {cpList.map(cp => (
+                    <div key={cp} style={{ fontSize: 11, color: C.accent, fontFamily: "monospace", background: "rgba(114,249,76,0.1)", padding: "3px 8px", borderRadius: 6 }}>{cp}</div>
+                  ))}
+                </div>
               </div>
-            )}
-          </div>
-        );
-      });
+              
+              {zoneList.length > 0 && (
+                <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)", marginBottom: 8 }}>📍 {zoneList.join(", ")}</div>
+              )}
+              
+              {/* Echipele - per CP */}
+              {s.teamsByCP && s.teamsByCP.length > 0 ? (
+                s.teamsByCP.map((tc, tcIdx) => (
+                  <div key={tc.cp + tcIdx} style={{ marginTop: 10, padding: 10, background: "rgba(0,0,0,0.15)", borderRadius: 8 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(232,230,227,0.6)", marginBottom: 6, display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ color: C.accent }}>{tc.cp}</span>
+                      {tc.zone && <span style={{ color: "rgba(232,230,227,0.4)" }}>· {tc.zone}</span>}
+                      <span style={{ color: "rgba(232,230,227,0.4)" }}>· {tc.team.length} {tc.team.length === 1 ? "casier" : "casieri"}</span>
+                    </div>
+                    {tc.team.map((member, idx) => (
+                      <div key={idx} style={{ 
+                        display: "flex", justifyContent: "space-between", alignItems: "center",
+                        padding: "6px 0", borderBottom: idx < tc.team.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none",
+                      }}>
+                        <div style={{ fontSize: 13, color: "rgba(232,230,227,0.85)" }}>
+                          {member.fullName}
+                        </div>
+                        {member.phone ? (
+                          <a href={`tel:${member.phone}`} style={{ fontSize: 12, color: C.accent, textDecoration: "none", fontFamily: "monospace" }}>
+                            📞 {member.phone}
+                          </a>
+                        ) : (
+                          <span style={{ fontSize: 11, color: "rgba(232,230,227,0.3)", fontStyle: "italic" }}>fără tel.</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ))
+              ) : (
+                /* Fallback: dacă nu există teamsByCP, folosim s.team direct */
+                s.team && s.team.length > 0 && (
+                  <div style={{ marginTop: 10, padding: 10, background: "rgba(0,0,0,0.15)", borderRadius: 8 }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(232,230,227,0.6)", marginBottom: 6 }}>
+                      ECHIPA ({s.team.length} {s.team.length === 1 ? "casier" : "casieri"})
+                    </div>
+                    {s.team.map((member, idx) => (
+                      <div key={idx} style={{ 
+                        display: "flex", justifyContent: "space-between", alignItems: "center",
+                        padding: "6px 0", borderBottom: idx < s.team.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none",
+                      }}>
+                        <div style={{ fontSize: 13, color: "rgba(232,230,227,0.85)" }}>
+                          {member.fullName}
+                        </div>
+                        {member.phone ? (
+                          <a href={`tel:${member.phone}`} style={{ fontSize: 12, color: C.accent, textDecoration: "none", fontFamily: "monospace" }}>
+                            📞 {member.phone}
+                          </a>
+                        ) : (
+                          <span style={{ fontSize: 11, color: "rgba(232,230,227,0.3)", fontStyle: "italic" }}>fără tel.</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )
+              )}
+              
+              {/* Butoane acțiuni - combinate pentru toți casierii din toate CP-urile */}
+              {phonesAvailable > 0 && (
+                <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+                  <button onClick={() => copyPhones(allMembers, shiftKey)} style={{
+                    flex: 1, background: copiedShift === shiftKey ? "rgba(114,249,76,0.2)" : "rgba(255,255,255,0.06)",
+                    border: copiedShift === shiftKey ? "1px solid rgba(114,249,76,0.4)" : "1px solid rgba(255,255,255,0.1)",
+                    borderRadius: 8, padding: "10px", fontSize: 12, fontWeight: 600,
+                    color: copiedShift === shiftKey ? C.accent : "rgba(232,230,227,0.7)", cursor: "pointer",
+                    transition: "all 0.2s",
+                  }}>
+                    {copiedShift === shiftKey ? "✓ Copiat!" : `📋 Copiază telefoane (${phonesAvailable})`}
+                  </button>
+                  <button onClick={() => openWhatsApp(allMembers)} style={{
+                    flex: 1, background: "rgba(37,211,102,0.1)", border: "1px solid rgba(37,211,102,0.3)",
+                    borderRadius: 8, padding: "10px", fontSize: 12, fontWeight: 600,
+                    color: "#25D366", cursor: "pointer",
+                  }}>
+                    💬 WhatsApp
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        });
       })()}
       
       {/* Logout */}
