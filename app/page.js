@@ -3,7 +3,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 
 const C = { accent: "#72F94C", accentDark: "#4AD42F", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
 const API_URL = "https://script.google.com/macros/s/AKfycbyBvRDNA7V9HDpwqQTKeLh6q_thnddCcSMGKlYZHMuNvV-5plWUEDHxGkUpv9hGzRltXQ/exec";
-const VIEWS = { HOME: "home", APPLY: "apply", STATUS: "status", SHIFTS: "shifts", PAST_SHIFTS: "past_shifts", TEAM: "team" };
+const VIEWS = { HOME: "home", APPLY: "apply", STATUS: "status", SHIFTS: "shifts", TEAM: "team" };
 
 function Nav({ view, setView, hasShifts, hasTeam }) {
   const buttons = [
@@ -12,7 +12,6 @@ function Nav({ view, setView, hasShifts, hasTeam }) {
     { v: VIEWS.STATUS, l: "Status" },
   ];
   if (hasShifts) buttons.push({ v: VIEWS.SHIFTS, l: "Turele mele" });
-  if (hasShifts) buttons.push({ v: VIEWS.PAST_SHIFTS, l: "Ture complete" });
   if (hasTeam) buttons.push({ v: VIEWS.TEAM, l: "Echipa mea" });
   
   // Pe ecran mai îngust (sub 600px), ascundem brand-ul ca să încapă tab-urile
@@ -81,7 +80,7 @@ function Hero({ setView }) {
 
 function InfoCards() {
   const cards = [
-    { icon: "💰", title: "Plată", desc: "15 lei net/oră, 40-42 ore pe săptămână. Plata se face după festival." },
+    { icon: "💰", title: "Plată", desc: "20 lei net/oră, 40-42 ore pe săptămână. Plata se face după festival." },
     { icon: "🏕️", title: "Camping inclus", desc: "Loc de cort în camping disponibil din 7 Iulie. Dacă preferi altceva, îți asiguri cazarea proprie." },
     { icon: "🎪", title: "Acces festival", desc: "Ai acces în perimetrul festivalului și în afara turelor de lucru." },
     { icon: "🍕", title: "Mâncare + apă", desc: "Primești mâncare și apă pe durata turei de lucru." },
@@ -524,7 +523,7 @@ function ApplyPage({ setView }) {
         </div>
 
         {[
-          { key: "confirm1", text: "Confirm că am citit și înțeles condițiile: plata este de 15 lei/oră, se oferă loc de cort în camping, nu se oferă parcare, voi avea tură zilnic." },
+          { key: "confirm1", text: "Confirm că am citit și înțeles condițiile: plata este de 20 lei/oră, se oferă loc de cort în camping, nu se oferă parcare, voi avea tură zilnic." },
           { key: "confirm2", text: "Confirm că datele introduse sunt corecte și reale. Înțeleg că orice neconcordanță duce la excludere." },
           { key: "confirm3", text: "Mă angajez să fiu disponibil/ă pentru toată durata festivalului (8-12 Iulie) și pentru training-urile premergătoare." },
           { key: "confirm4", text: "Am citit și sunt de acord cu Regulamentul de Ordine Interioară. Înțeleg că nerespectarea acestuia poate duce la încetarea colaborării." },
@@ -959,82 +958,93 @@ function MyShifts({ phone, pastOnly = false }) {
     );
   }
 
-  // Filtrare după trecut/actual
+  // Calculăm status pentru fiecare tură (Programată / Completă)
+  // O tură e completă dacă data ei e < azi (ziua a trecut)
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
-  const allShifts = data?.shifts || [];
-  const filteredShifts = allShifts.filter(s => {
-    if (!s.date) return !pastOnly;
-    const shiftDate = new Date(s.date);
-    if (pastOnly) return shiftDate < today;
-    return shiftDate >= today;
+  const allShifts = (data?.shifts || []).map(s => {
+    let isPast = false;
+    if (s.date) {
+      const shiftDate = new Date(s.date);
+      isPast = shiftDate < today;
+    }
+    return { ...s, isPast };
   });
   
-  // Recalculăm summary
-  let filteredHours = 0;
-  const filteredZones = new Set();
-  filteredShifts.forEach(s => {
-    filteredHours += s.hours || 0;
-    if (s.zone) filteredZones.add(s.zone);
+  // Calculăm summary
+  let totalHours = 0;
+  let workedHours = 0;
+  let remainingHours = 0;
+  const allZones = new Set();
+  allShifts.forEach(s => {
+    const h = s.hours || 0;
+    totalHours += h;
+    if (s.isPast) workedHours += h;
+    else remainingHours += h;
+    if (s.zones && s.zones.length) {
+      s.zones.forEach(z => allZones.add(z));
+    } else if (s.zone) {
+      allZones.add(s.zone);
+    }
   });
-  const filteredSummary = {
-    totalShifts: filteredShifts.length,
-    totalHours: Math.round(filteredHours * 10) / 10,
-    zones: [...filteredZones],
+  const summary = {
+    totalShifts: allShifts.length,
+    totalHours: Math.round(totalHours * 10) / 10,
+    workedHours: Math.round(workedHours * 10) / 10,
+    remainingHours: Math.round(remainingHours * 10) / 10,
   };
   
-  // Empty state pentru filtru
-  if (filteredShifts.length === 0 && allShifts.length > 0) {
+  // Empty state
+  if (allShifts.length === 0) {
     return (
       <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: 18, textAlign: "center" }}>
-        <div style={{ fontSize: 28, marginBottom: 8 }}>{pastOnly ? "📜" : "✨"}</div>
+        <div style={{ fontSize: 28, marginBottom: 8 }}>📅</div>
         <div style={{ fontSize: 13, color: "rgba(232,230,227,0.5)", lineHeight: 1.6 }}>
-          {pastOnly 
-            ? "Nu ai ture trecute deocamdată. Aici vor apărea turele după ce sunt finalizate."
-            : "Nu ai ture viitoare. Verifică tab-ul \"Ture complete\" pentru istoric."}
+          Nu ai ture programate momentan.
         </div>
       </div>
     );
   }
   
-  // Avem ture - le grupăm pe zi
+  // Grupăm pe zi - sortarea se face cronologic prin date.localeCompare (YYYY-MM-DD)
   const shiftsByDay = {};
-  filteredShifts.forEach(s => {
+  allShifts.forEach(s => {
     const key = s.date || "necunoscut";
     if (!shiftsByDay[key]) shiftsByDay[key] = { label: s.label, shifts: [] };
     shiftsByDay[key].shifts.push(s);
   });
-  const sortedDays = Object.keys(shiftsByDay).sort((a, b) => 
-    pastOnly ? b.localeCompare(a) : a.localeCompare(b)
-  );
+  // Sortare cronologică ascendentă
+  const sortedDays = Object.keys(shiftsByDay).sort((a, b) => a.localeCompare(b));
 
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>
-          {pastOnly ? "📜 Ture complete" : "📅 Turele mele"}
-        </div>
+        <div style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>📅 Turele mele</div>
         <button onClick={handleRefresh} disabled={refreshing} style={{
           background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
           borderRadius: 8, padding: "6px 12px", fontSize: 11, color: "rgba(232,230,227,0.6)", cursor: "pointer",
         }}>{refreshing ? "..." : "🔄"}</button>
       </div>
 
-      {/* Summary */}
-      {filteredSummary.totalShifts > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 14 }}>
+      {/* Summary - 4 carduri */}
+      {summary.totalShifts > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 14 }}>
           <div style={{ background: "rgba(114,249,76,0.08)", border: "1px solid rgba(114,249,76,0.15)", borderRadius: 10, padding: 10, textAlign: "center" }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{filteredSummary.totalShifts}</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{summary.totalShifts}</div>
             <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>ture</div>
           </div>
           <div style={{ background: "rgba(114,249,76,0.08)", border: "1px solid rgba(114,249,76,0.15)", borderRadius: 10, padding: 10, textAlign: "center" }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{filteredSummary.totalHours}</div>
-            <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>ore</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{summary.totalHours}</div>
+            <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>ore total</div>
           </div>
-          <div style={{ background: "rgba(114,249,76,0.08)", border: "1px solid rgba(114,249,76,0.15)", borderRadius: 10, padding: 10, textAlign: "center" }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{filteredSummary.zones?.length || 0}</div>
-            <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>{filteredSummary.zones?.length === 1 ? "zonă" : "zone"}</div>
+          <div style={{ background: "rgba(99,153,34,0.10)", border: "1px solid rgba(99,153,34,0.25)", borderRadius: 10, padding: 10, textAlign: "center" }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: "#97C459" }}>{summary.workedHours}</div>
+            <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>ore lucrate</div>
+          </div>
+          <div style={{ background: "rgba(186,117,23,0.08)", border: "1px solid rgba(186,117,23,0.2)", borderRadius: 10, padding: 10, textAlign: "center" }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: "#EF9F27" }}>{summary.remainingHours}</div>
+            <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>ore rămase</div>
           </div>
         </div>
       )}
@@ -1050,14 +1060,21 @@ function MyShifts({ phone, pastOnly = false }) {
               background: s.isNight ? "rgba(74,144,226,0.08)" : "rgba(255,255,255,0.04)",
               border: s.isNight ? "1px solid rgba(74,144,226,0.25)" : "1px solid rgba(255,255,255,0.08)",
               borderRadius: 12, padding: 12, marginBottom: 6,
+              opacity: s.isPast ? 0.7 : 1,
             }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "#fff", display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: "#fff", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
                   {s.isNight && <span>🌙</span>}
                   {s.isNight === false && <span>☀️</span>}
                   <span>{s.time || "—"}</span>
                   {s.myRole === "Supervizor" && (
                     <span style={{ fontSize: 9, color: "#FFB347", background: "rgba(255,179,71,0.12)", border: "1px solid rgba(255,179,71,0.3)", padding: "2px 6px", borderRadius: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Supervizor</span>
+                  )}
+                  {/* Status tură */}
+                  {s.isPast ? (
+                    <span style={{ fontSize: 9, color: "#97C459", background: "rgba(99,153,34,0.15)", border: "1px solid rgba(99,153,34,0.3)", padding: "2px 6px", borderRadius: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>✓ Completă</span>
+                  ) : (
+                    <span style={{ fontSize: 9, color: "#EF9F27", background: "rgba(186,117,23,0.12)", border: "1px solid rgba(186,117,23,0.3)", padding: "2px 6px", borderRadius: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Programată</span>
                   )}
                 </div>
                 {/* CP-uri (suportă și grupare) */}
@@ -1387,14 +1404,12 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
 // SHIFTS PAGE - tab dedicat "Turele mele"
 // ============================================
 
-function ShiftsPage({ phone, onLogout, pastOnly = false }) {
+function ShiftsPage({ phone, onLogout }) {
   if (!phone) {
     return (
       <div style={{ padding: "40px 16px", maxWidth: 520, margin: "0 auto", textAlign: "center" }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>{pastOnly ? "📜" : "📅"}</div>
-        <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 8 }}>
-          {pastOnly ? "Ture complete" : "Turele mele"}
-        </div>
+        <div style={{ fontSize: 48, marginBottom: 16 }}>📅</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 8 }}>Turele mele</div>
         <div style={{ fontSize: 13, color: "rgba(232,230,227,0.5)", lineHeight: 1.6, maxWidth: 320, margin: "0 auto" }}>
           Mergi la tab-ul "Status", introdu numărul de telefon, și după ce confirmi că ai semnat toate documentele, vei putea vedea turele tale aici.
         </div>
@@ -1405,9 +1420,7 @@ function ShiftsPage({ phone, onLogout, pastOnly = false }) {
   return (
     <div style={{ padding: "32px 16px", maxWidth: 520, margin: "0 auto" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-        <h2 style={{ fontSize: 22, fontWeight: 700, color: "#fff", margin: 0 }}>
-          {pastOnly ? "📜 Ture complete" : "📅 Turele mele"}
-        </h2>
+        <h2 style={{ fontSize: 22, fontWeight: 700, color: "#fff", margin: 0 }}>📅 Turele mele</h2>
         {onLogout && (
           <button onClick={() => {
             if (confirm("Sigur vrei să deconectezi acest dispozitiv? Va trebui să verifici din nou statusul.")) {
@@ -1420,7 +1433,7 @@ function ShiftsPage({ phone, onLogout, pastOnly = false }) {
         )}
       </div>
       
-      <MyShifts phone={phone} pastOnly={pastOnly} />
+      <MyShifts phone={phone} />
     </div>
   );
 }
@@ -1986,7 +1999,6 @@ export default function App() {
         {view === VIEWS.APPLY && <ApplyPage setView={setView} />}
         {view === VIEWS.STATUS && <StatusPage onCompleteDetected={updateCompletePhone} />}
         {view === VIEWS.SHIFTS && <ShiftsPage phone={completePhone} onLogout={handleLogout} />}
-        {view === VIEWS.PAST_SHIFTS && <ShiftsPage phone={completePhone} onLogout={handleLogout} pastOnly={true} />}
         {view === VIEWS.TEAM && <TeamPage phone={completePhone} onLogout={handleLogout} />}
       </div>
 
