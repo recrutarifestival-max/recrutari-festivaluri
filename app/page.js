@@ -81,7 +81,7 @@ function Hero({ setView }) {
 
 function InfoCards() {
   const cards = [
-    { icon: "💰", title: "Plată", desc: "20 RON net/oră, 40-42 ore pe săptămână. Plata se face după festival." },
+    { icon: "💰", title: "Plată", desc: "15 lei net/oră, 40-42 ore pe săptămână. Plata se face după festival." },
     { icon: "🏕️", title: "Camping inclus", desc: "Loc de cort în camping disponibil din 7 Iulie. Dacă preferi altceva, îți asiguri cazarea proprie." },
     { icon: "🎪", title: "Acces festival", desc: "Ai acces în perimetrul festivalului și în afara turelor de lucru." },
     { icon: "🍕", title: "Mâncare + apă", desc: "Primești mâncare și apă pe durata turei de lucru." },
@@ -524,7 +524,7 @@ function ApplyPage({ setView }) {
         </div>
 
         {[
-          { key: "confirm1", text: "Confirm că am citit și înțeles condițiile: plata este de 20 RON/oră, se oferă loc de cort în camping, nu se oferă parcare, voi avea tură zilnic." },
+          { key: "confirm1", text: "Confirm că am citit și înțeles condițiile: plata este de 15 lei/oră, se oferă loc de cort în camping, nu se oferă parcare, voi avea tură zilnic." },
           { key: "confirm2", text: "Confirm că datele introduse sunt corecte și reale. Înțeleg că orice neconcordanță duce la excludere." },
           { key: "confirm3", text: "Mă angajez să fiu disponibil/ă pentru toată durata festivalului (8-12 Iulie) și pentru training-urile premergătoare." },
           { key: "confirm4", text: "Am citit și sunt de acord cu Regulamentul de Ordine Interioară. Înțeleg că nerespectarea acestuia poate duce la încetarea colaborării." },
@@ -1021,6 +1021,25 @@ function MyShifts({ phone, pastOnly = false }) {
         }}>{refreshing ? "..." : "🔄"}</button>
       </div>
 
+      {/* DEBUG INFO TEMPORAR */}
+      <details style={{ marginBottom: 12, padding: 8, background: "rgba(0,0,0,0.3)", borderRadius: 6, fontSize: 10, color: "rgba(255,255,255,0.5)", fontFamily: "monospace" }}>
+        <summary style={{ cursor: "pointer" }}>Debug info (click pentru detalii)</summary>
+        <div>Total ture primite: {allShifts.length}</div>
+        <div>După filtrare ({pastOnly ? "trecut" : "viitor"}): {filteredShifts.length}</div>
+        <div>Today: {today.toISOString().substring(0, 10)}</div>
+        <div style={{ marginTop: 6 }}>Toate turele:</div>
+        {allShifts.map((s, i) => (
+          <div key={i} style={{ paddingLeft: 12 }}>
+            #{i+1}: {s.date} {s.cp} {s.time} {s.zone} → {(() => {
+              if (!s.date) return "(fără dată) → " + (pastOnly ? "exclus" : "inclus");
+              const sd = new Date(s.date);
+              const ok = pastOnly ? sd < today : sd >= today;
+              return ok ? "✓ inclus" : "✗ exclus";
+            })()}
+          </div>
+        ))}
+      </details>
+      
       {/* Summary */}
       {filteredSummary.totalShifts > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 6, marginBottom: 14 }}>
@@ -1046,7 +1065,7 @@ function MyShifts({ phone, pastOnly = false }) {
             {shiftsByDay[day].label}
           </div>
           {shiftsByDay[day].shifts.map((s, i) => (
-            <div key={i} style={{
+            <div key={`${s.date}_${s.cp}_${s.time}_${i}`} style={{
               background: s.isNight ? "rgba(74,144,226,0.08)" : "rgba(255,255,255,0.04)",
               border: s.isNight ? "1px solid rgba(74,144,226,0.25)" : "1px solid rgba(255,255,255,0.08)",
               borderRadius: 12, padding: 12, marginBottom: 6,
