@@ -2328,7 +2328,7 @@ function StatusPage({ onCompleteDetected }) {
   );
 }
 
-export default function App() {
+function BeachPleaseApp() {
   const [view, setView] = useState(VIEWS.HOME);
   // Telefonul utilizatorului care a făcut status check și e Complete
   const [completePhone, setCompletePhone] = useState(null);
@@ -2420,4 +2420,262 @@ export default function App() {
       </div>
     </div>
   );
+}
+
+// ============================================
+// LANDING PAGE (angajarifestival.ro fără subdomain)
+// ============================================
+
+function LandingPage() {
+  const festivals = [
+    { 
+      key: "kapital",
+      name: "Kapital",
+      dateLabel: "3-5 Iulie 2026",
+      location: "Arena Națională, București",
+      enabled: true,
+      colors: { accent: "#E91D63", accentDark: "#C2185B" },
+      subdomain: "kapital",
+    },
+    {
+      key: "beachplease",
+      name: "Beach Please",
+      dateLabel: "8-12 Iulie 2026",
+      location: "Costinești",
+      enabled: true,
+      colors: { accent: "#72F94C", accentDark: "#4AD42F" },
+      subdomain: "beachplease",
+    },
+    {
+      key: "untold",
+      name: "Untold",
+      dateLabel: "6-9 August 2026",
+      location: "Cluj-Napoca",
+      enabled: false,
+      colors: { accent: "#7C4DFF", accentDark: "#5E35B1" },
+      subdomain: "untold",
+    },
+  ];
+  
+  function handleClick(festival) {
+    if (!festival.enabled) return;
+    window.location.href = `https://${festival.subdomain}.angajarifestival.ro`;
+  }
+  
+  return (
+    <div style={{
+      minHeight: "100vh",
+      background: `linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%)`,
+      fontFamily: "'Geist', 'DM Sans', system-ui, sans-serif",
+      color: "#e8e6e3",
+      padding: "40px 16px",
+    }}>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" />
+      <link href="https://cdn.jsdelivr.net/npm/geist@1.3.1/dist/fonts/geist-sans/style.min.css" rel="stylesheet" />
+      <style>{`
+        *, *::before, *::after { box-sizing: border-box; }
+      `}</style>
+      
+      <div style={{ maxWidth: 720, margin: "0 auto" }}>
+        {/* Header */}
+        <div style={{ textAlign: "center", marginBottom: 48, paddingTop: 32 }}>
+          <div style={{ 
+            display: "inline-block", padding: "6px 16px", borderRadius: 24, 
+            background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.12)", 
+            fontSize: 12, fontFamily: "monospace", color: "rgba(255,255,255,0.5)", 
+            letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 24 
+          }}>
+            Recrutări 2026
+          </div>
+          <h1 style={{ 
+            fontSize: 42, fontWeight: 800, margin: "0 0 16px", lineHeight: 1.1, 
+            letterSpacing: "-0.03em", color: "#fff" 
+          }}>
+            Angajări festivaluri
+          </h1>
+          <p style={{ 
+            fontSize: 16, color: "rgba(232,230,227,0.5)", margin: 0, lineHeight: 1.6, 
+            maxWidth: 480, marginLeft: "auto", marginRight: "auto" 
+          }}>
+            Alătură-te echipei de Cashless Payment Systems la unul dintre festivalurile verii.
+            Plată, cazare și acces la festival.
+          </p>
+        </div>
+        
+        {/* Festival cards */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16, marginBottom: 32 }}>
+          {festivals.map(f => {
+            const isAvailable = f.enabled;
+            return (
+              <div 
+                key={f.key}
+                onClick={() => handleClick(f)}
+                style={{
+                  background: isAvailable 
+                    ? `linear-gradient(135deg, ${f.colors.accent}15, ${f.colors.accentDark}08)`
+                    : "rgba(255,255,255,0.03)",
+                  border: isAvailable 
+                    ? `1px solid ${f.colors.accent}40`
+                    : "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: 20,
+                  padding: "24px 24px",
+                  cursor: isAvailable ? "pointer" : "default",
+                  transition: "all 0.3s",
+                  opacity: isAvailable ? 1 : 0.55,
+                  position: "relative",
+                  overflow: "hidden",
+                }}
+                onMouseEnter={e => {
+                  if (isAvailable) {
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.boxShadow = `0 8px 32px ${f.colors.accent}25`;
+                  }
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.transform = "";
+                  e.currentTarget.style.boxShadow = "";
+                }}
+              >
+                {isAvailable && (
+                  <div style={{
+                    position: "absolute", top: "-30%", right: "-10%", width: 200, height: 200,
+                    background: `radial-gradient(circle, ${f.colors.accent}30 0%, transparent 70%)`,
+                    pointerEvents: "none",
+                  }} />
+                )}
+                
+                <div style={{ position: "relative" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                    <h2 style={{ 
+                      fontSize: 28, fontWeight: 800, margin: 0, letterSpacing: "-0.02em",
+                      color: isAvailable ? f.colors.accent : "rgba(232,230,227,0.5)",
+                    }}>
+                      {f.name}
+                    </h2>
+                    {!isAvailable && (
+                      <span style={{
+                        fontSize: 10, color: "rgba(255,255,255,0.5)", 
+                        background: "rgba(255,255,255,0.08)", padding: "4px 10px", borderRadius: 12,
+                        fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em",
+                      }}>În curând</span>
+                    )}
+                  </div>
+                  
+                  <div style={{ fontSize: 14, color: "rgba(232,230,227,0.6)", marginBottom: 6 }}>
+                    📅 {f.dateLabel}
+                  </div>
+                  
+                  {f.location && (
+                    <div style={{ fontSize: 13, color: "rgba(232,230,227,0.4)", marginBottom: 16 }}>
+                      📍 {f.location}
+                    </div>
+                  )}
+                  
+                  {isAvailable ? (
+                    <div style={{
+                      display: "inline-flex", alignItems: "center", gap: 6,
+                      fontSize: 14, fontWeight: 600, color: f.colors.accent,
+                    }}>
+                      Aplică acum
+                      <span style={{ fontSize: 16 }}>→</span>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: 13, color: "rgba(232,230,227,0.4)", fontStyle: "italic" }}>
+                      Aplicările vor fi deschise în curând.
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        
+        {/* Footer */}
+        <div style={{ textAlign: "center", marginTop: 48, fontSize: 11, color: "rgba(232,230,227,0.25)", fontFamily: "monospace" }}>
+          Cashless Payment Systems · Contact: recrutarifestival@gmail.com
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// KAPITAL APP - placeholder pentru moment
+// (Va fi clonat din BeachPleaseApp cu modificări specifice când îmi dai URL-ul Kapital)
+// ============================================
+
+function KapitalApp() {
+  return (
+    <div style={{
+      minHeight: "100vh",
+      background: `linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%)`,
+      fontFamily: "'Geist', 'DM Sans', system-ui, sans-serif",
+      color: "#e8e6e3",
+      padding: "60px 20px",
+      textAlign: "center",
+    }}>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" />
+      <div style={{ maxWidth: 480, margin: "0 auto", paddingTop: 80 }}>
+        <div style={{ fontSize: 48, marginBottom: 24 }}>🏗️</div>
+        <h1 style={{ fontSize: 32, fontWeight: 800, color: "#E91D63", margin: "0 0 16px" }}>
+          KAPITAL
+        </h1>
+        <h2 style={{ fontSize: 18, fontWeight: 600, color: "rgba(255,255,255,0.8)", margin: "0 0 24px" }}>
+          Aplicarea online vine în curând
+        </h2>
+        <p style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", lineHeight: 1.6 }}>
+          Lucrăm la portalul de aplicare pentru KAPITAL Festival.<br />
+          Pentru întrebări: recrutarifestival@gmail.com
+        </p>
+        <div style={{ marginTop: 32 }}>
+          <a href="https://angajarifestival.ro" style={{
+            color: "rgba(255,255,255,0.4)", fontSize: 12, textDecoration: "underline",
+          }}>← Înapoi la pagina principală</a>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// ROUTER PRINCIPAL - detectează subdomain și render-uiește app-ul corect
+// ============================================
+
+export default function App() {
+  const [festivalKey, setFestivalKey] = useState(null);
+  const [ready, setReady] = useState(false);
+  
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const host = window.location.hostname;
+    
+    // Detect subdomain
+    if (host.startsWith("kapital.")) {
+      setFestivalKey("kapital");
+    } else if (host.startsWith("untold.")) {
+      setFestivalKey("untold");
+    } else if (host.startsWith("beachplease.")) {
+      setFestivalKey("beachplease");
+    } else {
+      // Pentru localhost: ?fest=beachplease sau ?fest=kapital
+      const params = new URLSearchParams(window.location.search || "");
+      const f = params.get("fest");
+      if (f) setFestivalKey(f);
+      else setFestivalKey(null); // landing page
+    }
+    setReady(true);
+  }, []);
+  
+  // Server-side render: nu putem detecta hostname, returnăm gol
+  if (!ready) {
+    return <div style={{ minHeight: "100vh", background: "#0f0f1a" }} />;
+  }
+  
+  // Routing
+  if (festivalKey === "kapital") return <KapitalApp />;
+  if (festivalKey === "untold") return <KapitalApp />; // pentru moment, același placeholder
+  if (festivalKey === "beachplease") return <BeachPleaseApp />;
+  
+  // Landing page (root domain)
+  return <LandingPage />;
 }
