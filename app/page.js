@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 
 const C = { accent: "#72F94C", accentDark: "#4AD42F", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
 const API_URL = "https://script.google.com/macros/s/AKfycbyBvRDNA7V9HDpwqQTKeLh6q_thnddCcSMGKlYZHMuNvV-5plWUEDHxGkUpv9hGzRltXQ/exec";
+const KAPITAL_API_URL = "https://script.google.com/macros/s/AKfycbx0DYnbwi17YEDP-7YigrdgakTQkh3Euft7KIHcTyccHS3v_2JXBNyFyIWmfhLY3LE_/exec";
 const VIEWS = { HOME: "home", APPLY: "apply", STATUS: "status", SHIFTS: "shifts", TEAM: "team", ADMIN: "admin" };
 
 function Nav({ view, setView, hasShifts, hasTeam, isAdmin }) {
@@ -2652,8 +2653,8 @@ function KHero({ setView }) {
 
 function KInfoCards() {
   const cards = [
-    { icon: "💰", title: "Plată", desc: "20 lei net/oră, 40-42 ore pe săptămână. Plata se face după festival." },
-    { icon: "🏕️", title: "Camping inclus", desc: "Loc de cort în camping disponibil (N/A pentru Kapital). Dacă preferi altceva, îți asiguri cazarea proprie." },
+    { icon: "💰", title: "Plată", desc: "20 lei net/oră, 20-24 ore lucrate per festival. Plata se face după festival." },
+    { icon: "🏙️", title: "În București", desc: "Locația e Arena Națională. Cazarea e responsabilitatea ta." },
     { icon: "🎪", title: "Acces festival", desc: "Ai acces în perimetrul festivalului și în afara turelor de lucru." },
     { icon: "🍕", title: "Mâncare + apă", desc: "Primești mâncare și apă pe durata turei de lucru." },
   ];
@@ -2676,7 +2677,7 @@ function KFAQ() {
   const [open, setOpen] = useState(null);
   const items = [
     { q: "Care e vârsta minimă?", a: "18 ani împliniți la data festivalului." },
-    { q: "Se oferă cazare?", a: "Putem oferi loc de cort în camping (N/A pentru Kapital). Dacă preferi altă variantă, trebuie să-ți asiguri cazare proprie în zona Arena Națională, București." },
+    { q: "Se oferă cazare?", a: "Locația e în București (Arena Națională). Cazarea e responsabilitatea ta — orașul e accesibil cu transportul în comun." },
     { q: "Se oferă parcare?", a: "Nu. Nu se oferă loc de parcare. Recomandăm transportul în comun sau organizarea cu alți colegi." },
     { q: "Voi avea tură în fiecare zi?", a: "Da, vei avea tură în fiecare zi de festival (3-5 Iulie 2026)." },
     { q: "Ce se întâmplă dacă nu pot veni o zi?", a: "Anunți coordonatorul din timp și se stabilește recuperarea. Absența neanunțată = restricționare acces." },
@@ -2802,7 +2803,7 @@ function KApplyPage({ setView }) {
       delete payload.confirm3;
       delete payload.confirm4;
 
-      const resp = await fetch(API_URL, {
+      const resp = await fetch(KAPITAL_API_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
         body: JSON.stringify(payload),
@@ -2895,8 +2896,8 @@ function KApplyPage({ setView }) {
             "Nu lucrez și nu sunt la școală"
           ]} placeholder="Selectează..." />
         </FormField>
-        <FormField label="Ai cazare asigurată în zona festivalului?" required error={errors.cazare}>
-          <Select value={form.cazare} onChange={v => upd("cazare", v)} options={["Da, am cazare proprie", "Doresc loc de cort în camping", "Îmi voi asigura cazare singur/ă"]} placeholder="Selectează..." />
+        <FormField label="Ai cazare asigurată în București?" required error={errors.cazare}>
+          <Select value={form.cazare} onChange={v => upd("cazare", v)} options={["Locuiesc în București", "Voi sta la familie/prieteni", "Îmi voi asigura cazare singur/ă"]} placeholder="Selectează..." />
         </FormField>
         <FormField label="Ai mai participat la un festival major?" required error={errors.experienta}>
           <Select value={form.experienta} onChange={v => upd("experienta", v)} options={["Da, ca staff/voluntar", "Da, ca participant", "Nu, este prima dată"]} placeholder="Selectează..." />
@@ -2999,7 +3000,7 @@ function KApplyPage({ setView }) {
         </div>
 
         {[
-          { key: "confirm1", text: "Confirm că am citit și înțeles condițiile: plata este de 20 lei/oră, se oferă loc de cort în camping, nu se oferă parcare, voi avea tură zilnic." },
+          { key: "confirm1", text: "Confirm că am citit și înțeles condițiile: plata este de 20 lei/oră, locația e în București (Arena Națională), nu se oferă cazare/parcare, voi avea tură zilnic." },
           { key: "confirm2", text: "Confirm că datele introduse sunt corecte și reale. Înțeleg că orice neconcordanță duce la excludere." },
           { key: "confirm3", text: "Mă angajez să fiu disponibil/ă pentru toată durata festivalului (8-5 Iulie) și pentru training-urile premergătoare." },
           { key: "confirm4", text: "Am citit și sunt de acord cu Regulamentul de Ordine Interioară. Înțeleg că nerespectarea acestuia poate duce la încetarea colaborării." },
@@ -3101,7 +3102,7 @@ function KAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
   // Load document URLs when component mounts
   useEffect(() => {
     if (!phone) return;
-    fetch(`${API_URL}?action=documents&phone=${encodeURIComponent(phone)}`)
+    fetch(`${KAPITAL_API_URL}?action=documents&phone=${encodeURIComponent(phone)}`)
       .then(r => r.json())
       .then(data => {
         if (data.success && data.documents) {
@@ -3133,7 +3134,7 @@ function KAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
     setBusyDoc(docType);
     
     try {
-      const resp = await fetch(API_URL, {
+      const resp = await fetch(KAPITAL_API_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
         body: JSON.stringify({
@@ -3168,7 +3169,7 @@ function KAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
     setBusyDoc("ci");
     
     try {
-      const resp = await fetch(API_URL, {
+      const resp = await fetch(KAPITAL_API_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
         body: JSON.stringify({
@@ -3196,7 +3197,7 @@ function KAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
   async function handleFinalize() {
     setBusyDoc("finalize");
     try {
-      const resp = await fetch(API_URL, {
+      const resp = await fetch(KAPITAL_API_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
         body: JSON.stringify({ action: "finalize", phone: phone }),
@@ -3349,7 +3350,7 @@ function KMyShifts({ phone, pastOnly = false }) {
   async function loadShifts() {
     setError(null);
     try {
-      const url = `${API_URL}?action=schedule&phone=${encodeURIComponent(phone)}&t=${Date.now()}`;
+      const url = `${KAPITAL_API_URL}?action=schedule&phone=${encodeURIComponent(phone)}&t=${Date.now()}`;
       const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
       const text = await resp.text();
       const result = JSON.parse(text);
@@ -3645,7 +3646,7 @@ function KTeamPage({ phone, onLogout }) {
   async function loadTeam() {
     setError(null);
     try {
-      const url = `${API_URL}?action=team&phone=${encodeURIComponent(phone)}&t=${Date.now()}`;
+      const url = `${KAPITAL_API_URL}?action=team&phone=${encodeURIComponent(phone)}&t=${Date.now()}`;
       const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
       const text = await resp.text();
       const result = JSON.parse(text);
@@ -3994,7 +3995,7 @@ function KAdminPage({ isAdmin, setIsAdmin }) {
     if (!silent) setVerifying(true);
     setError(null);
     try {
-      const url = `${API_URL}?action=adminVerify&code=${encodeURIComponent(codeToCheck)}&t=${Date.now()}`;
+      const url = `${KAPITAL_API_URL}?action=adminVerify&code=${encodeURIComponent(codeToCheck)}&t=${Date.now()}`;
       const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
       const result = await resp.json();
       if (result.success) {
@@ -4017,7 +4018,7 @@ function KAdminPage({ isAdmin, setIsAdmin }) {
     setScheduleData(null);
     try {
       const stored = getStoredCode();
-      const url = `${API_URL}?action=adminCandidates&code=${encodeURIComponent(stored)}&position=${encodeURIComponent(pos)}&t=${Date.now()}`;
+      const url = `${KAPITAL_API_URL}?action=adminCandidates&code=${encodeURIComponent(stored)}&position=${encodeURIComponent(pos)}&t=${Date.now()}`;
       const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
       const result = await resp.json();
       if (result.success) {
@@ -4039,7 +4040,7 @@ function KAdminPage({ isAdmin, setIsAdmin }) {
     setScheduleData(null);
     try {
       const stored = getStoredCode();
-      const url = `${API_URL}?action=adminSchedule&code=${encodeURIComponent(stored)}&phone=${encodeURIComponent(phone)}&t=${Date.now()}`;
+      const url = `${KAPITAL_API_URL}?action=adminSchedule&code=${encodeURIComponent(stored)}&phone=${encodeURIComponent(phone)}&t=${Date.now()}`;
       const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
       const result = await resp.json();
       if (result.success) {
@@ -4362,7 +4363,7 @@ function KStatusPage({ onCompleteDetected }) {
     setStatus(null);
     
     try {
-      const url = `${API_URL}?action=status&phone=${encodeURIComponent(targetPhone)}&t=${Date.now()}`;
+      const url = `${KAPITAL_API_URL}?action=status&phone=${encodeURIComponent(targetPhone)}&t=${Date.now()}`;
       const resp = await fetch(url, { 
         method: "GET",
         cache: "no-store",
