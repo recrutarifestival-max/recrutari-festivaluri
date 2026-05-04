@@ -2599,6 +2599,113 @@ function LandingPage() {
   );
 }
 
+
+// === KAPITAL HomePage clone ===
+
+function KHomePage({ setView }) {
+  return (<>
+    <KHero setView={setView} />
+    <KInfoCards />
+    <KFAQ />
+    <div style={{ textAlign: "center", padding: "0 16px 40px" }}>
+      <button onClick={() => setView(VIEWS.APPLY)} style={{
+        background: `linear-gradient(135deg, #E91D63, #C2185B)`, border: "none", borderRadius: 14,
+        padding: "16px 48px", fontSize: 16, fontWeight: 700, color: "#0a0a0a", cursor: "pointer",
+        boxShadow: "0 4px 20px rgba(233,29,99,0.3)",
+      }}>Aplică acum</button>
+    </div>
+  </>);
+}
+
+function KHero({ setView }) {
+  return (
+    <div style={{ textAlign: "center", padding: "48px 20px 40px" }}>
+      <div style={{ display: "inline-block", padding: "5px 14px", borderRadius: 20, background: "rgba(233,29,99,0.12)", border: "1px solid rgba(233,29,99,0.2)", fontSize: 12, fontFamily: "monospace", color: C.accent, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 20 }}>
+        Recrutări 2026
+      </div>
+      <h1 style={{ fontSize: 36, fontWeight: 800, margin: "0 0 12px", lineHeight: 1.1, letterSpacing: "-0.03em" }}>
+        <span style={{ color: "#fff" }}>Fii parte din echipa</span><br />
+        <span style={{ background: `linear-gradient(135deg, ${C.accent}, #FF4081)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Kapital</span>
+      </h1>
+      <p style={{ fontSize: 16, color: "rgba(232,230,227,0.55)", margin: "0 0 28px", lineHeight: 1.6, maxWidth: 360, marginLeft: "auto", marginRight: "auto" }}>
+        Alătură-te departamentului de Cashless Payment Systems. Plată, acces la festival și experiență unică.
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
+        <button onClick={() => setView(VIEWS.APPLY)} style={{
+          background: `linear-gradient(135deg, #E91D63, #C2185B)`, border: "none", borderRadius: 14,
+          padding: "16px 40px", fontSize: 16, fontWeight: 700, color: "#0a0a0a", cursor: "pointer",
+          boxShadow: "0 4px 20px rgba(233,29,99,0.3)", transition: "transform 0.2s, box-shadow 0.2s",
+        }} onMouseEnter={e => { e.target.style.transform = "translateY(-2px)"; e.target.style.boxShadow = "0 6px 28px rgba(233,29,99,0.4)"; }}
+           onMouseLeave={e => { e.target.style.transform = ""; e.target.style.boxShadow = "0 4px 20px rgba(233,29,99,0.3)"; }}>
+          Aplică acum
+        </button>
+        <button onClick={() => setView(VIEWS.STATUS)} style={{
+          background: "transparent", border: "1px solid rgba(255,255,255,0.12)", borderRadius: 14,
+          padding: "12px 32px", fontSize: 14, color: "rgba(232,230,227,0.6)", cursor: "pointer",
+        }}>
+          Verifică statusul aplicației
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function KInfoCards() {
+  const cards = [
+    { icon: "💰", title: "Plată", desc: "20 lei net/oră, 40-42 ore pe săptămână. Plata se face după festival." },
+    { icon: "🏕️", title: "Camping inclus", desc: "Loc de cort în camping disponibil (N/A pentru Kapital). Dacă preferi altceva, îți asiguri cazarea proprie." },
+    { icon: "🎪", title: "Acces festival", desc: "Ai acces în perimetrul festivalului și în afara turelor de lucru." },
+    { icon: "🍕", title: "Mâncare + apă", desc: "Primești mâncare și apă pe durata turei de lucru." },
+  ];
+  return (
+    <div style={{ padding: "0 16px 32px" }}>
+      <div style={{ maxWidth: 520, margin: "0 auto", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        {cards.map(c => (
+          <div key={c.title} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "18px 16px" }}>
+            <div style={{ fontSize: 24, marginBottom: 8 }}>{c.icon}</div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginBottom: 4 }}>{c.title}</div>
+            <div style={{ fontSize: 12, color: "rgba(232,230,227,0.45)", lineHeight: 1.5 }}>{c.desc}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function KFAQ() {
+  const [open, setOpen] = useState(null);
+  const items = [
+    { q: "Care e vârsta minimă?", a: "18 ani împliniți la data festivalului." },
+    { q: "Se oferă cazare?", a: "Putem oferi loc de cort în camping (N/A pentru Kapital). Dacă preferi altă variantă, trebuie să-ți asiguri cazare proprie în zona Arena Națională, București." },
+    { q: "Se oferă parcare?", a: "Nu. Nu se oferă loc de parcare. Recomandăm transportul în comun sau organizarea cu alți colegi." },
+    { q: "Voi avea tură în fiecare zi?", a: "Da, vei avea tură în fiecare zi de festival (3-5 Iulie 2026)." },
+    { q: "Ce se întâmplă dacă nu pot veni o zi?", a: "Anunți coordonatorul din timp și se stabilește recuperarea. Absența neanunțată = restricționare acces." },
+    { q: "Am nevoie de experiență?", a: "Nu, oferim training complet. Ai nevoie doar de seriozitate și disponibilitate." },
+    { q: "Când aflu dacă sunt acceptat?", a: "Verifici statusul aplicației oricând pe acest site, folosind numărul de telefon." },
+  ];
+  return (
+    <div style={{ padding: "0 16px 40px" }}>
+      <div style={{ maxWidth: 520, margin: "0 auto" }}>
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: "#fff", margin: "0 0 16px", textAlign: "center" }}>Întrebări frecvente</h2>
+        {items.map((item, i) => (
+          <div key={i} style={{ borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+            <button onClick={() => setOpen(open === i ? null : i)} style={{
+              display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%",
+              background: "none", border: "none", padding: "16px 4px", cursor: "pointer", textAlign: "left",
+            }}>
+              <span style={{ fontSize: 14, fontWeight: 500, color: "rgba(232,230,227,0.8)" }}>{item.q}</span>
+              <span style={{ fontSize: 18, color: "rgba(232,230,227,0.3)", transform: open === i ? "rotate(45deg)" : "none", transition: "transform 0.2s" }}>+</span>
+            </button>
+            {open === i && (
+              <div style={{ padding: "0 4px 16px", fontSize: 13, color: "rgba(232,230,227,0.5)", lineHeight: 1.6 }}>{item.a}</div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ============================================
 // KAPITAL CLONES (real implementations)
 // ============================================
@@ -4474,7 +4581,7 @@ function KKapitalApp() {
         isAdmin={isAdmin} />
 
       <div style={{ position: "relative", zIndex: 1 }}>
-        {view === VIEWS.HOME && <HomePage setView={setView} />}
+        {view === VIEWS.HOME && <KHomePage setView={setView} />}
         {view === VIEWS.APPLY && <KApplyPage setView={setView} />}
         {view === VIEWS.STATUS && <KStatusPage onCompleteDetected={updateCompletePhone} />}
         {view === VIEWS.SHIFTS && <KShiftsPage phone={completePhone} onLogout={handleLogout} />}
