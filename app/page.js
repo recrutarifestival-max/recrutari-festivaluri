@@ -6,7 +6,12 @@ const API_URL = "https://script.google.com/macros/s/AKfycbyBvRDNA7V9HDpwqQTKeLh6
 const KAPITAL_API_URL = "https://script.google.com/macros/s/AKfycbx0DYnbwi17YEDP-7YigrdgakTQkh3Euft7KIHcTyccHS3v_2JXBNyFyIWmfhLY3LE_/exec";
 const VIEWS = { HOME: "home", APPLY: "apply", STATUS: "status", SHIFTS: "shifts", TEAM: "team", ADMIN: "admin" };
 
-function Nav({ view, setView, hasShifts, hasTeam, isAdmin }) {
+function Nav({ view, setView, hasShifts, hasTeam, isAdmin, accent, accentDark }) {
+  // Default colors (Beach Please verde) dacă nu sunt date
+  const navAccent = accent || "#72F94C";
+  const navAccentDark = accentDark || "#4AD42F";
+  const navAccentRGB = navAccent === "#72F94C" ? "114,249,76" : "233,29,99";
+  
   const buttons = [
     { v: VIEWS.HOME, l: "Acasă" },
     { v: VIEWS.APPLY, l: "Aplică" },
@@ -19,28 +24,56 @@ function Nav({ view, setView, hasShifts, hasTeam, isAdmin }) {
   // Pe ecran mai îngust (sub 600px), ascundem brand-ul ca să încapă tab-urile
   const compactBrand = buttons.length > 4;
   
+  // Detectăm dacă suntem pe un subdomain (pentru butonul de back)
+  const isOnSubdomain = typeof window !== "undefined" && 
+    (window.location.hostname.startsWith("kapital.") || 
+     window.location.hostname.startsWith("beachplease.") || 
+     window.location.hostname.startsWith("untold."));
+  
   return (
     <nav style={{ position: "sticky", top: 0, zIndex: 50, background: "rgba(15,15,26,0.92)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "0 12px" }}>
       <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: 56, gap: 8 }}>
         <button onClick={() => setView(VIEWS.HOME)} style={{ background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-          <div style={{ width: 28, height: 28, borderRadius: 6, background: `linear-gradient(135deg, #72F94C, #4AD42F)`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: "#fff", fontWeight: 700 }}>C</div>
+          <div style={{ width: 28, height: 28, borderRadius: 6, background: `linear-gradient(135deg, ${navAccent}, ${navAccentDark})`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, color: "#fff", fontWeight: 700 }}>C</div>
           <span style={{ 
             fontSize: 13, fontWeight: 600, color: "#fff", letterSpacing: "0.02em",
             display: compactBrand ? "none" : "inline",
           }} className="nav-brand-text">Cashless</span>
         </button>
-        <div style={{ display: "flex", gap: 2, justifyContent: "flex-end", overflow: "hidden", flex: 1 }}>
+        <div style={{ display: "flex", gap: 2, justifyContent: "flex-end", overflow: "hidden", flex: 1, alignItems: "center" }}>
           {buttons.map(b => (
             <button key={b.v} onClick={() => setView(b.v)} style={{
-              background: view === b.v ? "rgba(114,249,76,0.15)" : "transparent",
-              border: view === b.v ? "1px solid rgba(114,249,76,0.3)" : "1px solid transparent",
+              background: view === b.v ? `rgba(${navAccentRGB},0.15)` : "transparent",
+              border: view === b.v ? `1px solid rgba(${navAccentRGB},0.3)` : "1px solid transparent",
               borderRadius: 18, padding: "6px 10px", fontSize: 12, fontWeight: 500, cursor: "pointer",
-              color: view === b.v ? C.accent : "rgba(232,230,227,0.6)",
+              color: view === b.v ? navAccent : "rgba(232,230,227,0.6)",
               transition: "all 0.2s",
               whiteSpace: "nowrap",
               flexShrink: 0,
             }}>{b.l}</button>
           ))}
+          {isOnSubdomain && (
+            <a 
+              href="https://angajarifestival.ro" 
+              title="Înapoi la toate festivalurile"
+              onClick={(e) => {
+                // Force full page reload (nu doar pushState)
+                e.preventDefault();
+                window.location.href = "https://angajarifestival.ro";
+              }}
+              style={{
+                marginLeft: 4,
+                background: "transparent",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: 18, padding: "6px 10px", fontSize: 12, fontWeight: 500,
+                color: "rgba(232,230,227,0.5)",
+                textDecoration: "none",
+                whiteSpace: "nowrap",
+                flexShrink: 0,
+                cursor: "pointer",
+              }}
+            >← Toate</a>
+          )}
         </div>
       </div>
     </nav>
@@ -2604,6 +2637,7 @@ function LandingPage() {
 // === KAPITAL HomePage clone ===
 
 function KHomePage({ setView }) {
+  const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   return (<>
     <KHero setView={setView} />
     <KInfoCards />
@@ -2619,6 +2653,7 @@ function KHomePage({ setView }) {
 }
 
 function KHero({ setView }) {
+  const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   return (
     <div style={{ textAlign: "center", padding: "48px 20px 40px" }}>
       <div style={{ display: "inline-block", padding: "5px 14px", borderRadius: 20, background: "rgba(233,29,99,0.12)", border: "1px solid rgba(233,29,99,0.2)", fontSize: 12, fontFamily: "monospace", color: C.accent, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 20 }}>
@@ -2652,6 +2687,7 @@ function KHero({ setView }) {
 }
 
 function KInfoCards() {
+  const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   const cards = [
     { icon: "💰", title: "Plată", desc: "20 lei net/oră, 20-24 ore lucrate per festival. Plata se face după festival." },
     { icon: "🏙️", title: "În București", desc: "Locația e Arena Națională. Cazarea e responsabilitatea ta." },
@@ -2674,6 +2710,7 @@ function KInfoCards() {
 }
 
 function KFAQ() {
+  const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   const [open, setOpen] = useState(null);
   const items = [
     { q: "Care e vârsta minimă?", a: "18 ani împliniți la data festivalului." },
@@ -2712,6 +2749,7 @@ function KFAQ() {
 // ============================================
 
 function KApplyPage({ setView }) {
+  const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   const [step, setStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -3089,6 +3127,7 @@ function KApplyPage({ setView }) {
 }
 
 function KAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
+  const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   const [documents, setDocuments] = useState(null);
   const [signModal, setSignModal] = useState(null); // { type, title, docName }
   const [busyDoc, setBusyDoc] = useState(null); // "acord" | "declaratie" | "ci"
@@ -3342,6 +3381,7 @@ function KAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
 }
 
 function KMyShifts({ phone, pastOnly = false }) {
+  const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -3603,6 +3643,7 @@ function KMyShifts({ phone, pastOnly = false }) {
 }
 
 function KShiftsPage({ phone, onLogout }) {
+  const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   if (!phone) {
     return (
       <div style={{ padding: "40px 16px", maxWidth: 520, margin: "0 auto", textAlign: "center" }}>
@@ -3637,6 +3678,7 @@ function KShiftsPage({ phone, onLogout }) {
 }
 
 function KTeamPage({ phone, onLogout }) {
+  const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -3952,6 +3994,7 @@ function KTeamPage({ phone, onLogout }) {
 }
 
 function KAdminPage({ isAdmin, setIsAdmin }) {
+  const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   const [code, setCode] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState(null);
@@ -4190,6 +4233,7 @@ function KAdminPage({ isAdmin, setIsAdmin }) {
 }
 
 function KAdminScheduleView({ shifts }) {
+  const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
@@ -4344,6 +4388,7 @@ function KAdminScheduleView({ shifts }) {
 }
 
 function KStatusPage({ onCompleteDetected }) {
+  const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   const [phone, setPhone] = useState("");
   const [status, setStatus] = useState(null);
   const [searching, setSearching] = useState(false);
@@ -4513,6 +4558,7 @@ function KStatusPage({ onCompleteDetected }) {
 }
 
 function KKapitalApp() {
+  const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   const [view, setView] = useState(VIEWS.HOME);
   // Telefonul utilizatorului care a făcut status check și e Complete
   const [completePhone, setCompletePhone] = useState(null);
@@ -4579,7 +4625,9 @@ function KKapitalApp() {
       <Nav view={view} setView={setView} 
         hasShifts={!!completePhone}
         hasTeam={!!completePhone && userPosition === "Supervizor"}
-        isAdmin={isAdmin} />
+        isAdmin={isAdmin}
+        accent="#E91D63"
+        accentDark="#C2185B" />
 
       <div style={{ position: "relative", zIndex: 1 }}>
         {view === VIEWS.HOME && <KHomePage setView={setView} />}
