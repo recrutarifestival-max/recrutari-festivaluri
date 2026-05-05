@@ -115,8 +115,10 @@ function Hero({ setView }) {
 
 function InfoCards() {
   const cards = [
-    { icon: "💰", title: "Plată", desc: "20 lei net/oră, 40-42 ore pe săptămână. Plata se face după festival." },
-    { icon: "🏕️", title: "Camping inclus", desc: "Loc de cort în camping disponibil din 7 Iulie. Dacă preferi altceva, îți asiguri cazarea proprie." },
+    { icon: "💰", title: "Plată", desc: "20 lei net/oră, în jur de 30-36 ore lucrate pe durata festivalului. Plata se face după festival." },
+    { icon: "🏕️", title: "Camping inclus", desc: "Loc de cort în camping disponibil din 7 Iulie." },
+    { icon: "🎓", title: "Training inclus", desc: "Trainingurile încep din 5 Iulie și sunt obligatorii pentru toți membrii echipei." },
+    { icon: "🔄", title: "Flexibilitate", desc: "Îți alegi singur ce model de ture preferi dintre cele 3 opțiuni disponibile." },
     { icon: "🎪", title: "Acces festival", desc: "Ai acces în perimetrul festivalului și în afara turelor de lucru." },
     { icon: "🍕", title: "Mâncare + apă", desc: "Primești mâncare și apă pe durata turei de lucru." },
   ];
@@ -139,9 +141,11 @@ function FAQ() {
   const [open, setOpen] = useState(null);
   const items = [
     { q: "Care e vârsta minimă?", a: "18 ani împliniți la data festivalului." },
+    { q: "Ce modele de ture există și când încep?", a: "Există 3 modele: NNZZN (noapte-noapte-zi-zi-noapte), ZZNNZ (zi-zi-noapte-noapte-zi) sau Oricând (flexibil — coordonatorul îți alocă). Turele de zi încep la ora 15:00, iar cele de noapte în jurul orei 21:00-22:00." },
+    { q: "Când încep training-urile?", a: "Training-urile încep din 5 Iulie 2026 și sunt obligatorii pentru toți membrii echipei. Vei primi detalii exacte după acceptare." },
     { q: "Se oferă cazare?", a: "Putem oferi loc de cort în camping din 7 Iulie. Dacă preferi altă variantă, trebuie să-ți asiguri cazare proprie în zona Costinești." },
     { q: "Se oferă parcare?", a: "Nu. Nu se oferă loc de parcare. Recomandăm transportul în comun sau organizarea cu alți colegi." },
-    { q: "Voi avea tură în fiecare zi?", a: "Da, vei avea tură în fiecare zi de festival (8-12 Iulie 2026)." },
+    { q: "Voi avea tură în fiecare zi?", a: "Da, vei avea tură în fiecare zi de festival (8-12 Iulie 2026), conform modelului de ture pe care îl alegi." },
     { q: "Ce se întâmplă dacă nu pot veni o zi?", a: "Anunți coordonatorul din timp și se stabilește recuperarea. Absența neanunțată = restricționare acces." },
     { q: "Am nevoie de experiență?", a: "Nu, oferim training complet. Ai nevoie doar de seriozitate și disponibilitate." },
     { q: "Când aflu dacă sunt acceptat?", a: "Verifici statusul aplicației oricând pe acest site, folosind numărul de telefon." },
@@ -186,12 +190,13 @@ function HomePage({ setView }) {
 
 const STEPS = ["Date personale", "Screening", "Date CI", "Confirmare"];
 
-function FormField({ label, required, children, error }) {
+function FormField({ label, required, children, error, hint }) {
   return (
     <div style={{ marginBottom: 16 }}>
       <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "rgba(232,230,227,0.7)", marginBottom: 6 }}>
         {label} {required && <span style={{ color: C.accent }}>*</span>}
       </label>
+      {hint && <div style={{ fontSize: 11, color: "rgba(232,230,227,0.4)", marginBottom: 6, lineHeight: 1.45 }}>{hint}</div>}
       {children}
       {error && <div style={{ fontSize: 12, color: "#ff6b6b", marginTop: 4 }}>{error}</div>}
     </div>
@@ -279,7 +284,7 @@ function ApplyPage({ setView }) {
   const fileRef = useRef(null);
   const [form, setForm] = useState({
     nume: "", prenume: "", telefon: "", email: "", oras: "", dataNasterii: "", socialType: "", socialLink: "",
-    situatie: "", cazare: "", experienta: "", motivatie: "",
+    situatie: "", cazare: "", experienta: "", motivatie: "", turaPreferata: "", colegiPreferati: "",
     serieCi: "", numarCi: "", cnp: "", sex: "", eliberatDe: "", dataCi: "", dataExpirareCi: "", domiciliu: "", orasCi: "", judet: "", cetatenie: "",
     selfie: null,
     confirm1: false, confirm2: false, confirm3: false, gdprConsent: false, gdprMarketing: false,
@@ -303,6 +308,7 @@ function ApplyPage({ setView }) {
       if (!form.situatie) e.situatie = "Selectează o opțiune";
       if (!form.cazare) e.cazare = "Selectează o opțiune";
       if (!form.experienta) e.experienta = "Selectează o opțiune";
+      if (!form.turaPreferata) e.turaPreferata = "Selectează o opțiune";
       if (!form.motivatie.trim() || form.motivatie.length < 20) e.motivatie = "Minim 20 de caractere";
       if (!form.selfie) e.selfie = "Selfie-ul este obligatoriu";
     }
@@ -458,6 +464,16 @@ function ApplyPage({ setView }) {
         <FormField label="Ai mai participat la un festival major?" required error={errors.experienta}>
           <Select value={form.experienta} onChange={v => upd("experienta", v)} options={["Da, ca staff/voluntar", "Da, ca participant", "Nu, este prima dată"]} placeholder="Selectează..." />
         </FormField>
+        <FormField label="Ce model de ture preferi?" required error={errors.turaPreferata} hint="Turele de zi încep la ora 15:00, cele de noapte în jurul orei 21-22. N = noapte, Z = zi.">
+          <Select value={form.turaPreferata} onChange={v => upd("turaPreferata", v)} options={[
+            "NNZZN (noapte-noapte-zi-zi-noapte)",
+            "ZZNNZ (zi-zi-noapte-noapte-zi)",
+            "Oricând (flexibil)"
+          ]} placeholder="Selectează..." />
+        </FormField>
+        <FormField label="Cu cine ai vrea să fii pe tură? (opțional)" hint="Dacă ai prieteni/cunoștințe care aplică și vrei să fiți pe aceeași tură, scrie aici numele lor. Lăsăm necompletat dacă nu e cazul.">
+          <TextArea value={form.colegiPreferati} onChange={v => upd("colegiPreferati", v)} placeholder="Ex: Ion Popescu, Maria Ionescu..." rows={2} />
+        </FormField>
         <FormField label="Ce te motivează să faci parte din echipă?" required error={errors.motivatie}>
           <TextArea value={form.motivatie} onChange={v => upd("motivatie", v)} placeholder="Spune-ne de ce vrei să fii parte din echipa Cashless..." rows={4} />
         </FormField>
@@ -546,6 +562,7 @@ function ApplyPage({ setView }) {
               ["Sex / Data n.", `${form.sex || "—"} / ${form.dataNasterii || "—"}`],
               ["Situație", form.situatie], ["Cazare", form.cazare],
               ["Profil", `${form.socialType}: ${form.socialLink}`],
+              ["Tură preferată", form.turaPreferata],
             ].map(([k, v]) => (
               <div key={k}>
                 <div style={{ fontSize: 11, color: "rgba(232,230,227,0.35)" }}>{k}</div>
