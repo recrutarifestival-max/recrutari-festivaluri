@@ -282,7 +282,7 @@ function ApplyPage({ setView }) {
     situatie: "", cazare: "", experienta: "", motivatie: "",
     serieCi: "", numarCi: "", cnp: "", sex: "", eliberatDe: "", dataCi: "", dataExpirareCi: "", domiciliu: "", orasCi: "", judet: "", cetatenie: "",
     selfie: null,
-    confirm1: false, confirm2: false, confirm3: false, confirm4: false, gdprConsent: false, gdprMarketing: false,
+    confirm1: false, confirm2: false, confirm3: false, gdprConsent: false, gdprMarketing: false,
   });
   const [errors, setErrors] = useState({});
 
@@ -335,7 +335,6 @@ function ApplyPage({ setView }) {
       if (!form.confirm1) e.confirm1 = "Trebuie confirmat";
       if (!form.confirm2) e.confirm2 = "Trebuie confirmat";
       if (!form.confirm3) e.confirm3 = "Trebuie confirmat";
-      if (!form.confirm4) e.confirm4 = "Trebuie confirmat";
       if (!form.gdprConsent) e.gdprConsent = "Consimțământul GDPR este obligatoriu";
     }
     setErrors(e);
@@ -359,7 +358,6 @@ function ApplyPage({ setView }) {
       delete payload.confirm1;
       delete payload.confirm2;
       delete payload.confirm3;
-      delete payload.confirm4;
 
       const resp = await fetch(API_URL, {
         method: "POST",
@@ -561,7 +559,6 @@ function ApplyPage({ setView }) {
           { key: "confirm1", text: "Confirm că am citit și înțeles condițiile: plata este de 20 lei/oră, se oferă loc de cort în camping, nu se oferă parcare, voi avea tură zilnic." },
           { key: "confirm2", text: "Confirm că datele introduse sunt corecte și reale. Înțeleg că orice neconcordanță duce la excludere." },
           { key: "confirm3", text: "Mă angajez să fiu disponibil/ă pentru toată durata festivalului (8-12 Iulie) și pentru training-urile premergătoare." },
-          { key: "confirm4", text: "Am citit și sunt de acord cu Regulamentul de Ordine Interioară. Înțeleg că nerespectarea acestuia poate duce la încetarea colaborării." },
         ].map(c => (
           <label key={c.key} style={{ display: "flex", gap: 10, marginBottom: 14, cursor: "pointer", alignItems: "flex-start" }}>
             <div onClick={() => upd(c.key, !form[c.key])} style={{
@@ -1200,6 +1197,7 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
     };
     const all = (real.contract || optimisticSigned.contract) &&
                 (real.fisa || optimisticSigned.fisa) &&
+                (real.roi || optimisticSigned.roi) &&
                 (real.ci || optimisticSigned.ci);
     setAllComplete(all);
   }, [statusInfo, optimisticSigned]);
@@ -1355,6 +1353,15 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
         busy={busyDoc === "fisa"}
       />
 
+      <DocumentCard
+        title="Regulament de Ordine Interioară"
+        signed={!!statusInfo?.roiSemnat || optimisticSigned.roi}
+        viewUrl={documents?.roi?.url}
+        pdfUrl={documents?.roi?.pdfUrl}
+        onSign={() => setSignModal({ type: "roi", title: "Semnează ROI", docName: "Regulament de Ordine Interioară" })}
+        busy={busyDoc === "roi"}
+      />
+
       <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginTop: 16, marginBottom: 10 }}>Documente de încărcat</div>
 
       <CIUploadCard
@@ -1376,12 +1383,13 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
           const done = [
             !!statusInfo?.contractSemnat || optimisticSigned.contract,
             !!statusInfo?.fisaSemnat || optimisticSigned.fisa,
+            !!statusInfo?.roiSemnat || optimisticSigned.roi,
             !!statusInfo?.ciIncarcat || optimisticSigned.ci,
           ].filter(Boolean).length;
           return (
             <>
               <div style={{ fontSize: 12, color: "rgba(232,230,227,0.5)", marginBottom: 8 }}>
-                Progres: {done} / 3
+                Progres: {done} / 4
               </div>
               <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden", marginBottom: 14 }}>
                 <div style={{
