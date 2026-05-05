@@ -1328,9 +1328,16 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
         </div>
       </div>
 
+      {/* Warning IMPORTANT — semnătura e definitivă */}
+      <div style={{ background: "rgba(255,107,107,0.08)", border: "1px solid rgba(255,107,107,0.3)", borderRadius: 10, padding: 14, marginBottom: 12, fontSize: 13, color: "rgba(232,230,227,0.85)", lineHeight: 1.55 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: "#ff8a8a", marginBottom: 6 }}>⚠️ Important: citește înainte de a semna</div>
+        Documentele pe care le semnezi mai jos sunt <strong>obligatorii și legal valabile</strong>. După ce ai apăsat "Semnează", angajamentul e ferm — nu te mai poți retrage din proces fără consecințe.<br /><br />
+        <strong>Dacă apare orice problemă reală</strong> (boală, urgență familială etc.) după ce ai semnat, contactează-ne imediat la <a href="mailto:recrutarifestival@gmail.com" style={{ color: "#ff8a8a", textDecoration: "underline" }}>recrutarifestival@gmail.com</a> ca să găsim împreună o soluție.
+      </div>
+
       {/* GDPR Disclaimer */}
       <div style={{ background: "rgba(114,249,76,0.05)", border: "1px solid rgba(114,249,76,0.15)", borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 11, color: "rgba(232,230,227,0.55)", lineHeight: 1.6 }}>
-        ⚠️ <strong style={{ color: "rgba(232,230,227,0.8)" }}>Notă:</strong> Prin semnarea electronică a documentelor de mai jos, confirmi acordul tău cu modul de semnare prevăzut în Regulamentul de Ordine Interioară (OUG 36/2021, Legea 208/2021). Fiecare semnătură este înregistrată cu timestamp și hash criptografic ca dovadă a autenticității.
+        ⚠️ <strong style={{ color: "rgba(232,230,227,0.8)" }}>Notă legală:</strong> Prin semnarea electronică a documentelor de mai jos, confirmi acordul tău cu modul de semnare prevăzut în Regulamentul de Ordine Interioară (OUG 36/2021, Legea 208/2021). Fiecare semnătură este înregistrată cu timestamp și hash criptografic ca dovadă a autenticității.
       </div>
 
       <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginBottom: 10 }}>Documente de semnat</div>
@@ -2228,7 +2235,7 @@ function StatusPage({ onCompleteDetected }) {
       
       if (result.success) {
         if (result.found) {
-          const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Respins": "rejected", "Confirmat": "confirmed" };
+          const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Expirat": "expired", "Respins": "rejected", "Confirmat": "confirmed" };
           setStatus({
             found: true,
             status: statusMap[result.status] || "pending",
@@ -2241,6 +2248,7 @@ function StatusPage({ onCompleteDetected }) {
             ciIncarcat: result.ciIncarcat,
             statusFinal: result.statusFinal,
             position: result.position || "Casier",
+            hasExtension: result.hasExtension || false,
           });
           // Dacă e Complete, activează tab-uri pentru această sesiune
           if (result.statusFinal === "Complete" && onCompleteDetected) {
@@ -2284,7 +2292,7 @@ function StatusPage({ onCompleteDetected }) {
       }
       
       if (result.success && result.found) {
-        const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Respins": "rejected", "Confirmat": "confirmed" };
+        const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Expirat": "expired", "Respins": "rejected", "Confirmat": "confirmed" };
         setStatus(prev => ({
           ...prev,
           found: true,
@@ -2297,6 +2305,7 @@ function StatusPage({ onCompleteDetected }) {
           ciIncarcat: result.ciIncarcat,
           statusFinal: result.statusFinal,
           position: result.position || "Casier",
+          hasExtension: result.hasExtension || false,
         }));
         if (result.statusFinal === "Complete" && onCompleteDetected) {
           onCompleteDetected(targetPhone, result.position || "Casier");
@@ -2388,6 +2397,16 @@ function StatusPage({ onCompleteDetected }) {
                   firstName={status.firstName}
                   statusInfo={status}
                   refreshStatus={refreshStatus}
+                />
+              )}
+              {status.status === "expired" && (
+                <ExpiredCard
+                  phone={phone}
+                  firstName={status.firstName}
+                  hasExtension={status.hasExtension}
+                  apiUrl={API_URL}
+                  refreshStatus={refreshStatus}
+                  accentColor="#72F94C"
                 />
               )}
               {status.status === "rejected" && (
@@ -3341,9 +3360,16 @@ function KAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
         </div>
       </div>
 
+      {/* Warning IMPORTANT — semnătura e definitivă */}
+      <div style={{ background: "rgba(255,107,107,0.08)", border: "1px solid rgba(255,107,107,0.3)", borderRadius: 10, padding: 14, marginBottom: 12, fontSize: 13, color: "rgba(232,230,227,0.85)", lineHeight: 1.55 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: "#ff8a8a", marginBottom: 6 }}>⚠️ Important: citește înainte de a semna</div>
+        Documentele pe care le semnezi mai jos sunt <strong>obligatorii și legal valabile</strong>. După ce ai apăsat "Semnează", angajamentul e ferm — nu te mai poți retrage din proces fără consecințe.<br /><br />
+        <strong>Dacă apare orice problemă reală</strong> (boală, urgență familială etc.) după ce ai semnat, contactează-ne imediat la <a href="mailto:recrutarifestival@gmail.com" style={{ color: "#ff8a8a", textDecoration: "underline" }}>recrutarifestival@gmail.com</a> ca să găsim împreună o soluție.
+      </div>
+
       {/* GDPR Disclaimer */}
       <div style={{ background: "rgba(233,29,99,0.05)", border: "1px solid rgba(233,29,99,0.15)", borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 11, color: "rgba(232,230,227,0.55)", lineHeight: 1.6 }}>
-        ⚠️ <strong style={{ color: "rgba(232,230,227,0.8)" }}>Notă:</strong> Prin semnarea electronică a documentelor de mai jos, confirmi acordul tău cu modul de semnare prevăzut în Regulamentul de Ordine Interioară (OUG 36/2021, Legea 208/2021). Fiecare semnătură este înregistrată cu timestamp și hash criptografic ca dovadă a autenticității.
+        ⚠️ <strong style={{ color: "rgba(232,230,227,0.8)" }}>Notă legală:</strong> Prin semnarea electronică a documentelor de mai jos, confirmi acordul tău cu modul de semnare prevăzut în Regulamentul de Ordine Interioară (OUG 36/2021, Legea 208/2021). Fiecare semnătură este înregistrată cu timestamp și hash criptografic ca dovadă a autenticității.
       </div>
 
       <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginBottom: 10 }}>Documente de semnat</div>
@@ -4482,7 +4508,7 @@ function KStatusPage({ onCompleteDetected }) {
       
       if (result.success) {
         if (result.found) {
-          const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Respins": "rejected", "Confirmat": "confirmed" };
+          const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Expirat": "expired", "Respins": "rejected", "Confirmat": "confirmed" };
           setStatus({
             found: true,
             status: statusMap[result.status] || "pending",
@@ -4494,6 +4520,7 @@ function KStatusPage({ onCompleteDetected }) {
             ciIncarcat: result.ciIncarcat,
             statusFinal: result.statusFinal,
             position: result.position || "Casier",
+            hasExtension: result.hasExtension || false,
           });
           // Dacă e Complete, activează tab-uri pentru această sesiune
           if (result.statusFinal === "Complete" && onCompleteDetected) {
@@ -4536,7 +4563,7 @@ function KStatusPage({ onCompleteDetected }) {
       }
       
       if (result.success && result.found) {
-        const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Respins": "rejected", "Confirmat": "confirmed" };
+        const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Expirat": "expired", "Respins": "rejected", "Confirmat": "confirmed" };
         setStatus(prev => ({
           ...prev,
           found: true,
@@ -4548,6 +4575,7 @@ function KStatusPage({ onCompleteDetected }) {
           ciIncarcat: result.ciIncarcat,
           statusFinal: result.statusFinal,
           position: result.position || "Casier",
+          hasExtension: result.hasExtension || false,
         }));
         if (result.statusFinal === "Complete" && onCompleteDetected) {
           onCompleteDetected(targetPhone, result.position || "Casier");
@@ -4639,6 +4667,16 @@ function KStatusPage({ onCompleteDetected }) {
                   firstName={status.firstName}
                   statusInfo={status}
                   refreshStatus={refreshStatus}
+                />
+              )}
+              {status.status === "expired" && (
+                <ExpiredCard
+                  phone={phone}
+                  firstName={status.firstName}
+                  hasExtension={status.hasExtension}
+                  apiUrl={KAPITAL_API_URL}
+                  refreshStatus={refreshStatus}
+                  accentColor="#E91D63"
                 />
               )}
               {status.status === "rejected" && (
@@ -4798,6 +4836,118 @@ function UntoldPlaceholder() {
             color: "rgba(255,255,255,0.4)", fontSize: 12, textDecoration: "underline",
           }}>← Înapoi la pagina principală</a>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// EXPIRED CARD — afișat când statusul e "Expirat" pe pagina de status
+// Permite candidatului să prelungească termenul cu încă 48h.
+// Dacă deja a folosit prelungirea, afișează mesaj că nu mai poate prelungi.
+// ============================================
+
+function ExpiredCard({ phone, firstName, hasExtension, apiUrl, refreshStatus, accentColor }) {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(false);
+
+  async function handleExtend() {
+    setError(null);
+    setSubmitting(true);
+    try {
+      const resp = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({ action: "extendDeadline", phone: phone }),
+      });
+      const result = await resp.json();
+      if (result.success) {
+        setSuccess(true);
+        setTimeout(() => { if (refreshStatus) refreshStatus(); }, 800);
+      } else {
+        setError(result.error || "Nu s-a putut realiza prelungirea.");
+      }
+    } catch (err) {
+      setError("Eroare de conexiune. Încearcă din nou.");
+    }
+    setSubmitting(false);
+  }
+
+  if (success) {
+    return (
+      <div style={{ background: "rgba(114,249,76,0.08)", border: "1px solid rgba(114,249,76,0.3)", borderRadius: 16, padding: 24, textAlign: "center" }}>
+        <div style={{ fontSize: 40, marginBottom: 10 }}>✅</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: "#72F94C", marginBottom: 8 }}>Prelungire confirmată!</div>
+        <div style={{ fontSize: 13, color: "rgba(232,230,227,0.7)", lineHeight: 1.5 }}>
+          Ai încă 48 de ore să finalizezi documentele. Pagina se va reîncărca automat.
+        </div>
+      </div>
+    );
+  }
+
+  if (hasExtension) {
+    // Deja a folosit prelungirea anterior — practic nu ar trebui să ajungă aici, dar safeguard
+    return (
+      <div style={{ background: "rgba(255,107,107,0.08)", border: "1px solid rgba(255,107,107,0.3)", borderRadius: 16, padding: 24, textAlign: "center" }}>
+        <div style={{ fontSize: 40, marginBottom: 10 }}>⏰</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: "#ff8a8a", marginBottom: 8 }}>
+          Termen expirat{firstName ? `, ${firstName}` : ""}
+        </div>
+        <div style={{ fontSize: 13, color: "rgba(232,230,227,0.7)", lineHeight: 1.6 }}>
+          Ai folosit deja prelungirea de 48h disponibilă. Aplicația va fi închisă automat în scurt timp.
+          <br /><br />
+          Dacă ai o problemă reală, scrie-ne la{" "}
+          <a href="mailto:recrutarifestival@gmail.com" style={{ color: accentColor, textDecoration: "underline" }}>
+            recrutarifestival@gmail.com
+          </a>.
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ background: "rgba(255,170,0,0.08)", border: "1px solid rgba(255,170,0,0.3)", borderRadius: 16, padding: 24, textAlign: "center" }}>
+      <div style={{ fontSize: 40, marginBottom: 10 }}>⏰</div>
+      <div style={{ fontSize: 18, fontWeight: 700, color: "#FFB84D", marginBottom: 8 }}>
+        Termen expirat{firstName ? `, ${firstName}` : ""}
+      </div>
+      <div style={{ fontSize: 13, color: "rgba(232,230,227,0.7)", lineHeight: 1.6, marginBottom: 16, maxWidth: 380, marginLeft: "auto", marginRight: "auto" }}>
+        Au trecut 48 de ore de la acceptare și încă nu ai semnat toate documentele. Îți oferim <strong style={{ color: "#fff" }}>încă 48 de ore</strong> pentru a finaliza.
+        <br /><br />
+        <strong style={{ color: "#FFB84D" }}>Atenție: aceasta este UNICA prelungire disponibilă.</strong> Dacă nu finalizezi în următoarele 48h după prelungire, aplicația va fi închisă definitiv.
+      </div>
+
+      {error && (
+        <div style={{ background: "rgba(226,75,74,0.1)", border: "1px solid rgba(226,75,74,0.3)", borderRadius: 10, padding: 10, marginBottom: 12, fontSize: 12, color: "#ff6b6b" }}>
+          {error}
+        </div>
+      )}
+
+      <button
+        onClick={handleExtend}
+        disabled={submitting}
+        style={{
+          background: submitting ? "rgba(255,170,0,0.3)" : `linear-gradient(135deg, #FFB84D, #FF8A00)`,
+          border: "none",
+          borderRadius: 12,
+          padding: "12px 28px",
+          fontSize: 14,
+          fontWeight: 700,
+          color: "#000",
+          cursor: submitting ? "wait" : "pointer",
+          opacity: submitting ? 0.7 : 1,
+          marginBottom: 12,
+        }}
+      >
+        {submitting ? "Se procesează..." : "🔄 Prelungește cu încă 48h"}
+      </button>
+
+      <div style={{ fontSize: 11, color: "rgba(232,230,227,0.4)", lineHeight: 1.5 }}>
+        Probleme tehnice? Scrie-ne la{" "}
+        <a href="mailto:recrutarifestival@gmail.com" style={{ color: accentColor, textDecoration: "underline" }}>
+          recrutarifestival@gmail.com
+        </a>
       </div>
     </div>
   );
