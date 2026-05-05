@@ -2,8 +2,8 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 
 const C = { accent: "#72F94C", accentDark: "#4AD42F", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
-const API_URL = "https://script.google.com/macros/s/AKfycbyBvRDNA7V9HDpwqQTKeLh6q_thnddCcSMGKlYZHMuNvV-5plWUEDHxGkUpv9hGzRltXQ/exec";
-const KAPITAL_API_URL = "https://script.google.com/macros/s/AKfycbx0DYnbwi17YEDP-7YigrdgakTQkh3Euft7KIHcTyccHS3v_2JXBNyFyIWmfhLY3LE_/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyAdqPuIqUTTmbKp7p2ljKmo0mPAoByDJPdTVcQqFUbiaRFopL2_XaaZJV22uKU0VRiSA/exec";
+const KAPITAL_API_URL = "https://script.google.com/macros/s/AKfycbwkG2HshB4Eh-OXWmynenhfos6a4oPKriMfmwcBbrLkm4su0zGNkjcBtB0FEz3Lx-8ELA/exec";
 const VIEWS = { HOME: "home", APPLY: "apply", STATUS: "status", SHIFTS: "shifts", TEAM: "team", ADMIN: "admin" };
 
 function Nav({ view, setView, hasShifts, hasTeam, isAdmin, accent, accentDark }) {
