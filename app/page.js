@@ -2479,7 +2479,7 @@ function LandingPage() {
       name: "Kapital",
       dateLabel: "3-5 Iulie 2026",
       location: "Arena Națională, București",
-      enabled: true,
+      enabled: false,
       colors: { accent: "#E91D63", accentDark: "#C2185B" },
       subdomain: "kapital",
     },
