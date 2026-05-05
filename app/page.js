@@ -115,8 +115,8 @@ function Hero({ setView }) {
 
 function InfoCards() {
   const cards = [
-    { icon: "💰", title: "Plată", desc: "20 lei net/oră, 40-42 ore pe săptămână. Plata se face după festival." },
-    { icon: "🏕️", title: "Camping inclus", desc: "Loc de cort în camping disponibil din 7 Iulie. Dacă preferi altceva, îți asiguri cazarea proprie." },
+    { icon: "💰", title: "Plată", desc: "20 lei net/oră, 36 - 40 ore pe săptămână. Plata se face după ultima tură." },
+    { icon: "🏕️", title: "Camping inclus", desc: "Loc de cort în camping disponibil din 7 Iulie." },
     { icon: "🎪", title: "Acces festival", desc: "Ai acces în perimetrul festivalului și în afara turelor de lucru." },
     { icon: "🍕", title: "Mâncare + apă", desc: "Primești mâncare și apă pe durata turei de lucru." },
   ];
@@ -139,7 +139,7 @@ function FAQ() {
   const [open, setOpen] = useState(null);
   const items = [
     { q: "Care e vârsta minimă?", a: "18 ani împliniți la data festivalului." },
-    { q: "Se oferă cazare?", a: "Putem oferi loc de cort în camping din 7 Iulie. Dacă preferi altă variantă, trebuie să-ți asiguri cazare proprie în zona Costinești." },
+    { q: "Se oferă cazare?", a: "Putem oferi loc de cort în camping din 7 Iulie." },
     { q: "Se oferă parcare?", a: "Nu. Nu se oferă loc de parcare. Recomandăm transportul în comun sau organizarea cu alți colegi." },
     { q: "Voi avea tură în fiecare zi?", a: "Da, vei avea tură în fiecare zi de festival (8-12 Iulie 2026)." },
     { q: "Ce se întâmplă dacă nu pot veni o zi?", a: "Anunți coordonatorul din timp și se stabilește recuperarea. Absența neanunțată = restricționare acces." },
@@ -2702,8 +2702,8 @@ function KHero({ setView }) {
 function KInfoCards() {
   const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   const cards = [
-    { icon: "💰", title: "Plată", desc: "20 lei net/oră, 20-24 ore lucrate per festival. Plata se face după festival." },
-    { icon: "🏙️", title: "În București", desc: "Locația e Arena Națională. Cazarea e responsabilitatea ta." },
+    { icon: "💰", title: "Plată", desc: "20 lei net/oră, 20-24 ore lucrate per festival. Plata se face după ultima tură." },
+    { icon: "🏙️", title: "În București", desc: "Locația e Arena Națională." },
     { icon: "🎪", title: "Acces festival", desc: "Ai acces în perimetrul festivalului și în afara turelor de lucru." },
     { icon: "🍕", title: "Mâncare + apă", desc: "Primești mâncare și apă pe durata turei de lucru." },
   ];
