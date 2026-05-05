@@ -902,10 +902,6 @@ function CIUploadCard({ uploaded, onUpload, busy }) {
 }
 
 // ============================================
-// ACCEPTED FLOW (pagina principală pentru status="accepted")
-// ============================================
-
-// ============================================
 // MY SHIFTS - turele mele
 // ============================================
 
@@ -2634,6 +2630,7 @@ function LandingPage() {
 }
 
 
+
 // === KAPITAL HomePage clone ===
 
 function KHomePage({ setView }) {
@@ -2714,7 +2711,7 @@ function KFAQ() {
   const [open, setOpen] = useState(null);
   const items = [
     { q: "Care e vârsta minimă?", a: "18 ani împliniți la data festivalului." },
-    { q: "Se oferă cazare?", a: "Locația e în București (Arena Națională). Cazarea e responsabilitatea ta — orașul e accesibil cu transportul în comun." },
+    { q: "Se oferă cazare?", a: "Nu. Nu se oferă cazare." },
     { q: "Se oferă parcare?", a: "Nu. Nu se oferă loc de parcare. Recomandăm transportul în comun sau organizarea cu alți colegi." },
     { q: "Voi avea tură în fiecare zi?", a: "Da, vei avea tură în fiecare zi de festival (3-5 Iulie 2026)." },
     { q: "Ce se întâmplă dacă nu pot veni o zi?", a: "Anunți coordonatorul din timp și se stabilește recuperarea. Absența neanunțată = restricționare acces." },
@@ -2762,7 +2759,7 @@ function KApplyPage({ setView }) {
     situatie: "", cazare: "", experienta: "", motivatie: "",
     serieCi: "", numarCi: "", cnp: "", sex: "", eliberatDe: "", dataCi: "", dataExpirareCi: "", domiciliu: "", orasCi: "", judet: "", cetatenie: "",
     selfie: null,
-    confirm1: false, confirm2: false, confirm3: false, confirm4: false, gdprConsent: false, gdprMarketing: false,
+    confirm1: false, confirm2: false, confirm3: false, gdprConsent: false, gdprMarketing: false,
   });
   const [errors, setErrors] = useState({});
 
@@ -2815,7 +2812,6 @@ function KApplyPage({ setView }) {
       if (!form.confirm1) e.confirm1 = "Trebuie confirmat";
       if (!form.confirm2) e.confirm2 = "Trebuie confirmat";
       if (!form.confirm3) e.confirm3 = "Trebuie confirmat";
-      if (!form.confirm4) e.confirm4 = "Trebuie confirmat";
       if (!form.gdprConsent) e.gdprConsent = "Consimțământul GDPR este obligatoriu";
     }
     setErrors(e);
@@ -2839,7 +2835,6 @@ function KApplyPage({ setView }) {
       delete payload.confirm1;
       delete payload.confirm2;
       delete payload.confirm3;
-      delete payload.confirm4;
 
       const resp = await fetch(KAPITAL_API_URL, {
         method: "POST",
@@ -2964,7 +2959,7 @@ function KApplyPage({ setView }) {
               Un selfie recent, clar, în care se vede fața ta. Ne ajută în procesul de selecție.
             </div>
           </div>
-          <input ref={fileRef} type="file" accept="image/*" capture="user" onChange={handleSelfie} style={{ display: "none" }} />
+          <input ref={fileRef} type="file" accept="image/*" onChange={handleSelfie} style={{ display: "none" }} />
         </FormField>
       </div>)}
 
@@ -3040,8 +3035,7 @@ function KApplyPage({ setView }) {
         {[
           { key: "confirm1", text: "Confirm că am citit și înțeles condițiile: plata este de 20 lei/oră, locația e în București (Arena Națională), nu se oferă cazare/parcare, voi avea tură zilnic." },
           { key: "confirm2", text: "Confirm că datele introduse sunt corecte și reale. Înțeleg că orice neconcordanță duce la excludere." },
-          { key: "confirm3", text: "Mă angajez să fiu disponibil/ă pentru toată durata festivalului (8-5 Iulie) și pentru training-urile premergătoare." },
-          { key: "confirm4", text: "Am citit și sunt de acord cu Regulamentul de Ordine Interioară. Înțeleg că nerespectarea acestuia poate duce la încetarea colaborării." },
+          { key: "confirm3", text: "Mă angajez să fiu disponibil/ă pentru toată durata festivalului (3-5 Iulie) și pentru training-urile premergătoare." },
         ].map(c => (
           <label key={c.key} style={{ display: "flex", gap: 10, marginBottom: 14, cursor: "pointer", alignItems: "flex-start" }}>
             <div onClick={() => upd(c.key, !form[c.key])} style={{
@@ -4431,7 +4425,7 @@ function KStatusPage({ onCompleteDetected }) {
       
       if (result.success) {
         if (result.found) {
-          const statusMap = { "În așteptare": "pending", "Acceptat": "accepted", "Respins": "rejected", "Confirmat": "confirmed" };
+          const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Respins": "rejected", "Confirmat": "confirmed" };
           setStatus({
             found: true,
             status: statusMap[result.status] || "pending",
@@ -4522,6 +4516,22 @@ function KStatusPage({ onCompleteDetected }) {
                   <div style={{ fontSize: 32, marginBottom: 8 }}>⏳</div>
                   <div style={{ fontSize: 18, fontWeight: 700, color: "#EF9F27", marginBottom: 4 }}>În așteptare</div>
                   <div style={{ fontSize: 13, color: "rgba(232,230,227,0.45)", lineHeight: 1.5 }}>Aplicația ta este în curs de evaluare. Vei fi notificat/ă când statusul se schimbă.</div>
+                </div>
+              )}
+              {status.status === "selected" && (
+                <div style={{ background: "rgba(74,144,226,0.08)", border: "1px solid rgba(74,144,226,0.25)", borderRadius: 16, padding: 24, textAlign: "center" }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>🎯</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: "#4A90E2", marginBottom: 6 }}>
+                    Felicitări{status.firstName ? `, ${status.firstName}` : ""}!
+                  </div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: "#fff", marginBottom: 12 }}>
+                    Ai fost selectat/ă
+                  </div>
+                  <div style={{ fontSize: 13, color: "rgba(232,230,227,0.7)", lineHeight: 1.6, maxWidth: 400, margin: "0 auto" }}>
+                    Ai fost selectat/ă pentru poziția de casier în departamentul de Cashless Payment Systems la KAPITAL 2026.
+                    <br /><br />
+                    Vei fi contactat/ă în curând pentru un mini-interviu HR. Te rugăm să fii disponibil/ă.
+                  </div>
                 </div>
               )}
               {status.status === "accepted" && (
