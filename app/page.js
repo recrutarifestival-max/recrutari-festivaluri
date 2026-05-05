@@ -115,8 +115,8 @@ function Hero({ setView }) {
 
 function InfoCards() {
   const cards = [
-    { icon: "💰", title: "Plată", desc: "20 lei net/oră, 36 - 40 ore pe săptămână. Plata se face după ultima tură." },
-    { icon: "🏕️", title: "Camping inclus", desc: "Loc de cort în camping disponibil din 7 Iulie." },
+    { icon: "💰", title: "Plată", desc: "20 lei net/oră, 40-42 ore pe săptămână. Plata se face după festival." },
+    { icon: "🏕️", title: "Camping inclus", desc: "Loc de cort în camping disponibil din 7 Iulie. Dacă preferi altceva, îți asiguri cazarea proprie." },
     { icon: "🎪", title: "Acces festival", desc: "Ai acces în perimetrul festivalului și în afara turelor de lucru." },
     { icon: "🍕", title: "Mâncare + apă", desc: "Primești mâncare și apă pe durata turei de lucru." },
   ];
@@ -139,7 +139,7 @@ function FAQ() {
   const [open, setOpen] = useState(null);
   const items = [
     { q: "Care e vârsta minimă?", a: "18 ani împliniți la data festivalului." },
-    { q: "Se oferă cazare?", a: "Putem oferi loc de cort în camping din 7 Iulie." },
+    { q: "Se oferă cazare?", a: "Putem oferi loc de cort în camping din 7 Iulie. Dacă preferi altă variantă, trebuie să-ți asiguri cazare proprie în zona Costinești." },
     { q: "Se oferă parcare?", a: "Nu. Nu se oferă loc de parcare. Recomandăm transportul în comun sau organizarea cu alți colegi." },
     { q: "Voi avea tură în fiecare zi?", a: "Da, vei avea tură în fiecare zi de festival (8-12 Iulie 2026)." },
     { q: "Ce se întâmplă dacă nu pot veni o zi?", a: "Anunți coordonatorul din timp și se stabilește recuperarea. Absența neanunțată = restricționare acces." },
@@ -484,7 +484,7 @@ function ApplyPage({ setView }) {
               Un selfie recent, clar, în care se vede fața ta. Ne ajută în procesul de selecție.
             </div>
           </div>
-          <input ref={fileRef} type="file" accept="image/*" capture="user" onChange={handleSelfie} style={{ display: "none" }} />
+          <input ref={fileRef} type="file" accept="image/*" onChange={handleSelfie} style={{ display: "none" }} />
         </FormField>
       </div>)}
 
@@ -1200,7 +1200,6 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
     };
     const all = (real.contract || optimisticSigned.contract) &&
                 (real.fisa || optimisticSigned.fisa) &&
-                (real.roi || optimisticSigned.roi) &&
                 (real.ci || optimisticSigned.ci);
     setAllComplete(all);
   }, [statusInfo, optimisticSigned]);
@@ -1356,15 +1355,6 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
         busy={busyDoc === "fisa"}
       />
 
-      <DocumentCard
-        title="Regulament de Ordine Interioară"
-        signed={!!statusInfo?.roiSemnat || optimisticSigned.roi}
-        viewUrl={documents?.roi?.url}
-        pdfUrl={documents?.roi?.pdfUrl}
-        onSign={() => setSignModal({ type: "roi", title: "Semnează ROI", docName: "Regulament de Ordine Interioară" })}
-        busy={busyDoc === "roi"}
-      />
-
       <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginTop: 16, marginBottom: 10 }}>Documente de încărcat</div>
 
       <CIUploadCard
@@ -1386,13 +1376,12 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
           const done = [
             !!statusInfo?.contractSemnat || optimisticSigned.contract,
             !!statusInfo?.fisaSemnat || optimisticSigned.fisa,
-            !!statusInfo?.roiSemnat || optimisticSigned.roi,
             !!statusInfo?.ciIncarcat || optimisticSigned.ci,
           ].filter(Boolean).length;
           return (
             <>
               <div style={{ fontSize: 12, color: "rgba(232,230,227,0.5)", marginBottom: 8 }}>
-                Progres: {done} / 4
+                Progres: {done} / 3
               </div>
               <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden", marginBottom: 14 }}>
                 <div style={{
@@ -2262,8 +2251,52 @@ function StatusPage({ onCompleteDetected }) {
   }
 
   // Refresh function pentru AcceptedFlow (după sign/upload)
+  // v6: SILENT refresh - nu resetează UI-ul, doar actualizează statusInfo în background
+  // Astfel optimisticSigned rămân vizibile cât timp se procesează celelalte semnături.
   async function refreshStatus() {
-    await checkStatus(phone);
+    let targetPhone = (phone || "").replace(/[^0-9]/g, "");
+    if (targetPhone.startsWith("40") && targetPhone.length >= 11) {
+      targetPhone = "0" + targetPhone.substring(2);
+    }
+    if (targetPhone.length < 10) return;
+    
+    try {
+      const url = `${API_URL}?action=status&phone=${encodeURIComponent(targetPhone)}&t=${Date.now()}`;
+      const resp = await fetch(url, { 
+        method: "GET",
+        cache: "no-store",
+        credentials: "omit",
+      });
+      const responseText = await resp.text();
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseErr) {
+        return; // ignore parse errors silent
+      }
+      
+      if (result.success && result.found) {
+        const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Respins": "rejected", "Confirmat": "confirmed" };
+        setStatus(prev => ({
+          ...prev,
+          found: true,
+          status: statusMap[result.status] || "pending",
+          name: result.name,
+          firstName: result.firstName,
+          contractSemnat: result.contractSemnat,
+          fisaSemnat: result.fisaSemnat,
+          roiSemnat: result.roiSemnat,
+          ciIncarcat: result.ciIncarcat,
+          statusFinal: result.statusFinal,
+          position: result.position || "Casier",
+        }));
+        if (result.statusFinal === "Complete" && onCompleteDetected) {
+          onCompleteDetected(targetPhone, result.position || "Casier");
+        }
+      }
+    } catch (err) {
+      // ignore network errors silent - optimistic UI rămâne
+    }
   }
 
   return (
@@ -2702,8 +2735,8 @@ function KHero({ setView }) {
 function KInfoCards() {
   const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   const cards = [
-    { icon: "💰", title: "Plată", desc: "20 lei net/oră, 20-24 ore lucrate per festival. Plata se face după ultima tură." },
-    { icon: "🏙️", title: "În București", desc: "Locația e Arena Națională." },
+    { icon: "💰", title: "Plată", desc: "20 lei net/oră, 20-24 ore lucrate per festival. Plata se face după festival." },
+    { icon: "🏙️", title: "În București", desc: "Locația e Arena Națională. Cazarea e responsabilitatea ta." },
     { icon: "🎪", title: "Acces festival", desc: "Ai acces în perimetrul festivalului și în afara turelor de lucru." },
     { icon: "🍕", title: "Mâncare + apă", desc: "Primești mâncare și apă pe durata turei de lucru." },
   ];
@@ -4471,8 +4504,50 @@ function KStatusPage({ onCompleteDetected }) {
   }
 
   // Refresh function pentru KAcceptedFlow (după sign/upload)
+  // v6: SILENT refresh - nu resetează UI-ul, doar actualizează statusInfo în background
   async function refreshStatus() {
-    await checkStatus(phone);
+    let targetPhone = (phone || "").replace(/[^0-9]/g, "");
+    if (targetPhone.startsWith("40") && targetPhone.length >= 11) {
+      targetPhone = "0" + targetPhone.substring(2);
+    }
+    if (targetPhone.length < 10) return;
+    
+    try {
+      const url = `${KAPITAL_API_URL}?action=status&phone=${encodeURIComponent(targetPhone)}&t=${Date.now()}`;
+      const resp = await fetch(url, { 
+        method: "GET",
+        cache: "no-store",
+        credentials: "omit",
+      });
+      const responseText = await resp.text();
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseErr) {
+        return;
+      }
+      
+      if (result.success && result.found) {
+        const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Respins": "rejected", "Confirmat": "confirmed" };
+        setStatus(prev => ({
+          ...prev,
+          found: true,
+          status: statusMap[result.status] || "pending",
+          name: result.name,
+          firstName: result.firstName,
+          acordSemnat: result.acordSemnat,
+          declaratieSemnata: result.declaratieSemnata,
+          ciIncarcat: result.ciIncarcat,
+          statusFinal: result.statusFinal,
+          position: result.position || "Casier",
+        }));
+        if (result.statusFinal === "Complete" && onCompleteDetected) {
+          onCompleteDetected(targetPhone, result.position || "Casier");
+        }
+      }
+    } catch (err) {
+      // ignore network errors silent
+    }
   }
 
   return (
