@@ -2231,7 +2231,7 @@ function StatusPage({ onCompleteDetected }) {
       
       if (result.success) {
         if (result.found) {
-          const statusMap = { "În așteptare": "pending", "Acceptat": "accepted", "Respins": "rejected", "Confirmat": "confirmed" };
+          const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Respins": "rejected", "Confirmat": "confirmed" };
           setStatus({
             found: true,
             status: statusMap[result.status] || "pending",
@@ -2323,6 +2323,22 @@ function StatusPage({ onCompleteDetected }) {
                   <div style={{ fontSize: 32, marginBottom: 8 }}>⏳</div>
                   <div style={{ fontSize: 18, fontWeight: 700, color: "#EF9F27", marginBottom: 4 }}>În așteptare</div>
                   <div style={{ fontSize: 13, color: "rgba(232,230,227,0.45)", lineHeight: 1.5 }}>Aplicația ta este în curs de evaluare. Vei fi notificat/ă când statusul se schimbă.</div>
+                </div>
+              )}
+              {status.status === "selected" && (
+                <div style={{ background: "rgba(74,144,226,0.08)", border: "1px solid rgba(74,144,226,0.25)", borderRadius: 16, padding: 24, textAlign: "center" }}>
+                  <div style={{ fontSize: 40, marginBottom: 10 }}>🎯</div>
+                  <div style={{ fontSize: 20, fontWeight: 700, color: "#7AB3F0", marginBottom: 8 }}>
+                    Felicitări{status.firstName ? `, ${status.firstName}` : ""}!
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginBottom: 10 }}>Ai fost selectat/ă</div>
+                  <div style={{ fontSize: 13, color: "rgba(232,230,227,0.6)", lineHeight: 1.6, maxWidth: 360, margin: "0 auto" }}>
+                    Ai fost selectat/ă pentru o poziție în departamentul de <strong style={{ color: "#fff" }}>Cashless Payment Systems</strong>.
+                    <br /><br />
+                    Vei fi contactat/ă în curând de unul dintre reprezentanții noștri pentru un mini-interviu cu HR-ul.
+                    <br /><br />
+                    Te rugăm să fii disponibil/ă la numărul de telefon cu care ai aplicat.
+                  </div>
                 </div>
               )}
               {status.status === "accepted" && (
