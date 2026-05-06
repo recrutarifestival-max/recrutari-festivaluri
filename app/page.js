@@ -1757,9 +1757,19 @@ function TeamPage({ phone, onLogout }) {
                           {member.fullName}
                         </div>
                         {member.phone ? (
-                          <a href={`tel:${member.phone}`} style={{ fontSize: 12, color: C.accent, textDecoration: "none", fontFamily: "monospace" }}>
-                            📞 {member.phone}
-                          </a>
+                          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                            <a href={`tel:${member.phone}`} style={{ fontSize: 12, color: C.accent, textDecoration: "none", fontFamily: "monospace" }}>
+                              📞 {member.phone}
+                            </a>
+                            <a href={`https://wa.me/${member.phone.replace(/\D/g, "").replace(/^0/, "40")}`} target="_blank" rel="noopener noreferrer" style={{
+                              fontSize: 14, textDecoration: "none", color: "#25D366",
+                              padding: "2px 6px", borderRadius: 6,
+                              background: "rgba(37,211,102,0.1)",
+                              border: "1px solid rgba(37,211,102,0.3)",
+                            }}>
+                              💬
+                            </a>
+                          </div>
                         ) : (
                           <span style={{ fontSize: 11, color: "rgba(232,230,227,0.3)", fontStyle: "italic" }}>fără tel.</span>
                         )}
@@ -1769,7 +1779,7 @@ function TeamPage({ phone, onLogout }) {
                 )
               )}
               
-              {/* Butoane acțiuni - combinate pentru toți casierii din toate CP-urile */}
+              {/* Buton acțiune - copiază toate telefoanele */}
               {phonesAvailable > 0 && (
                 <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
                   <button onClick={() => copyPhones(allMembers, shiftKey)} style={{
@@ -1780,13 +1790,6 @@ function TeamPage({ phone, onLogout }) {
                     transition: "all 0.2s",
                   }}>
                     {copiedShift === shiftKey ? "✓ Copiat!" : `📋 Copiază telefoane (${phonesAvailable})`}
-                  </button>
-                  <button onClick={() => openWhatsApp(allMembers)} style={{
-                    flex: 1, background: "rgba(37,211,102,0.1)", border: "1px solid rgba(37,211,102,0.3)",
-                    borderRadius: 8, padding: "10px", fontSize: 12, fontWeight: 600,
-                    color: "#25D366", cursor: "pointer",
-                  }}>
-                    💬 WhatsApp
                   </button>
                 </div>
               )}
@@ -4050,9 +4053,19 @@ function KTeamPage({ phone, onLogout }) {
                           {member.fullName}
                         </div>
                         {member.phone ? (
-                          <a href={`tel:${member.phone}`} style={{ fontSize: 12, color: C.accent, textDecoration: "none", fontFamily: "monospace" }}>
-                            📞 {member.phone}
-                          </a>
+                          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                            <a href={`tel:${member.phone}`} style={{ fontSize: 12, color: C.accent, textDecoration: "none", fontFamily: "monospace" }}>
+                              📞 {member.phone}
+                            </a>
+                            <a href={`https://wa.me/${member.phone.replace(/\D/g, "").replace(/^0/, "40")}`} target="_blank" rel="noopener noreferrer" style={{
+                              fontSize: 14, textDecoration: "none", color: "#25D366",
+                              padding: "2px 6px", borderRadius: 6,
+                              background: "rgba(37,211,102,0.1)",
+                              border: "1px solid rgba(37,211,102,0.3)",
+                            }}>
+                              💬
+                            </a>
+                          </div>
                         ) : (
                           <span style={{ fontSize: 11, color: "rgba(232,230,227,0.3)", fontStyle: "italic" }}>fără tel.</span>
                         )}
@@ -4062,7 +4075,7 @@ function KTeamPage({ phone, onLogout }) {
                 )
               )}
               
-              {/* Butoane acțiuni - combinate pentru toți casierii din toate CP-urile */}
+              {/* Buton acțiune - copiază toate telefoanele */}
               {phonesAvailable > 0 && (
                 <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
                   <button onClick={() => copyPhones(allMembers, shiftKey)} style={{
@@ -4073,13 +4086,6 @@ function KTeamPage({ phone, onLogout }) {
                     transition: "all 0.2s",
                   }}>
                     {copiedShift === shiftKey ? "✓ Copiat!" : `📋 Copiază telefoane (${phonesAvailable})`}
-                  </button>
-                  <button onClick={() => openWhatsApp(allMembers)} style={{
-                    flex: 1, background: "rgba(37,211,102,0.1)", border: "1px solid rgba(37,211,102,0.3)",
-                    borderRadius: 8, padding: "10px", fontSize: 12, fontWeight: 600,
-                    color: "#25D366", cursor: "pointer",
-                  }}>
-                    💬 WhatsApp
                   </button>
                 </div>
               )}
