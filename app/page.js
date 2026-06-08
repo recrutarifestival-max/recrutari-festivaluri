@@ -3,7 +3,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 
 const C = { accent: "#72F94C", accentDark: "#4AD42F", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
 const API_URL = "https://script.google.com/macros/s/AKfycbyAdqPuIqUTTmbKp7p2ljKmo0mPAoByDJPdTVcQqFUbiaRFopL2_XaaZJV22uKU0VRiSA/exec";
-const KAPITAL_API_URL = "https://script.google.com/macros/s/AKfycbwkG2HshB4Eh-OXWmynenhfos6a4oPKriMfmwcBbrLkm4su0zGNkjcBtB0FEz3Lx-8ELA/exec";
+const UNTOLD_API_URL = "https://script.google.com/macros/s/AKfycbwkG2HshB4Eh-OXWmynenhfos6a4oPKriMfmwcBbrLkm4su0zGNkjcBtB0FEz3Lx-8ELA/exec";
 const VIEWS = { HOME: "home", APPLY: "apply", STATUS: "status", SHIFTS: "shifts", TEAM: "team", ADMIN: "admin" };
 
 function Nav({ view, setView, hasShifts, hasTeam, isAdmin, accent, accentDark }) {
@@ -915,6 +915,76 @@ function CIUploadCard({ uploaded, onUpload, busy }) {
   );
 }
 
+function BankDetailsCard({ saved, titular, iban, onSave, busy }) {
+  const [t, setT] = useState(titular || "");
+  const [ib, setIb] = useState(iban || "");
+  const [err, setErr] = useState(null);
+
+  useEffect(() => {
+    if (titular) setT(titular);
+    if (iban) setIb(iban);
+  }, [titular, iban]);
+
+  function submit() {
+    setErr(null);
+    const titClean = t.trim();
+    const ibClean = ib.toUpperCase().replace(/\s+/g, "");
+    if (!titClean) { setErr("Completează titularul contului."); return; }
+    if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(ibClean)) {
+      setErr("IBAN invalid. Verifică formatul (ex: RO49AAAA1B31007593840000).");
+      return;
+    }
+    onSave(titClean, ibClean);
+  }
+
+  return (
+    <div style={{
+      background: saved ? "rgba(114,249,76,0.06)" : "rgba(255,255,255,0.04)",
+      border: saved ? "1px solid rgba(114,249,76,0.3)" : "1px solid rgba(255,255,255,0.08)",
+      borderRadius: 12, padding: 14, marginBottom: 10,
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: saved ? 0 : 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 18 }}>{saved ? "✅" : "🏦"}</span>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#fff" }}>Date bancare</div>
+            {saved
+              ? <div style={{ fontSize: 11, color: "#72F94C", marginTop: 2 }}>Salvate</div>
+              : <div style={{ fontSize: 11, color: "rgba(232,230,227,0.45)", marginTop: 2 }}>Titular cont + IBAN pentru plată</div>}
+          </div>
+        </div>
+      </div>
+      {saved ? (
+        <div style={{ marginTop: 10, paddingTop: 10, borderTop: "1px solid rgba(255,255,255,0.05)", fontSize: 12, color: "rgba(232,230,227,0.7)", lineHeight: 1.7 }}>
+          <div>Titular: <span style={{ color: "#fff" }}>{titular || t}</span></div>
+          <div style={{ fontFamily: "monospace" }}>IBAN: <span style={{ color: "#fff" }}>{iban || ib}</span></div>
+        </div>
+      ) : (
+        <div>
+          <input
+            value={t}
+            onChange={e => { setT(e.target.value); setErr(null); }}
+            placeholder="Titular cont (nume complet)"
+            style={{ width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#e8e6e3", outline: "none", boxSizing: "border-box", marginBottom: 8 }}
+          />
+          <input
+            value={ib}
+            onChange={e => { setIb(e.target.value.toUpperCase()); setErr(null); }}
+            placeholder="IBAN (ex: RO49 AAAA 1B31 0075 9384 0000)"
+            style={{ width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8, padding: "10px 12px", fontSize: 14, color: "#e8e6e3", outline: "none", boxSizing: "border-box", fontFamily: "monospace", marginBottom: 8 }}
+          />
+          {err && <div style={{ fontSize: 12, color: "#ff6b6b", marginBottom: 8 }}>{err}</div>}
+          <button onClick={submit} disabled={busy} style={{
+            width: "100%", background: busy ? "rgba(114,249,76,0.3)" : "linear-gradient(135deg, #72F94C, #4AD42F)",
+            border: "none", borderRadius: 8, padding: "10px 12px", fontSize: 13, fontWeight: 700,
+            color: "#0a0a0a", cursor: busy ? "wait" : "pointer", opacity: busy ? 0.6 : 1,
+          }}>{busy ? "Se salvează..." : "💾 Salvează datele bancare"}</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ============================================
 // MY SHIFTS - turele mele
 // ============================================
@@ -1183,12 +1253,12 @@ function MyShifts({ phone, pastOnly = false }) {
 function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
   const [documents, setDocuments] = useState(null);
   const [signModal, setSignModal] = useState(null); // { type, title, docName }
-  const [busyDoc, setBusyDoc] = useState(null); // "contract" | "fisa" | "roi" | "ci"
+  const [busyDoc, setBusyDoc] = useState(null); // "acord" | "declaratie" | "ci" | "bank" | "finalize"
   const [error, setError] = useState(null);
   const [allComplete, setAllComplete] = useState(false);
-  // Optimistic UI: marchează documente ca semnate instant local
+  // Optimistic UI: marchează pașii ca finalizați instant local
   const [optimisticSigned, setOptimisticSigned] = useState({
-    contract: false, fisa: false, roi: false, ci: false
+    acord: false, declaratie: false, ci: false, bank: false
   });
 
   // Load document URLs when component mounts
@@ -1204,29 +1274,29 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
       .catch(err => setError("Nu pot încărca documentele: " + err.message));
   }, [phone]);
 
-  // Check if all complete (optimistic + real)
+  // Check if all complete (optimistic + real): Acord + Declarație + CI + Date bancare
   useEffect(() => {
     const real = {
-      contract: !!statusInfo?.contractSemnat,
-      fisa: !!statusInfo?.fisaSemnat,
-      roi: !!statusInfo?.roiSemnat,
+      acord: !!statusInfo?.acordSemnat,
+      declaratie: !!statusInfo?.declaratieSemnat,
       ci: !!statusInfo?.ciIncarcat,
+      bank: !!statusInfo?.bancarComplet,
     };
-    const all = (real.contract || optimisticSigned.contract) &&
-                (real.fisa || optimisticSigned.fisa) &&
-                (real.roi || optimisticSigned.roi) &&
-                (real.ci || optimisticSigned.ci);
+    const all = (real.acord || optimisticSigned.acord) &&
+                (real.declaratie || optimisticSigned.declaratie) &&
+                (real.ci || optimisticSigned.ci) &&
+                (real.bank || optimisticSigned.bank);
     setAllComplete(all);
   }, [statusInfo, optimisticSigned]);
 
   async function handleSign(docType, signatureBase64) {
     setError(null);
     setSignModal(null);
-    
+
     // OPTIMISTIC: marcăm documentul ca semnat instant
     setOptimisticSigned(prev => ({ ...prev, [docType]: true }));
     setBusyDoc(docType);
-    
+
     try {
       const resp = await fetch(API_URL, {
         method: "POST",
@@ -1240,15 +1310,12 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
       });
       const result = await resp.json();
       if (result.success) {
-        // Backend confirmă - reîncărcăm statusul real
         await refreshStatus();
       } else {
-        // Eșec - revertăm optimistic
         setOptimisticSigned(prev => ({ ...prev, [docType]: false }));
         setError(result.error || "Eroare la semnare. Încearcă din nou.");
       }
     } catch (err) {
-      // Eșec rețea - revertăm optimistic
       setOptimisticSigned(prev => ({ ...prev, [docType]: false }));
       setError("Eroare conexiune: " + err.message);
     }
@@ -1257,11 +1324,11 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
 
   async function handleCIUpload(base64, mimeType, fileName) {
     setError(null);
-    
+
     // OPTIMISTIC
     setOptimisticSigned(prev => ({ ...prev, ci: true }));
     setBusyDoc("ci");
-    
+
     try {
       const resp = await fetch(API_URL, {
         method: "POST",
@@ -1283,6 +1350,33 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
       }
     } catch (err) {
       setOptimisticSigned(prev => ({ ...prev, ci: false }));
+      setError("Eroare conexiune: " + err.message);
+    }
+    setBusyDoc(null);
+  }
+
+  async function handleSaveBank(titular, iban) {
+    setError(null);
+    setBusyDoc("bank");
+    try {
+      const resp = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({
+          action: "saveBankDetails",
+          phone: phone,
+          titular: titular,
+          iban: iban,
+        }),
+      });
+      const result = await resp.json();
+      if (result.success) {
+        setOptimisticSigned(prev => ({ ...prev, bank: true }));
+        await refreshStatus();
+      } else {
+        setError(result.error || "Eroare la salvarea datelor bancare.");
+      }
+    } catch (err) {
       setError("Eroare conexiune: " + err.message);
     }
     setBusyDoc(null);
@@ -1314,13 +1408,13 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
           <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div>
           <div style={{ fontSize: 20, fontWeight: 700, color: "#97C459", marginBottom: 8 }}>Totul e gata!</div>
           <div style={{ fontSize: 13, color: "rgba(232,230,227,0.6)", lineHeight: 1.6, maxWidth: 320, margin: "0 auto" }}>
-            Toate documentele tale au fost trimise cu succes. Vei primi în curând un email cu detaliile finale și informații despre training-uri.
+            Toate documentele și datele tale au fost trimise cu succes. Vei primi în curând un email cu detaliile finale și informații despre training-uri.
           </div>
           <div style={{ fontSize: 12, color: "rgba(232,230,227,0.4)", marginTop: 16, fontFamily: "monospace" }}>
             Ne vedem la Beach Please! 🏖️
           </div>
         </div>
-        
+
         <div style={{ background: "rgba(114,249,76,0.06)", border: "1px solid rgba(114,249,76,0.2)", borderRadius: 12, padding: 16, textAlign: "center" }}>
           <div style={{ fontSize: 20, marginBottom: 6 }}>📅</div>
           <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginBottom: 4 }}>Programul tău e disponibil</div>
@@ -1352,38 +1446,39 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
         <strong>Dacă apare orice problemă reală</strong> (boală, urgență familială etc.) după ce ai semnat, contactează-ne imediat la <a href="mailto:recrutarifestival@gmail.com" style={{ color: "#ff8a8a", textDecoration: "underline" }}>recrutarifestival@gmail.com</a> ca să găsim împreună o soluție.
       </div>
 
-      {/* GDPR Disclaimer */}
+      {/* Notă legală */}
       <div style={{ background: "rgba(114,249,76,0.05)", border: "1px solid rgba(114,249,76,0.15)", borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 11, color: "rgba(232,230,227,0.55)", lineHeight: 1.6 }}>
-        ⚠️ <strong style={{ color: "rgba(232,230,227,0.8)" }}>Notă legală:</strong> Prin semnarea electronică a documentelor de mai jos, confirmi acordul tău cu modul de semnare prevăzut în Regulamentul de Ordine Interioară (OUG 36/2021, Legea 208/2021). Fiecare semnătură este înregistrată cu timestamp și hash criptografic ca dovadă a autenticității.
+        ⚠️ <strong style={{ color: "rgba(232,230,227,0.8)" }}>Notă legală:</strong> Prin semnarea electronică a documentelor de mai jos, confirmi acordul tău cu modul de semnare, conform legislației aplicabile privind semnătura electronică (OUG 36/2021, Legea 208/2021). Fiecare semnătură este înregistrată cu timestamp și hash criptografic ca dovadă a autenticității.
       </div>
 
       <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginBottom: 10 }}>Documente de semnat</div>
 
       <DocumentCard
-        title="Contract Individual de Muncă"
-        signed={!!statusInfo?.contractSemnat || optimisticSigned.contract}
-        viewUrl={documents?.contract?.url}
-        pdfUrl={documents?.contract?.pdfUrl}
-        onSign={() => setSignModal({ type: "contract", title: "Semnează contractul", docName: "Contract Individual de Muncă" })}
-        busy={busyDoc === "contract"}
+        title="Acord de Plată"
+        signed={!!statusInfo?.acordSemnat || optimisticSigned.acord}
+        viewUrl={documents?.acord?.url}
+        pdfUrl={documents?.acord?.pdfUrl}
+        onSign={() => setSignModal({ type: "acord", title: "Semnează Acordul de Plată", docName: "Acord de Plată" })}
+        busy={busyDoc === "acord"}
       />
 
       <DocumentCard
-        title="Fișa Postului"
-        signed={!!statusInfo?.fisaSemnat || optimisticSigned.fisa}
-        viewUrl={documents?.fisa?.url}
-        pdfUrl={documents?.fisa?.pdfUrl}
-        onSign={() => setSignModal({ type: "fisa", title: "Semnează fișa postului", docName: "Fișa Postului" })}
-        busy={busyDoc === "fisa"}
+        title="Declarație Medicală"
+        signed={!!statusInfo?.declaratieSemnat || optimisticSigned.declaratie}
+        viewUrl={documents?.declaratie?.url}
+        pdfUrl={documents?.declaratie?.pdfUrl}
+        onSign={() => setSignModal({ type: "declaratie", title: "Semnează Declarația Medicală", docName: "Declarație Medicală" })}
+        busy={busyDoc === "declaratie"}
       />
 
-      <DocumentCard
-        title="Regulament de Ordine Interioară"
-        signed={!!statusInfo?.roiSemnat || optimisticSigned.roi}
-        viewUrl={documents?.roi?.url}
-        pdfUrl={documents?.roi?.pdfUrl}
-        onSign={() => setSignModal({ type: "roi", title: "Semnează ROI", docName: "Regulament de Ordine Interioară" })}
-        busy={busyDoc === "roi"}
+      <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginTop: 16, marginBottom: 10 }}>Date bancare</div>
+
+      <BankDetailsCard
+        saved={!!statusInfo?.bancarComplet || optimisticSigned.bank}
+        titular={statusInfo?.titular}
+        iban={statusInfo?.iban}
+        onSave={handleSaveBank}
+        busy={busyDoc === "bank"}
       />
 
       <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginTop: 16, marginBottom: 10 }}>Documente de încărcat</div>
@@ -1405,9 +1500,9 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
       <div style={{ marginTop: 24, padding: 16, background: "rgba(255,255,255,0.04)", borderRadius: 12, border: "1px solid rgba(255,255,255,0.08)" }}>
         {(() => {
           const done = [
-            !!statusInfo?.contractSemnat || optimisticSigned.contract,
-            !!statusInfo?.fisaSemnat || optimisticSigned.fisa,
-            !!statusInfo?.roiSemnat || optimisticSigned.roi,
+            !!statusInfo?.acordSemnat || optimisticSigned.acord,
+            !!statusInfo?.declaratieSemnat || optimisticSigned.declaratie,
+            !!statusInfo?.bancarComplet || optimisticSigned.bank,
             !!statusInfo?.ciIncarcat || optimisticSigned.ci,
           ].filter(Boolean).length;
           return (
@@ -1433,8 +1528,8 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
           color: allComplete ? "#0a0a0a" : "rgba(232,230,227,0.3)",
           cursor: allComplete && !busyDoc ? "pointer" : "default",
         }}>
-          {busyDoc === "finalize" ? "Se finalizează..." : 
-           allComplete ? "✓ Trimite tot" : "Completează toate documentele"}
+          {busyDoc === "finalize" ? "Se finalizează..." :
+           allComplete ? "✓ Trimite tot" : "Completează toți pașii"}
         </button>
       </div>
 
@@ -2219,7 +2314,6 @@ function StatusPage({ onCompleteDetected }) {
 
   async function checkStatus(phoneToCheck) {
     let targetPhone = (phoneToCheck || phone || "").replace(/[^0-9]/g, "");
-    // Normalizare: dacă începe cu 40 și are 11+ cifre, asumăm prefix internațional
     if (targetPhone.startsWith("40") && targetPhone.length >= 11) {
       targetPhone = "0" + targetPhone.substring(2);
     }
@@ -2227,32 +2321,24 @@ function StatusPage({ onCompleteDetected }) {
       setStatus({ found: false, error: "Numărul trebuie să aibă 10 cifre. Ai introdus: " + targetPhone.length + " cifre." });
       return;
     }
-    
+
     setSearching(true);
     setStatus(null);
-    
+
     try {
       const url = `${API_URL}?action=status&phone=${encodeURIComponent(targetPhone)}&t=${Date.now()}`;
-      const resp = await fetch(url, { 
-        method: "GET",
-        cache: "no-store",
-        credentials: "omit",
-      });
-      
-      // Defensive parsing - unele browsere mobile parsează JSON ciudat
+      const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
+
       const responseText = await resp.text();
       let result;
       try {
         result = JSON.parse(responseText);
       } catch (parseErr) {
-        setStatus({ 
-          found: false, 
-          error: "Eroare parsare răspuns. Răspuns primit: " + responseText.substring(0, 100) 
-        });
+        setStatus({ found: false, error: "Eroare parsare răspuns. Răspuns primit: " + responseText.substring(0, 100) });
         setSearching(false);
         return;
       }
-      
+
       if (result.success) {
         if (result.found) {
           const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Expirat": "expired", "Respins": "rejected", "Confirmat": "confirmed" };
@@ -2261,16 +2347,17 @@ function StatusPage({ onCompleteDetected }) {
             status: statusMap[result.status] || "pending",
             name: result.name,
             firstName: result.firstName,
-            // Flags pentru documents (din API v4)
-            contractSemnat: result.contractSemnat,
-            fisaSemnat: result.fisaSemnat,
-            roiSemnat: result.roiSemnat,
+            // Flags documente (backend v7)
+            acordSemnat: result.acordSemnat,
+            declaratieSemnat: result.declaratieSemnat,
             ciIncarcat: result.ciIncarcat,
+            bancarComplet: result.bancarComplet,
+            titular: result.titular,
+            iban: result.iban,
             statusFinal: result.statusFinal,
             position: result.position || "Casier",
             hasExtension: result.hasExtension || false,
           });
-          // Dacă e Complete, activează tab-uri pentru această sesiune
           if (result.statusFinal === "Complete" && onCompleteDetected) {
             onCompleteDetected(targetPhone, result.position || "Casier");
           }
@@ -2286,31 +2373,25 @@ function StatusPage({ onCompleteDetected }) {
     setSearching(false);
   }
 
-  // Refresh function pentru AcceptedFlow (după sign/upload)
-  // v6: SILENT refresh - nu resetează UI-ul, doar actualizează statusInfo în background
-  // Astfel optimisticSigned rămân vizibile cât timp se procesează celelalte semnături.
+  // SILENT refresh - actualizează statusInfo în background fără a reseta UI-ul
   async function refreshStatus() {
     let targetPhone = (phone || "").replace(/[^0-9]/g, "");
     if (targetPhone.startsWith("40") && targetPhone.length >= 11) {
       targetPhone = "0" + targetPhone.substring(2);
     }
     if (targetPhone.length < 10) return;
-    
+
     try {
       const url = `${API_URL}?action=status&phone=${encodeURIComponent(targetPhone)}&t=${Date.now()}`;
-      const resp = await fetch(url, { 
-        method: "GET",
-        cache: "no-store",
-        credentials: "omit",
-      });
+      const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
       const responseText = await resp.text();
       let result;
       try {
         result = JSON.parse(responseText);
       } catch (parseErr) {
-        return; // ignore parse errors silent
+        return;
       }
-      
+
       if (result.success && result.found) {
         const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Expirat": "expired", "Respins": "rejected", "Confirmat": "confirmed" };
         setStatus(prev => ({
@@ -2319,10 +2400,12 @@ function StatusPage({ onCompleteDetected }) {
           status: statusMap[result.status] || "pending",
           name: result.name,
           firstName: result.firstName,
-          contractSemnat: result.contractSemnat,
-          fisaSemnat: result.fisaSemnat,
-          roiSemnat: result.roiSemnat,
+          acordSemnat: result.acordSemnat,
+          declaratieSemnat: result.declaratieSemnat,
           ciIncarcat: result.ciIncarcat,
+          bancarComplet: result.bancarComplet,
+          titular: result.titular,
+          iban: result.iban,
           statusFinal: result.statusFinal,
           position: result.position || "Casier",
           hasExtension: result.hasExtension || false,
@@ -2332,7 +2415,7 @@ function StatusPage({ onCompleteDetected }) {
         }
       }
     } catch (err) {
-      // ignore network errors silent - optimistic UI rămâne
+      // ignore network errors silent
     }
   }
 
@@ -2350,18 +2433,14 @@ function StatusPage({ onCompleteDetected }) {
           inputMode="numeric"
           autoComplete="tel-national"
           value={phone}
-          onChange={e => { 
+          onChange={e => {
             let v = e.target.value;
-            // Eliminăm tot ce nu e cifră
             v = v.replace(/[^0-9]/g, "");
-            // Dacă începe cu 40 (prefix RO fără +), tăiem
             if (v.startsWith("40") && v.length > 10) v = v.substring(2);
-            // Dacă începe cu 0040, tăiem
             if (v.startsWith("0040")) v = "0" + v.substring(4);
-            // Limităm la 10 cifre
             if (v.length > 10) v = v.substring(0, 10);
-            setPhone(v); 
-            setStatus(null); 
+            setPhone(v);
+            setStatus(null);
           }}
           placeholder="07xxxxxxxx"
           maxLength={14}
@@ -2387,7 +2466,6 @@ function StatusPage({ onCompleteDetected }) {
         <div>
           {status.found ? (
             <div>
-              {/* Status card */}
               {status.status === "pending" && (
                 <div style={{ background: "rgba(186,117,23,0.08)", border: "1px solid rgba(186,117,23,0.2)", borderRadius: 16, padding: 20, textAlign: "center" }}>
                   <div style={{ fontSize: 32, marginBottom: 8 }}>⏳</div>
@@ -2554,15 +2632,6 @@ function BeachPleaseApp() {
 
 function LandingPage() {
   const festivals = [
-    { 
-      key: "kapital",
-      name: "Kapital",
-      dateLabel: "3-5 Iulie 2026",
-      location: "Arena Națională, București",
-      enabled: false,
-      colors: { accent: "#E91D63", accentDark: "#C2185B" },
-      subdomain: "kapital",
-    },
     {
       key: "beachplease",
       name: "Beach Please",
@@ -2575,9 +2644,9 @@ function LandingPage() {
     {
       key: "untold",
       name: "Untold",
-      dateLabel: "6-9 August 2026",
+      dateLabel: "6-10 August 2026",
       location: "Cluj-Napoca",
-      enabled: false,
+      enabled: true,
       colors: { accent: "#7C4DFF", accentDark: "#5E35B1" },
       subdomain: "untold",
     },
@@ -2726,46 +2795,45 @@ function LandingPage() {
 }
 
 
+// === UNTOLD HomePage clone ===
 
-// === KAPITAL HomePage clone ===
-
-function KHomePage({ setView }) {
-  const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
+function UHomePage({ setView }) {
+  const C = { accent: "#7C4DFF", accentDark: "#5E35B1", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   return (<>
-    <KHero setView={setView} />
-    <KInfoCards />
-    <KFAQ />
+    <UHero setView={setView} />
+    <UInfoCards />
+    <UFAQ />
     <div style={{ textAlign: "center", padding: "0 16px 40px" }}>
       <button onClick={() => setView(VIEWS.APPLY)} style={{
-        background: `linear-gradient(135deg, #E91D63, #C2185B)`, border: "none", borderRadius: 14,
+        background: `linear-gradient(135deg, #7C4DFF, #5E35B1)`, border: "none", borderRadius: 14,
         padding: "16px 48px", fontSize: 16, fontWeight: 700, color: "#0a0a0a", cursor: "pointer",
-        boxShadow: "0 4px 20px rgba(233,29,99,0.3)",
+        boxShadow: "0 4px 20px rgba(124,77,255,0.3)",
       }}>Aplică acum</button>
     </div>
   </>);
 }
 
-function KHero({ setView }) {
-  const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
+function UHero({ setView }) {
+  const C = { accent: "#7C4DFF", accentDark: "#5E35B1", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   return (
     <div style={{ textAlign: "center", padding: "48px 20px 40px" }}>
-      <div style={{ display: "inline-block", padding: "5px 14px", borderRadius: 20, background: "rgba(233,29,99,0.12)", border: "1px solid rgba(233,29,99,0.2)", fontSize: 12, fontFamily: "monospace", color: C.accent, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 20 }}>
+      <div style={{ display: "inline-block", padding: "5px 14px", borderRadius: 20, background: "rgba(124,77,255,0.12)", border: "1px solid rgba(124,77,255,0.2)", fontSize: 12, fontFamily: "monospace", color: C.accent, letterSpacing: "0.1em", textTransform: "uppercase", marginBottom: 20 }}>
         Recrutări 2026
       </div>
       <h1 style={{ fontSize: 36, fontWeight: 800, margin: "0 0 12px", lineHeight: 1.1, letterSpacing: "-0.03em" }}>
         <span style={{ color: "#fff" }}>Fii parte din echipa</span><br />
-        <span style={{ background: `linear-gradient(135deg, ${C.accent}, #FF4081)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Kapital</span>
+        <span style={{ background: `linear-gradient(135deg, ${C.accent}, #B388FF)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Untold</span>
       </h1>
       <p style={{ fontSize: 16, color: "rgba(232,230,227,0.55)", margin: "0 0 28px", lineHeight: 1.6, maxWidth: 360, marginLeft: "auto", marginRight: "auto" }}>
         Alătură-te departamentului de Cashless Payment Systems. Plată, acces la festival și experiență unică.
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 10, alignItems: "center" }}>
         <button onClick={() => setView(VIEWS.APPLY)} style={{
-          background: `linear-gradient(135deg, #E91D63, #C2185B)`, border: "none", borderRadius: 14,
+          background: `linear-gradient(135deg, #7C4DFF, #5E35B1)`, border: "none", borderRadius: 14,
           padding: "16px 40px", fontSize: 16, fontWeight: 700, color: "#0a0a0a", cursor: "pointer",
-          boxShadow: "0 4px 20px rgba(233,29,99,0.3)", transition: "transform 0.2s, box-shadow 0.2s",
-        }} onMouseEnter={e => { e.target.style.transform = "translateY(-2px)"; e.target.style.boxShadow = "0 6px 28px rgba(233,29,99,0.4)"; }}
-           onMouseLeave={e => { e.target.style.transform = ""; e.target.style.boxShadow = "0 4px 20px rgba(233,29,99,0.3)"; }}>
+          boxShadow: "0 4px 20px rgba(124,77,255,0.3)", transition: "transform 0.2s, box-shadow 0.2s",
+        }} onMouseEnter={e => { e.target.style.transform = "translateY(-2px)"; e.target.style.boxShadow = "0 6px 28px rgba(124,77,255,0.4)"; }}
+           onMouseLeave={e => { e.target.style.transform = ""; e.target.style.boxShadow = "0 4px 20px rgba(124,77,255,0.3)"; }}>
           Aplică acum
         </button>
         <button onClick={() => setView(VIEWS.STATUS)} style={{
@@ -2779,12 +2847,12 @@ function KHero({ setView }) {
   );
 }
 
-function KInfoCards() {
-  const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
+function UInfoCards() {
+  const C = { accent: "#7C4DFF", accentDark: "#5E35B1", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   const cards = [
-    { icon: "💰", title: "Plată", desc: "20 lei net/oră, 20-24 ore lucrate per festival. Plata se face după festival." },
-    { icon: "🏙️", title: "În București", desc: "Locația e Arena Națională. Cazarea e responsabilitatea ta." },
-    { icon: "🎓", title: "Training inclus", desc: "Trainingurile încep din 2 Iulie și sunt obligatorii pentru toți membrii echipei." },
+    { icon: "💰", title: "Plată", desc: "20 lei net/oră, 32-40 ore lucrate pe durata festivalului. Plata se face după festival." },
+    { icon: "🏙️", title: "În Cluj-Napoca", desc: "Locația e în Cluj-Napoca. Cazarea e responsabilitatea ta." },
+    { icon: "🎓", title: "Training inclus", desc: "Trainingurile încep din 3 August și sunt obligatorii pentru toți membrii echipei." },
     { icon: "🔄", title: "Flexibilitate", desc: "Îți alegi singur ce model de ture preferi dintre cele 3 opțiuni disponibile." },
     { icon: "🎪", title: "Acces festival", desc: "Ai acces în perimetrul festivalului și în afara turelor de lucru." },
     { icon: "🍕", title: "Mâncare + apă", desc: "Primești mâncare și apă pe durata turei de lucru." },
@@ -2804,16 +2872,16 @@ function KInfoCards() {
   );
 }
 
-function KFAQ() {
-  const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
+function UFAQ() {
+  const C = { accent: "#7C4DFF", accentDark: "#5E35B1", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   const [open, setOpen] = useState(null);
   const items = [
     { q: "Care e vârsta minimă?", a: "18 ani împliniți la data festivalului." },
     { q: "Ce modele de ture există și când încep?", a: "Există 3 modele: NNZZN (noapte-noapte-zi-zi-noapte), ZZNNZ (zi-zi-noapte-noapte-zi) sau Oricând (flexibil — coordonatorul îți alocă). Turele de zi încep la ora 15:00, iar cele de noapte în jurul orei 21:00-22:00." },
-    { q: "Când încep training-urile?", a: "Training-urile încep din 2 Iulie 2026 și sunt obligatorii pentru toți membrii echipei. Vei primi detalii exacte după acceptare." },
+    { q: "Când încep training-urile?", a: "Training-urile încep din 3 August 2026 și sunt obligatorii pentru toți membrii echipei. Vei primi detalii exacte după acceptare." },
     { q: "Se oferă cazare?", a: "Nu. Nu se oferă cazare." },
     { q: "Se oferă parcare?", a: "Nu. Nu se oferă loc de parcare. Recomandăm transportul în comun sau organizarea cu alți colegi." },
-    { q: "Voi avea tură în fiecare zi?", a: "Da, vei avea tură în fiecare zi de festival (3-5 Iulie 2026), conform modelului de ture pe care îl alegi." },
+    { q: "Voi avea tură în fiecare zi?", a: "Da, vei avea tură în fiecare zi de festival (6-10 August 2026), conform modelului de ture pe care îl alegi." },
     { q: "Ce se întâmplă dacă nu pot veni o zi?", a: "Anunți coordonatorul din timp și se stabilește recuperarea. Absența neanunțată = restricționare acces." },
     { q: "Am nevoie de experiență?", a: "Nu, oferim training complet. Ai nevoie doar de seriozitate și disponibilitate." },
     { q: "Când aflu dacă sunt acceptat?", a: "Verifici statusul aplicației oricând pe acest site, folosind numărul de telefon." },
@@ -2842,11 +2910,11 @@ function KFAQ() {
 }
 
 // ============================================
-// KAPITAL CLONES (real implementations)
+// UNTOLD CLONES (real implementations)
 // ============================================
 
-function KApplyPage({ setView }) {
-  const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
+function UApplyPage({ setView }) {
+  const C = { accent: "#7C4DFF", accentDark: "#5E35B1", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   const [step, setStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -2892,7 +2960,7 @@ function KApplyPage({ setView }) {
       if (!form.sex) e.sex = "Obligatoriu (se completează automat din CNP)";
       if (!form.dataNasterii) e.dataNasterii = "Obligatoriu (se completează automat din CNP)";
       if (form.dataNasterii) {
-        const age = (new Date(2026, 6, 3) - new Date(form.dataNasterii)) / (365.25 * 24 * 60 * 60 * 1000);
+        const age = (new Date(2026, 7, 6) - new Date(form.dataNasterii)) / (365.25 * 24 * 60 * 60 * 1000);
         if (age < 18) e.dataNasterii = "Trebuie să ai minim 18 ani la data festivalului";
       }
       if (!form.eliberatDe.trim()) e.eliberatDe = "Obligatoriu";
@@ -2901,8 +2969,8 @@ function KApplyPage({ setView }) {
       if (form.dataCi && form.dataExpirareCi && new Date(form.dataExpirareCi) <= new Date(form.dataCi)) {
         e.dataExpirareCi = "Data expirării trebuie să fie după data eliberării";
       }
-      if (form.dataExpirareCi && new Date(form.dataExpirareCi) < new Date(2026, 6, 5)) {
-        e.dataExpirareCi = "CI expiră înainte de finalul festivalului (5 Iulie 2026)";
+      if (form.dataExpirareCi && new Date(form.dataExpirareCi) < new Date(2026, 7, 10)) {
+        e.dataExpirareCi = "CI expiră înainte de finalul festivalului (10 August 2026)";
       }
       if (!form.domiciliu.trim()) e.domiciliu = "Obligatoriu";
       if (!form.orasCi.trim()) e.orasCi = "Obligatoriu";
@@ -2937,7 +3005,7 @@ function KApplyPage({ setView }) {
       delete payload.confirm2;
       delete payload.confirm3;
 
-      const resp = await fetch(KAPITAL_API_URL, {
+      const resp = await fetch(UNTOLD_API_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
         body: JSON.stringify(payload),
@@ -2978,7 +3046,7 @@ function KApplyPage({ setView }) {
           Poți verifica oricând statusul aplicației tale folosind numărul de telefon <span style={{ color: "#fff" }}>{form.telefon}</span>.
         </p>
         <button onClick={() => setView(VIEWS.STATUS)} style={{
-          background: `linear-gradient(135deg, #E91D63, #C2185B)`, border: "none", borderRadius: 12,
+          background: `linear-gradient(135deg, #7C4DFF, #5E35B1)`, border: "none", borderRadius: 12,
           padding: "14px 32px", fontSize: 15, fontWeight: 600, color: "#0a0a0a", cursor: "pointer",
         }}>Verifică statusul</button>
       </div>
@@ -3030,8 +3098,8 @@ function KApplyPage({ setView }) {
             "Nu lucrez și nu sunt la școală"
           ]} placeholder="Selectează..." />
         </FormField>
-        <FormField label="Ai cazare asigurată în București?" required error={errors.cazare}>
-          <Select value={form.cazare} onChange={v => upd("cazare", v)} options={["Locuiesc în București", "Voi sta la familie/prieteni", "Îmi voi asigura cazare singur/ă"]} placeholder="Selectează..." />
+        <FormField label="Ai cazare asigurată în Cluj-Napoca?" required error={errors.cazare}>
+          <Select value={form.cazare} onChange={v => upd("cazare", v)} options={["Locuiesc în Cluj-Napoca", "Voi sta la familie/prieteni", "Îmi voi asigura cazare singur/ă"]} placeholder="Selectează..." />
         </FormField>
         <FormField label="Ai mai participat la un festival major?" required error={errors.experienta}>
           <Select value={form.experienta} onChange={v => upd("experienta", v)} options={["Da, ca staff/voluntar", "Da, ca participant", "Nu, este prima dată"]} placeholder="Selectează..." />
@@ -3076,7 +3144,7 @@ function KApplyPage({ setView }) {
 
       {/* Step 2: CI Data */}
       {step === 2 && (<div>
-        <div style={{ background: "rgba(233,29,99,0.08)", border: "1px solid rgba(233,29,99,0.15)", borderRadius: 10, padding: 12, marginBottom: 20, fontSize: 12, color: "rgba(232,230,227,0.5)", lineHeight: 1.5 }}>
+        <div style={{ background: "rgba(124,77,255,0.08)", border: "1px solid rgba(124,77,255,0.15)", borderRadius: 10, padding: 12, marginBottom: 20, fontSize: 12, color: "rgba(232,230,227,0.5)", lineHeight: 1.5 }}>
           Datele din cartea de identitate sunt necesare pentru generarea contractului. Sex-ul și data nașterii se completează automat din CNP.
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12 }}>
@@ -3104,10 +3172,10 @@ function KApplyPage({ setView }) {
         </FormField>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 12 }}>
           <FormField label="Sex" required error={errors.sex}>
-            <Input value={form.sex} onChange={() => {}} placeholder="—" readOnly style={{ background: "rgba(233,29,99,0.05)", cursor: "not-allowed" }} />
+            <Input value={form.sex} onChange={() => {}} placeholder="—" readOnly style={{ background: "rgba(124,77,255,0.05)", cursor: "not-allowed" }} />
           </FormField>
           <FormField label="Data nașterii" required error={errors.dataNasterii}>
-            <Input value={form.dataNasterii} onChange={() => {}} type="date" readOnly style={{ background: "rgba(233,29,99,0.05)", cursor: "not-allowed" }} />
+            <Input value={form.dataNasterii} onChange={() => {}} type="date" readOnly style={{ background: "rgba(124,77,255,0.05)", cursor: "not-allowed" }} />
           </FormField>
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -3145,9 +3213,9 @@ function KApplyPage({ setView }) {
         </div>
 
         {[
-          { key: "confirm1", text: "Confirm că am citit și înțeles condițiile: plata este de 20 lei/oră, locația e în București (Arena Națională), nu se oferă cazare/parcare, voi avea tură zilnic." },
+          { key: "confirm1", text: "Confirm că am citit și înțeles condițiile: plata este de 20 lei/oră, locația e în Cluj-Napoca, nu se oferă cazare/parcare, voi avea tură zilnic." },
           { key: "confirm2", text: "Confirm că datele introduse sunt corecte și reale. Înțeleg că orice neconcordanță duce la excludere." },
-          { key: "confirm3", text: "Mă angajez să fiu disponibil/ă pentru toată durata festivalului (3-5 Iulie) și pentru training-urile premergătoare." },
+          { key: "confirm3", text: "Mă angajez să fiu disponibil/ă pentru toată durata festivalului (6-10 August) și pentru training-urile premergătoare." },
         ].map(c => (
           <label key={c.key} style={{ display: "flex", gap: 10, marginBottom: 14, cursor: "pointer", alignItems: "flex-start" }}>
             <div onClick={() => upd(c.key, !form[c.key])} style={{
@@ -3167,7 +3235,7 @@ function KApplyPage({ setView }) {
         <div style={{ marginTop: 20, padding: 16, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12 }}>
           <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(232,230,227,0.7)", marginBottom: 10 }}>Protecția datelor personale (GDPR)</div>
           <div style={{ fontSize: 12, color: "rgba(232,230,227,0.4)", lineHeight: 1.7, marginBottom: 16 }}>
-            Datele tale personale sunt colectate și prelucrate de echipa Cashless Payment Systems (operator de date contact: recrutarifestival@gmail.com) în scopul recrutării pentru poziția de casier în cadrul festivalului KAPITAL 2026.
+            Datele tale personale sunt colectate și prelucrate de echipa Cashless Payment Systems (operator de date contact: recrutarifestival@gmail.com) în scopul recrutării pentru poziția de casier în cadrul festivalului UNTOLD 2026.
             Datele colectate includ: date de identificare (nume, CNP, serie/nr CI), date de contact (telefon, email), adresă de domiciliu, imagine (selfie), profil social media.
             Temeiul prelucrării este consimțământul tău explicit. Datele vor fi stocate pe durata procesului de recrutare și pe o perioadă de maximum 2 ani ulterior, conform legislației muncii.
             Ai dreptul de acces, rectificare, ștergere, restricționare, portabilitate și de a te opune prelucrării, precum și dreptul de a depune plângere la ANSPDCP.
@@ -3184,7 +3252,7 @@ function KApplyPage({ setView }) {
               {form.gdprConsent && <span style={{ color: "#0a0a0a", fontSize: 14, fontWeight: 700 }}>✓</span>}
             </div>
             <span style={{ fontSize: 13, color: "rgba(232,230,227,0.6)", lineHeight: 1.5 }}>
-              <strong style={{ color: "rgba(232,230,227,0.8)" }}>Consimțământ obligatoriu:</strong> Sunt de acord cu prelucrarea datelor mele personale în scopul recrutării pentru KAPITAL 2026, conform informațiilor de mai sus.
+              <strong style={{ color: "rgba(232,230,227,0.8)" }}>Consimțământ obligatoriu:</strong> Sunt de acord cu prelucrarea datelor mele personale în scopul recrutării pentru UNTOLD 2026, conform informațiilor de mai sus.
             </span>
           </label>
           {errors.gdprConsent && <div style={{ fontSize: 12, color: "#ff6b6b", marginTop: -8, marginBottom: 10, paddingLeft: 32 }}>{errors.gdprConsent}</div>}
@@ -3199,7 +3267,7 @@ function KApplyPage({ setView }) {
               {form.gdprMarketing && <span style={{ color: "#0a0a0a", fontSize: 14, fontWeight: 700 }}>✓</span>}
             </div>
             <span style={{ fontSize: 13, color: "rgba(232,230,227,0.6)", lineHeight: 1.5 }}>
-              <strong style={{ color: "rgba(232,230,227,0.8)" }}>Opțional:</strong> Sunt de acord ca datele mele să fie păstrate și utilizate pentru viitoare campanii de recrutare organizate de echipa Cashless Payment Systems (inclusiv pentru alte festivaluri: Untold, Kapital etc.). Pot retrage acest consimțământ oricând.
+              <strong style={{ color: "rgba(232,230,227,0.8)" }}>Opțional:</strong> Sunt de acord ca datele mele să fie păstrate și utilizate pentru viitoare campanii de recrutare organizate de echipa Cashless Payment Systems (inclusiv pentru alte festivaluri: Beach Please etc.). Pot retrage acest consimțământ oricând.
             </span>
           </label>
         </div>
@@ -3221,7 +3289,7 @@ function KApplyPage({ setView }) {
           }}>Înapoi</button>
         )}
         <button onClick={next} disabled={submitting} style={{
-          flex: 2, background: submitting ? "rgba(233,29,99,0.3)" : `linear-gradient(135deg, #E91D63, #C2185B)`, border: "none",
+          flex: 2, background: submitting ? "rgba(124,77,255,0.3)" : `linear-gradient(135deg, #7C4DFF, #5E35B1)`, border: "none",
           borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 600, color: "#0a0a0a", cursor: submitting ? "wait" : "pointer",
           opacity: submitting ? 0.7 : 1,
         }}>
@@ -3232,8 +3300,8 @@ function KApplyPage({ setView }) {
   );
 }
 
-function KAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
-  const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
+function UAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
+  const C = { accent: "#7C4DFF", accentDark: "#5E35B1", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   const [documents, setDocuments] = useState(null);
   const [signModal, setSignModal] = useState(null); // { type, title, docName }
   const [busyDoc, setBusyDoc] = useState(null); // "acord" | "declaratie" | "ci"
@@ -3241,13 +3309,13 @@ function KAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
   const [allComplete, setAllComplete] = useState(false);
   // Optimistic UI: marchează documente ca semnate instant local
   const [optimisticSigned, setOptimisticSigned] = useState({
-    acord: false, declaratie: false, ci: false
+    acord: false, declaratie: false, ci: false, bank: false
   });
 
   // Load document URLs when component mounts
   useEffect(() => {
     if (!phone) return;
-    fetch(`${KAPITAL_API_URL}?action=documents&phone=${encodeURIComponent(phone)}`)
+    fetch(`${UNTOLD_API_URL}?action=documents&phone=${encodeURIComponent(phone)}`)
       .then(r => r.json())
       .then(data => {
         if (data.success && data.documents) {
@@ -3257,16 +3325,18 @@ function KAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
       .catch(err => setError("Nu pot încărca documentele: " + err.message));
   }, [phone]);
 
-  // Check if all complete (optimistic + real) - Kapital: 2 docs + CI
+  // Check if all complete (optimistic + real) - Untold: 2 docs + CI
   useEffect(() => {
     const real = {
       acord: !!statusInfo?.acordSemnat,
-      declaratie: !!statusInfo?.declaratieSemnata,
+      declaratie: !!statusInfo?.declaratieSemnat,
       ci: !!statusInfo?.ciIncarcat,
+      bank: !!statusInfo?.bancarComplet,
     };
     const all = (real.acord || optimisticSigned.acord) &&
                 (real.declaratie || optimisticSigned.declaratie) &&
-                (real.ci || optimisticSigned.ci);
+                (real.ci || optimisticSigned.ci) &&
+                (real.bank || optimisticSigned.bank);
     setAllComplete(all);
   }, [statusInfo, optimisticSigned]);
 
@@ -3279,7 +3349,7 @@ function KAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
     setBusyDoc(docType);
     
     try {
-      const resp = await fetch(KAPITAL_API_URL, {
+      const resp = await fetch(UNTOLD_API_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
         body: JSON.stringify({
@@ -3314,7 +3384,7 @@ function KAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
     setBusyDoc("ci");
     
     try {
-      const resp = await fetch(KAPITAL_API_URL, {
+      const resp = await fetch(UNTOLD_API_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
         body: JSON.stringify({
@@ -3339,10 +3409,37 @@ function KAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
     setBusyDoc(null);
   }
 
+  async function handleSaveBank(titular, iban) {
+    setError(null);
+    setBusyDoc("bank");
+    try {
+      const resp = await fetch(UNTOLD_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain" },
+        body: JSON.stringify({
+          action: "saveBankDetails",
+          phone: phone,
+          titular: titular,
+          iban: iban,
+        }),
+      });
+      const result = await resp.json();
+      if (result.success) {
+        setOptimisticSigned(prev => ({ ...prev, bank: true }));
+        await refreshStatus();
+      } else {
+        setError(result.error || "Eroare la salvarea datelor bancare.");
+      }
+    } catch (err) {
+      setError("Eroare conexiune: " + err.message);
+    }
+    setBusyDoc(null);
+  }
+
   async function handleFinalize() {
     setBusyDoc("finalize");
     try {
-      const resp = await fetch(KAPITAL_API_URL, {
+      const resp = await fetch(UNTOLD_API_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
         body: JSON.stringify({ action: "finalize", phone: phone }),
@@ -3368,11 +3465,11 @@ function KAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
             Toate documentele tale au fost trimise cu succes. Vei primi în curând un email cu detaliile finale și informații despre training-uri.
           </div>
           <div style={{ fontSize: 12, color: "rgba(232,230,227,0.4)", marginTop: 16, fontFamily: "monospace" }}>
-            Ne vedem la Kapital! 🏖️
+            Ne vedem la Untold! 🏖️
           </div>
         </div>
         
-        <div style={{ background: "rgba(233,29,99,0.06)", border: "1px solid rgba(233,29,99,0.2)", borderRadius: 12, padding: 16, textAlign: "center" }}>
+        <div style={{ background: "rgba(124,77,255,0.06)", border: "1px solid rgba(124,77,255,0.2)", borderRadius: 12, padding: 16, textAlign: "center" }}>
           <div style={{ fontSize: 20, marginBottom: 6 }}>📅</div>
           <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginBottom: 4 }}>Programul tău e disponibil</div>
           <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)", lineHeight: 1.5 }}>
@@ -3404,7 +3501,7 @@ function KAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
       </div>
 
       {/* GDPR Disclaimer */}
-      <div style={{ background: "rgba(233,29,99,0.05)", border: "1px solid rgba(233,29,99,0.15)", borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 11, color: "rgba(232,230,227,0.55)", lineHeight: 1.6 }}>
+      <div style={{ background: "rgba(124,77,255,0.05)", border: "1px solid rgba(124,77,255,0.15)", borderRadius: 10, padding: 12, marginBottom: 16, fontSize: 11, color: "rgba(232,230,227,0.55)", lineHeight: 1.6 }}>
         ⚠️ <strong style={{ color: "rgba(232,230,227,0.8)" }}>Notă legală:</strong> Prin semnarea electronică a documentelor de mai jos, confirmi acordul tău cu modul de semnare prevăzut în Regulamentul de Ordine Interioară (OUG 36/2021, Legea 208/2021). Fiecare semnătură este înregistrată cu timestamp și hash criptografic ca dovadă a autenticității.
       </div>
 
@@ -3421,11 +3518,21 @@ function KAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
 
       <DocumentCard
         title="Declarație Medicală"
-        signed={!!statusInfo?.declaratieSemnata || optimisticSigned.declaratie}
+        signed={!!statusInfo?.declaratieSemnat || optimisticSigned.declaratie}
         viewUrl={documents?.declaratie?.url}
         pdfUrl={documents?.declaratie?.pdfUrl}
         onSign={() => setSignModal({ type: "declaratie", title: "Semnează Declarația Medicală", docName: "Declarație Medicală" })}
         busy={busyDoc === "declaratie"}
+      />
+
+      <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginTop: 16, marginBottom: 10 }}>Date bancare</div>
+
+      <BankDetailsCard
+        saved={!!statusInfo?.bancarComplet || optimisticSigned.bank}
+        titular={statusInfo?.titular}
+        iban={statusInfo?.iban}
+        onSave={handleSaveBank}
+        busy={busyDoc === "bank"}
       />
 
       <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginTop: 16, marginBottom: 10 }}>Documente de încărcat</div>
@@ -3448,18 +3555,19 @@ function KAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
         {(() => {
           const done = [
             !!statusInfo?.acordSemnat || optimisticSigned.acord,
-            !!statusInfo?.declaratieSemnata || optimisticSigned.declaratie,
+            !!statusInfo?.declaratieSemnat || optimisticSigned.declaratie,
+            !!statusInfo?.bancarComplet || optimisticSigned.bank,
             !!statusInfo?.ciIncarcat || optimisticSigned.ci,
           ].filter(Boolean).length;
           return (
             <>
               <div style={{ fontSize: 12, color: "rgba(232,230,227,0.5)", marginBottom: 8 }}>
-                Progres: {done} / 3
+                Progres: {done} / 4
               </div>
               <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden", marginBottom: 14 }}>
                 <div style={{
-                  width: `${done / 3 * 100}%`,
-                  height: "100%", background: `linear-gradient(90deg, ${C.accent}, #FF4081)`,
+                  width: `${done / 4 * 100}%`,
+                  height: "100%", background: `linear-gradient(90deg, ${C.accent}, #B388FF)`,
                   transition: "width 0.4s",
                 }} />
               </div>
@@ -3468,7 +3576,7 @@ function KAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
         })()}
         <button onClick={handleFinalize} disabled={!allComplete || busyDoc} style={{
           width: "100%",
-          background: allComplete ? `linear-gradient(135deg, #E91D63, #C2185B)` : "rgba(255,255,255,0.06)",
+          background: allComplete ? `linear-gradient(135deg, #7C4DFF, #5E35B1)` : "rgba(255,255,255,0.06)",
           border: allComplete ? "none" : "1px solid rgba(255,255,255,0.1)",
           borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700,
           color: allComplete ? "#0a0a0a" : "rgba(232,230,227,0.3)",
@@ -3493,8 +3601,8 @@ function KAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
   );
 }
 
-function KMyShifts({ phone, pastOnly = false }) {
-  const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
+function UMyShifts({ phone, pastOnly = false }) {
+  const C = { accent: "#7C4DFF", accentDark: "#5E35B1", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -3503,7 +3611,7 @@ function KMyShifts({ phone, pastOnly = false }) {
   async function loadShifts() {
     setError(null);
     try {
-      const url = `${KAPITAL_API_URL}?action=schedule&phone=${encodeURIComponent(phone)}&t=${Date.now()}`;
+      const url = `${UNTOLD_API_URL}?action=schedule&phone=${encodeURIComponent(phone)}&t=${Date.now()}`;
       const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
       const text = await resp.text();
       const result = JSON.parse(text);
@@ -3579,7 +3687,6 @@ function KMyShifts({ phone, pastOnly = false }) {
   }
 
   // Calculăm status pentru fiecare tură (Programată / Completă)
-  // O tură e completă dacă data ei e < azi (ziua a trecut)
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
@@ -3592,7 +3699,6 @@ function KMyShifts({ phone, pastOnly = false }) {
     return { ...s, isPast };
   });
   
-  // Calculăm summary
   let totalHours = 0;
   let workedHours = 0;
   let remainingHours = 0;
@@ -3615,7 +3721,6 @@ function KMyShifts({ phone, pastOnly = false }) {
     remainingHours: Math.round(remainingHours * 10) / 10,
   };
   
-  // Empty state
   if (allShifts.length === 0) {
     return (
       <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: 18, textAlign: "center" }}>
@@ -3627,14 +3732,12 @@ function KMyShifts({ phone, pastOnly = false }) {
     );
   }
   
-  // Grupăm pe zi - sortarea se face cronologic prin date.localeCompare (YYYY-MM-DD)
   const shiftsByDay = {};
   allShifts.forEach(s => {
     const key = s.date || "necunoscut";
     if (!shiftsByDay[key]) shiftsByDay[key] = { label: s.label, shifts: [] };
     shiftsByDay[key].shifts.push(s);
   });
-  // Sortare cronologică ascendentă
   const sortedDays = Object.keys(shiftsByDay).sort((a, b) => a.localeCompare(b));
 
   return (
@@ -3647,14 +3750,13 @@ function KMyShifts({ phone, pastOnly = false }) {
         }}>{refreshing ? "..." : "🔄"}</button>
       </div>
 
-      {/* Summary - 4 carduri */}
       {summary.totalShifts > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 14 }}>
-          <div style={{ background: "rgba(233,29,99,0.08)", border: "1px solid rgba(233,29,99,0.15)", borderRadius: 10, padding: 10, textAlign: "center" }}>
+          <div style={{ background: "rgba(124,77,255,0.08)", border: "1px solid rgba(124,77,255,0.15)", borderRadius: 10, padding: 10, textAlign: "center" }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{summary.totalShifts}</div>
             <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>ture</div>
           </div>
-          <div style={{ background: "rgba(233,29,99,0.08)", border: "1px solid rgba(233,29,99,0.15)", borderRadius: 10, padding: 10, textAlign: "center" }}>
+          <div style={{ background: "rgba(124,77,255,0.08)", border: "1px solid rgba(124,77,255,0.15)", borderRadius: 10, padding: 10, textAlign: "center" }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{summary.totalHours}</div>
             <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>ore total</div>
           </div>
@@ -3669,7 +3771,6 @@ function KMyShifts({ phone, pastOnly = false }) {
         </div>
       )}
 
-      {/* Shifts grouped by day */}
       {sortedDays.map(day => (
         <div key={day} style={{ marginBottom: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em" }}>
@@ -3690,25 +3791,22 @@ function KMyShifts({ phone, pastOnly = false }) {
                   {s.myRole === "Supervizor" && (
                     <span style={{ fontSize: 9, color: "#FFB347", background: "rgba(255,179,71,0.12)", border: "1px solid rgba(255,179,71,0.3)", padding: "2px 6px", borderRadius: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Supervizor</span>
                   )}
-                  {/* Status tură */}
                   {s.isPast ? (
                     <span style={{ fontSize: 9, color: "#97C459", background: "rgba(99,153,34,0.15)", border: "1px solid rgba(99,153,34,0.3)", padding: "2px 6px", borderRadius: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>✓ Completă</span>
                   ) : (
                     <span style={{ fontSize: 9, color: "#EF9F27", background: "rgba(186,117,23,0.12)", border: "1px solid rgba(186,117,23,0.3)", padding: "2px 6px", borderRadius: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Programată</span>
                   )}
                 </div>
-                {/* CP-uri (suportă și grupare) */}
                 <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
                   {s.cps && s.cps.length > 0 ? (
                     s.cps.map(cp => (
-                      <div key={cp} style={{ fontSize: 11, color: C.accent, fontFamily: "monospace", background: "rgba(233,29,99,0.1)", padding: "2px 8px", borderRadius: 6 }}>{cp}</div>
+                      <div key={cp} style={{ fontSize: 11, color: C.accent, fontFamily: "monospace", background: "rgba(124,77,255,0.1)", padding: "2px 8px", borderRadius: 6 }}>{cp}</div>
                     ))
                   ) : s.cp ? (
-                    <div style={{ fontSize: 11, color: C.accent, fontFamily: "monospace", background: "rgba(233,29,99,0.1)", padding: "2px 8px", borderRadius: 6 }}>{s.cp}</div>
+                    <div style={{ fontSize: 11, color: C.accent, fontFamily: "monospace", background: "rgba(124,77,255,0.1)", padding: "2px 8px", borderRadius: 6 }}>{s.cp}</div>
                   ) : null}
                 </div>
               </div>
-              {/* Zone (suportă și multiple) */}
               {s.zones && s.zones.length > 0 ? (
                 <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginBottom: 4 }}>📍 {s.zones.join(", ")}</div>
               ) : s.zone ? (
@@ -3719,7 +3817,6 @@ function KMyShifts({ phone, pastOnly = false }) {
                   👤 Supervizor: <span style={{ color: "rgba(232,230,227,0.85)" }}>{s.supervisor}</span>
                 </div>
               )}
-              {/* Echipa: dacă avem teamsByCP (supervizor cu mai multe CP-uri), afișăm separat per CP */}
               {s.teamsByCP && s.teamsByCP.length > 0 ? (
                 <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
                   {s.teamsByCP.map((tc, idx) => (
@@ -3755,8 +3852,8 @@ function KMyShifts({ phone, pastOnly = false }) {
   );
 }
 
-function KShiftsPage({ phone, onLogout }) {
-  const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
+function UShiftsPage({ phone, onLogout }) {
+  const C = { accent: "#7C4DFF", accentDark: "#5E35B1", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   if (!phone) {
     return (
       <div style={{ padding: "40px 16px", maxWidth: 520, margin: "0 auto", textAlign: "center" }}>
@@ -3785,13 +3882,13 @@ function KShiftsPage({ phone, onLogout }) {
         )}
       </div>
       
-      <KMyShifts phone={phone} />
+      <UMyShifts phone={phone} />
     </div>
   );
 }
 
-function KTeamPage({ phone, onLogout }) {
-  const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
+function UTeamPage({ phone, onLogout }) {
+  const C = { accent: "#7C4DFF", accentDark: "#5E35B1", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -3801,7 +3898,7 @@ function KTeamPage({ phone, onLogout }) {
   async function loadTeam() {
     setError(null);
     try {
-      const url = `${KAPITAL_API_URL}?action=team&phone=${encodeURIComponent(phone)}&t=${Date.now()}`;
+      const url = `${UNTOLD_API_URL}?action=team&phone=${encodeURIComponent(phone)}&t=${Date.now()}`;
       const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
       const text = await resp.text();
       const result = JSON.parse(text);
@@ -3832,8 +3929,6 @@ function KTeamPage({ phone, onLogout }) {
       alert("Niciun telefon disponibil în această echipă.");
       return;
     }
-    
-    // Try modern clipboard API first
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(phones).then(() => {
         setCopiedShift(shiftKey);
@@ -3868,14 +3963,10 @@ function KTeamPage({ phone, onLogout }) {
       return;
     }
     if (phones.length === 1) {
-      // Direct la o singură persoană
       const cleanPhone = phones[0].replace(/\D/g, "").replace(/^0/, "40");
       window.open(`https://wa.me/${cleanPhone}`, "_blank");
     } else {
-      // Pentru mai multe: deschidem WhatsApp generic și utilizatorul alege contactele
-      // wa.me nu suportă mass messaging, deci doar deschidem WhatsApp
       const message = encodeURIComponent("Salut! Mesaj pentru echipa mea de tură.");
-      // Pe Android/iOS: whatsapp://send? funcționează; pe web: web.whatsapp.com
       const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
       if (isMobile) {
         window.open(`whatsapp://send?text=${message}`, "_blank");
@@ -3937,7 +4028,6 @@ function KTeamPage({ phone, onLogout }) {
         </div>
       )}
       
-      {/* Carduri per tură - doar viitoare/azi */}
       {(() => {
         if (!data || !data.shifts) return null;
         const today = new Date();
@@ -3961,26 +4051,21 @@ function KTeamPage({ phone, onLogout }) {
         return futureShifts.map((s, i) => {
           const shiftKey = `${s.date}_${s.cps ? s.cps.join("_") : s.cp}_${s.time}_${i}`;
           
-          // Aplatizăm toate echipele într-o listă unică pentru butoane (combinate)
           const allMembers = [];
           if (s.teamsByCP && s.teamsByCP.length > 0) {
             s.teamsByCP.forEach(tc => {
               (tc.team || []).forEach(member => {
-                // teamsByCP din parseSupervisorShifts vine cu obiecte {fullName, nume, prenume, phone}
                 allMembers.push(member);
               });
             });
           } else if (s.team) {
-            // Backward compat
             s.team.forEach(m => allMembers.push(m));
           }
           
           const phonesAvailable = allMembers.filter(m => m.phone).length;
           const totalMembers = s.totalMembers || allMembers.length;
           
-          // Lista CP-urilor pentru badge
           const cpList = s.cps && s.cps.length > 0 ? s.cps : (s.cp ? [s.cp] : []);
-          // Lista zonelor
           const zoneList = s.zones && s.zones.length > 0 ? s.zones : (s.zone ? [s.zone] : []);
           
           return (
@@ -3989,7 +4074,6 @@ function KTeamPage({ phone, onLogout }) {
               border: s.isNight ? "1px solid rgba(74,144,226,0.2)" : "1px solid rgba(255,255,255,0.08)",
               borderRadius: 12, padding: 14, marginBottom: 12,
             }}>
-              {/* Header tură */}
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8, gap: 8 }}>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.08em" }}>{s.label}</div>
@@ -3997,10 +4081,9 @@ function KTeamPage({ phone, onLogout }) {
                     {s.isNight ? "🌙" : "☀️"} {s.time}
                   </div>
                 </div>
-                {/* CP badges */}
                 <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
                   {cpList.map(cp => (
-                    <div key={cp} style={{ fontSize: 11, color: C.accent, fontFamily: "monospace", background: "rgba(233,29,99,0.1)", padding: "3px 8px", borderRadius: 6 }}>{cp}</div>
+                    <div key={cp} style={{ fontSize: 11, color: C.accent, fontFamily: "monospace", background: "rgba(124,77,255,0.1)", padding: "3px 8px", borderRadius: 6 }}>{cp}</div>
                   ))}
                 </div>
               </div>
@@ -4009,7 +4092,6 @@ function KTeamPage({ phone, onLogout }) {
                 <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)", marginBottom: 8 }}>📍 {zoneList.join(", ")}</div>
               )}
               
-              {/* Echipele - per CP */}
               {s.teamsByCP && s.teamsByCP.length > 0 ? (
                 s.teamsByCP.map((tc, tcIdx) => (
                   <div key={tc.cp + tcIdx} style={{ marginTop: 10, padding: 10, background: "rgba(0,0,0,0.15)", borderRadius: 8 }}>
@@ -4038,7 +4120,6 @@ function KTeamPage({ phone, onLogout }) {
                   </div>
                 ))
               ) : (
-                /* Fallback: dacă nu există teamsByCP, folosim s.team direct */
                 s.team && s.team.length > 0 && (
                   <div style={{ marginTop: 10, padding: 10, background: "rgba(0,0,0,0.15)", borderRadius: 8 }}>
                     <div style={{ fontSize: 11, fontWeight: 600, color: "rgba(232,230,227,0.6)", marginBottom: 6 }}>
@@ -4075,12 +4156,11 @@ function KTeamPage({ phone, onLogout }) {
                 )
               )}
               
-              {/* Buton acțiune - copiază toate telefoanele */}
               {phonesAvailable > 0 && (
                 <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
                   <button onClick={() => copyPhones(allMembers, shiftKey)} style={{
-                    flex: 1, background: copiedShift === shiftKey ? "rgba(233,29,99,0.2)" : "rgba(255,255,255,0.06)",
-                    border: copiedShift === shiftKey ? "1px solid rgba(233,29,99,0.4)" : "1px solid rgba(255,255,255,0.1)",
+                    flex: 1, background: copiedShift === shiftKey ? "rgba(124,77,255,0.2)" : "rgba(255,255,255,0.06)",
+                    border: copiedShift === shiftKey ? "1px solid rgba(124,77,255,0.4)" : "1px solid rgba(255,255,255,0.1)",
                     borderRadius: 8, padding: "10px", fontSize: 12, fontWeight: 600,
                     color: copiedShift === shiftKey ? C.accent : "rgba(232,230,227,0.7)", cursor: "pointer",
                     transition: "all 0.2s",
@@ -4094,7 +4174,6 @@ function KTeamPage({ phone, onLogout }) {
         });
       })()}
       
-      {/* Logout */}
       {onLogout && (
         <div style={{ textAlign: "center", marginTop: 24 }}>
           <button onClick={() => {
@@ -4109,13 +4188,12 @@ function KTeamPage({ phone, onLogout }) {
   );
 }
 
-function KAdminPage({ isAdmin, setIsAdmin }) {
-  const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
+function UAdminPage({ isAdmin, setIsAdmin }) {
+  const C = { accent: "#7C4DFF", accentDark: "#5E35B1", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   const [code, setCode] = useState("");
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState(null);
   
-  // Date după autentificare
   const [position, setPosition] = useState("Casier");
   const [candidates, setCandidates] = useState([]);
   const [loadingCandidates, setLoadingCandidates] = useState(false);
@@ -4123,21 +4201,19 @@ function KAdminPage({ isAdmin, setIsAdmin }) {
   const [scheduleData, setScheduleData] = useState(null);
   const [loadingSchedule, setLoadingSchedule] = useState(false);
   
-  // Persistăm codul în localStorage (după login)
   function getStoredCode() {
     try {
-      return window.localStorage.getItem("kp_admin_code") || "";
+      return window.localStorage.getItem("ut_admin_code") || "";
     } catch (e) { return ""; }
   }
   
   function storeCode(c) {
     try {
-      if (c) window.localStorage.setItem("kp_admin_code", c);
-      else window.localStorage.removeItem("kp_admin_code");
+      if (c) window.localStorage.setItem("ut_admin_code", c);
+      else window.localStorage.removeItem("ut_admin_code");
     } catch (e) {}
   }
   
-  // Login automat dacă există cod stocat
   useEffect(() => {
     if (!isAdmin) {
       const stored = getStoredCode();
@@ -4145,7 +4221,6 @@ function KAdminPage({ isAdmin, setIsAdmin }) {
     }
   }, []);
   
-  // Încarcă candidați când se schimbă poziția (după login)
   useEffect(() => {
     if (isAdmin) loadCandidates(position);
   }, [isAdmin, position]);
@@ -4154,7 +4229,7 @@ function KAdminPage({ isAdmin, setIsAdmin }) {
     if (!silent) setVerifying(true);
     setError(null);
     try {
-      const url = `${KAPITAL_API_URL}?action=adminVerify&code=${encodeURIComponent(codeToCheck)}&t=${Date.now()}`;
+      const url = `${UNTOLD_API_URL}?action=adminVerify&code=${encodeURIComponent(codeToCheck)}&t=${Date.now()}`;
       const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
       const result = await resp.json();
       if (result.success) {
@@ -4163,7 +4238,7 @@ function KAdminPage({ isAdmin, setIsAdmin }) {
         setError(null);
       } else {
         if (!silent) setError(result.error || "Cod incorect");
-        else storeCode(""); // dacă codul stocat nu mai e valid, îl ștergem
+        else storeCode("");
       }
     } catch (err) {
       if (!silent) setError("Eroare conexiune: " + err.message);
@@ -4177,7 +4252,7 @@ function KAdminPage({ isAdmin, setIsAdmin }) {
     setScheduleData(null);
     try {
       const stored = getStoredCode();
-      const url = `${KAPITAL_API_URL}?action=adminCandidates&code=${encodeURIComponent(stored)}&position=${encodeURIComponent(pos)}&t=${Date.now()}`;
+      const url = `${UNTOLD_API_URL}?action=adminCandidates&code=${encodeURIComponent(stored)}&position=${encodeURIComponent(pos)}&t=${Date.now()}`;
       const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
       const result = await resp.json();
       if (result.success) {
@@ -4199,7 +4274,7 @@ function KAdminPage({ isAdmin, setIsAdmin }) {
     setScheduleData(null);
     try {
       const stored = getStoredCode();
-      const url = `${KAPITAL_API_URL}?action=adminSchedule&code=${encodeURIComponent(stored)}&phone=${encodeURIComponent(phone)}&t=${Date.now()}`;
+      const url = `${UNTOLD_API_URL}?action=adminSchedule&code=${encodeURIComponent(stored)}&phone=${encodeURIComponent(phone)}&t=${Date.now()}`;
       const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
       const result = await resp.json();
       if (result.success) {
@@ -4221,7 +4296,6 @@ function KAdminPage({ isAdmin, setIsAdmin }) {
     setScheduleData(null);
   }
   
-  // ECRAN LOGIN
   if (!isAdmin) {
     return (
       <div style={{ padding: "60px 20px", maxWidth: 360, margin: "0 auto", textAlign: "center" }}>
@@ -4252,7 +4326,7 @@ function KAdminPage({ isAdmin, setIsAdmin }) {
           disabled={code.length !== 6 || verifying}
           style={{
             width: "100%", marginTop: 16,
-            background: code.length === 6 ? `linear-gradient(135deg, #E91D63, #C2185B)` : "rgba(255,255,255,0.06)",
+            background: code.length === 6 ? `linear-gradient(135deg, #7C4DFF, #5E35B1)` : "rgba(255,255,255,0.06)",
             border: "none", borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700,
             color: code.length === 6 ? "#0a0a0a" : "rgba(232,230,227,0.3)",
             cursor: code.length === 6 ? "pointer" : "default",
@@ -4264,7 +4338,6 @@ function KAdminPage({ isAdmin, setIsAdmin }) {
     );
   }
   
-  // ECRAN ADMIN
   return (
     <div style={{ padding: "32px 16px", maxWidth: 600, margin: "0 auto" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
@@ -4281,13 +4354,12 @@ function KAdminPage({ isAdmin, setIsAdmin }) {
         </div>
       )}
       
-      {/* Selector poziție */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
         {["Casier", "Supervizor"].map(p => (
           <button key={p} onClick={() => setPosition(p)} style={{
             padding: "12px",
-            background: position === p ? "rgba(233,29,99,0.15)" : "rgba(255,255,255,0.04)",
-            border: position === p ? "1px solid rgba(233,29,99,0.4)" : "1px solid rgba(255,255,255,0.08)",
+            background: position === p ? "rgba(124,77,255,0.15)" : "rgba(255,255,255,0.04)",
+            border: position === p ? "1px solid rgba(124,77,255,0.4)" : "1px solid rgba(255,255,255,0.08)",
             borderRadius: 10, fontSize: 13, fontWeight: 600,
             color: position === p ? C.accent : "rgba(232,230,227,0.7)",
             cursor: "pointer",
@@ -4295,7 +4367,6 @@ function KAdminPage({ isAdmin, setIsAdmin }) {
         ))}
       </div>
       
-      {/* Dropdown candidați */}
       <div style={{ marginBottom: 16 }}>
         <label style={{ display: "block", fontSize: 12, color: "rgba(232,230,227,0.6)", marginBottom: 6, fontWeight: 600 }}>
           {loadingCandidates ? "Se încarcă..." : `${candidates.length} ${position === "Casier" ? "casieri" : "supervizori"} cu Status Complete`}
@@ -4321,7 +4392,6 @@ function KAdminPage({ isAdmin, setIsAdmin }) {
         </select>
       </div>
       
-      {/* Schedule view */}
       {loadingSchedule && (
         <div style={{ textAlign: "center", padding: 24, color: "rgba(232,230,227,0.4)", fontSize: 13 }}>
           Se încarcă programul...
@@ -4330,7 +4400,7 @@ function KAdminPage({ isAdmin, setIsAdmin }) {
       
       {scheduleData && !loadingSchedule && (
         <div>
-          <div style={{ background: "rgba(233,29,99,0.06)", border: "1px solid rgba(233,29,99,0.2)", borderRadius: 12, padding: 14, marginBottom: 16 }}>
+          <div style={{ background: "rgba(124,77,255,0.06)", border: "1px solid rgba(124,77,255,0.2)", borderRadius: 12, padding: 14, marginBottom: 16 }}>
             <div style={{ fontSize: 11, color: "rgba(232,230,227,0.5)", marginBottom: 4 }}>Vezi programul pentru:</div>
             <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>
               {scheduleData.name}
@@ -4340,16 +4410,15 @@ function KAdminPage({ isAdmin, setIsAdmin }) {
             </div>
           </div>
           
-          {/* Reuse logică din KMyShifts pentru afișare */}
-          <KAdminScheduleView shifts={scheduleData.shifts || []} />
+          <UAdminScheduleView shifts={scheduleData.shifts || []} />
         </div>
       )}
     </div>
   );
 }
 
-function KAdminScheduleView({ shifts }) {
-  const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
+function UAdminScheduleView({ shifts }) {
+  const C = { accent: "#7C4DFF", accentDark: "#5E35B1", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
@@ -4362,7 +4431,6 @@ function KAdminScheduleView({ shifts }) {
     return { ...s, isPast };
   });
   
-  // Summary
   let totalHours = 0;
   let workedHours = 0;
   let remainingHours = 0;
@@ -4390,7 +4458,6 @@ function KAdminScheduleView({ shifts }) {
     );
   }
   
-  // Grupare pe zile
   const shiftsByDay = {};
   enrichedShifts.forEach(s => {
     const key = s.date || "necunoscut";
@@ -4401,13 +4468,12 @@ function KAdminScheduleView({ shifts }) {
   
   return (
     <div>
-      {/* Summary 4 carduri */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 14 }}>
-        <div style={{ background: "rgba(233,29,99,0.08)", border: "1px solid rgba(233,29,99,0.15)", borderRadius: 10, padding: 10, textAlign: "center" }}>
+        <div style={{ background: "rgba(124,77,255,0.08)", border: "1px solid rgba(124,77,255,0.15)", borderRadius: 10, padding: 10, textAlign: "center" }}>
           <div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{summary.totalShifts}</div>
           <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>ture</div>
         </div>
-        <div style={{ background: "rgba(233,29,99,0.08)", border: "1px solid rgba(233,29,99,0.15)", borderRadius: 10, padding: 10, textAlign: "center" }}>
+        <div style={{ background: "rgba(124,77,255,0.08)", border: "1px solid rgba(124,77,255,0.15)", borderRadius: 10, padding: 10, textAlign: "center" }}>
           <div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{summary.totalHours}</div>
           <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>ore total</div>
         </div>
@@ -4421,7 +4487,6 @@ function KAdminScheduleView({ shifts }) {
         </div>
       </div>
       
-      {/* Carduri ture grupate pe zi */}
       {sortedDays.map(day => (
         <div key={day} style={{ marginBottom: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em" }}>
@@ -4451,10 +4516,10 @@ function KAdminScheduleView({ shifts }) {
                 <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                   {s.cps && s.cps.length > 0 ? (
                     s.cps.map(cp => (
-                      <div key={cp} style={{ fontSize: 11, color: C.accent, fontFamily: "monospace", background: "rgba(233,29,99,0.1)", padding: "2px 8px", borderRadius: 6 }}>{cp}</div>
+                      <div key={cp} style={{ fontSize: 11, color: C.accent, fontFamily: "monospace", background: "rgba(124,77,255,0.1)", padding: "2px 8px", borderRadius: 6 }}>{cp}</div>
                     ))
                   ) : s.cp ? (
-                    <div style={{ fontSize: 11, color: C.accent, fontFamily: "monospace", background: "rgba(233,29,99,0.1)", padding: "2px 8px", borderRadius: 6 }}>{s.cp}</div>
+                    <div style={{ fontSize: 11, color: C.accent, fontFamily: "monospace", background: "rgba(124,77,255,0.1)", padding: "2px 8px", borderRadius: 6 }}>{s.cp}</div>
                   ) : null}
                 </div>
               </div>
@@ -4503,15 +4568,14 @@ function KAdminScheduleView({ shifts }) {
   );
 }
 
-function KStatusPage({ onCompleteDetected }) {
-  const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
+function UStatusPage({ onCompleteDetected }) {
+  const C = { accent: "#7C4DFF", accentDark: "#5E35B1", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   const [phone, setPhone] = useState("");
   const [status, setStatus] = useState(null);
   const [searching, setSearching] = useState(false);
 
   async function checkStatus(phoneToCheck) {
     let targetPhone = (phoneToCheck || phone || "").replace(/[^0-9]/g, "");
-    // Normalizare: dacă începe cu 40 și are 11+ cifre, asumăm prefix internațional
     if (targetPhone.startsWith("40") && targetPhone.length >= 11) {
       targetPhone = "0" + targetPhone.substring(2);
     }
@@ -4524,14 +4588,13 @@ function KStatusPage({ onCompleteDetected }) {
     setStatus(null);
     
     try {
-      const url = `${KAPITAL_API_URL}?action=status&phone=${encodeURIComponent(targetPhone)}&t=${Date.now()}`;
+      const url = `${UNTOLD_API_URL}?action=status&phone=${encodeURIComponent(targetPhone)}&t=${Date.now()}`;
       const resp = await fetch(url, { 
         method: "GET",
         cache: "no-store",
         credentials: "omit",
       });
       
-      // Defensive parsing - unele browsere mobile parsează JSON ciudat
       const responseText = await resp.text();
       let result;
       try {
@@ -4553,15 +4616,16 @@ function KStatusPage({ onCompleteDetected }) {
             status: statusMap[result.status] || "pending",
             name: result.name,
             firstName: result.firstName,
-            // Flags pentru documents (Kapital: 2 docs + CI)
             acordSemnat: result.acordSemnat,
-            declaratieSemnata: result.declaratieSemnata,
+            declaratieSemnat: result.declaratieSemnat,
             ciIncarcat: result.ciIncarcat,
+            bancarComplet: result.bancarComplet,
+            titular: result.titular,
+            iban: result.iban,
             statusFinal: result.statusFinal,
             position: result.position || "Casier",
             hasExtension: result.hasExtension || false,
           });
-          // Dacă e Complete, activează tab-uri pentru această sesiune
           if (result.statusFinal === "Complete" && onCompleteDetected) {
             onCompleteDetected(targetPhone, result.position || "Casier");
           }
@@ -4577,8 +4641,6 @@ function KStatusPage({ onCompleteDetected }) {
     setSearching(false);
   }
 
-  // Refresh function pentru KAcceptedFlow (după sign/upload)
-  // v6: SILENT refresh - nu resetează UI-ul, doar actualizează statusInfo în background
   async function refreshStatus() {
     let targetPhone = (phone || "").replace(/[^0-9]/g, "");
     if (targetPhone.startsWith("40") && targetPhone.length >= 11) {
@@ -4587,7 +4649,7 @@ function KStatusPage({ onCompleteDetected }) {
     if (targetPhone.length < 10) return;
     
     try {
-      const url = `${KAPITAL_API_URL}?action=status&phone=${encodeURIComponent(targetPhone)}&t=${Date.now()}`;
+      const url = `${UNTOLD_API_URL}?action=status&phone=${encodeURIComponent(targetPhone)}&t=${Date.now()}`;
       const resp = await fetch(url, { 
         method: "GET",
         cache: "no-store",
@@ -4610,8 +4672,11 @@ function KStatusPage({ onCompleteDetected }) {
           name: result.name,
           firstName: result.firstName,
           acordSemnat: result.acordSemnat,
-          declaratieSemnata: result.declaratieSemnata,
+          declaratieSemnat: result.declaratieSemnat,
           ciIncarcat: result.ciIncarcat,
+          bancarComplet: result.bancarComplet,
+          titular: result.titular,
+          iban: result.iban,
           statusFinal: result.statusFinal,
           position: result.position || "Casier",
           hasExtension: result.hasExtension || false,
@@ -4621,14 +4686,13 @@ function KStatusPage({ onCompleteDetected }) {
         }
       }
     } catch (err) {
-      // ignore network errors silent
     }
   }
 
   return (
     <div style={{ padding: "40px 16px", maxWidth: 520, margin: "0 auto" }}>
       <div style={{ textAlign: "center", marginBottom: 32 }}>
-        <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(233,29,99,0.08)", border: "1px solid rgba(233,29,99,0.15)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", fontSize: 24 }}>🔍</div>
+        <div style={{ width: 56, height: 56, borderRadius: "50%", background: "rgba(124,77,255,0.08)", border: "1px solid rgba(124,77,255,0.15)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", fontSize: 24 }}>🔍</div>
         <h2 style={{ fontSize: 22, fontWeight: 700, color: "#fff", margin: "0 0 8px" }}>Verifică statusul</h2>
         <p style={{ fontSize: 14, color: "rgba(232,230,227,0.45)" }}>Introdu numărul de telefon cu care ai aplicat</p>
       </div>
@@ -4641,13 +4705,9 @@ function KStatusPage({ onCompleteDetected }) {
           value={phone}
           onChange={e => { 
             let v = e.target.value;
-            // Eliminăm tot ce nu e cifră
             v = v.replace(/[^0-9]/g, "");
-            // Dacă începe cu 40 (prefix RO fără +), tăiem
             if (v.startsWith("40") && v.length > 10) v = v.substring(2);
-            // Dacă începe cu 0040, tăiem
             if (v.startsWith("0040")) v = "0" + v.substring(4);
-            // Limităm la 10 cifre
             if (v.length > 10) v = v.substring(0, 10);
             setPhone(v); 
             setStatus(null); 
@@ -4662,7 +4722,7 @@ function KStatusPage({ onCompleteDetected }) {
           onKeyDown={e => e.key === "Enter" && checkStatus()}
         />
         <button onClick={() => checkStatus()} disabled={phone.length < 10} style={{
-          background: phone.length >= 10 ? `linear-gradient(135deg, #E91D63, #C2185B)` : "rgba(255,255,255,0.06)",
+          background: phone.length >= 10 ? `linear-gradient(135deg, #7C4DFF, #5E35B1)` : "rgba(255,255,255,0.06)",
           border: "none", borderRadius: 12, padding: "14px 20px", fontSize: 15, fontWeight: 600,
           color: phone.length >= 10 ? "#0a0a0a" : "rgba(232,230,227,0.3)", cursor: phone.length >= 10 ? "pointer" : "default",
         }}>Caută</button>
@@ -4676,7 +4736,6 @@ function KStatusPage({ onCompleteDetected }) {
         <div>
           {status.found ? (
             <div>
-              {/* Status card */}
               {status.status === "pending" && (
                 <div style={{ background: "rgba(186,117,23,0.08)", border: "1px solid rgba(186,117,23,0.2)", borderRadius: 16, padding: 20, textAlign: "center" }}>
                   <div style={{ fontSize: 32, marginBottom: 8 }}>⏳</div>
@@ -4694,14 +4753,14 @@ function KStatusPage({ onCompleteDetected }) {
                     Ai fost selectat/ă
                   </div>
                   <div style={{ fontSize: 13, color: "rgba(232,230,227,0.7)", lineHeight: 1.6, maxWidth: 400, margin: "0 auto" }}>
-                    Ai fost selectat/ă pentru poziția de casier în departamentul de Cashless Payment Systems la KAPITAL 2026.
+                    Ai fost selectat/ă pentru poziția de casier în departamentul de Cashless Payment Systems la UNTOLD 2026.
                     <br /><br />
                     Vei fi contactat/ă în curând pentru un mini-interviu HR. Te rugăm să fii disponibil/ă.
                   </div>
                 </div>
               )}
               {status.status === "accepted" && (
-                <KAcceptedFlow
+                <UAcceptedFlow
                   phone={phone}
                   firstName={status.firstName}
                   statusInfo={status}
@@ -4713,9 +4772,9 @@ function KStatusPage({ onCompleteDetected }) {
                   phone={phone}
                   firstName={status.firstName}
                   hasExtension={status.hasExtension}
-                  apiUrl={KAPITAL_API_URL}
+                  apiUrl={UNTOLD_API_URL}
                   refreshStatus={refreshStatus}
-                  accentColor="#E91D63"
+                  accentColor="#7C4DFF"
                 />
               )}
               {status.status === "rejected" && (
@@ -4743,21 +4802,19 @@ function KStatusPage({ onCompleteDetected }) {
   );
 }
 
-function KKapitalApp() {
-  const C = { accent: "#E91D63", accentDark: "#C2185B", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
+function UntoldApp() {
+  const C = { accent: "#7C4DFF", accentDark: "#5E35B1", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   const [view, setView] = useState(VIEWS.HOME);
-  // Telefonul utilizatorului care a făcut status check și e Complete
   const [completePhone, setCompletePhone] = useState(null);
   const [userPosition, setUserPosition] = useState("Casier");
   const [isAdmin, setIsAdmin] = useState(false);
   
-  // Restore din localStorage la primul render
   useEffect(() => {
     if (typeof window !== "undefined") {
       try {
-        const saved = window.localStorage.getItem("kp_complete_phone");
-        const savedPos = window.localStorage.getItem("kp_user_position");
-        const savedAdmin = window.localStorage.getItem("kp_admin_code");
+        const saved = window.localStorage.getItem("ut_complete_phone");
+        const savedPos = window.localStorage.getItem("ut_user_position");
+        const savedAdmin = window.localStorage.getItem("ut_admin_code");
         if (saved) setCompletePhone(saved);
         if (savedPos) setUserPosition(savedPos);
         if (savedAdmin) setIsAdmin(true);
@@ -4765,17 +4822,16 @@ function KKapitalApp() {
     }
   }, []);
   
-  // Salvează în localStorage când se schimbă
   function updateCompletePhone(phone, position) {
     setCompletePhone(phone);
     if (position) setUserPosition(position);
     try {
       if (phone) {
-        window.localStorage.setItem("kp_complete_phone", phone);
-        if (position) window.localStorage.setItem("kp_user_position", position);
+        window.localStorage.setItem("ut_complete_phone", phone);
+        if (position) window.localStorage.setItem("ut_user_position", position);
       } else {
-        window.localStorage.removeItem("kp_complete_phone");
-        window.localStorage.removeItem("kp_user_position");
+        window.localStorage.removeItem("ut_complete_phone");
+        window.localStorage.removeItem("ut_user_position");
       }
     } catch (e) {}
   }
@@ -4805,26 +4861,25 @@ function KKapitalApp() {
         backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
       }} />
       <div style={{ position: "fixed", top: "-30%", right: "-20%", width: "60vw", height: "60vw",
-        background: "radial-gradient(circle, rgba(233,29,99,0.05) 0%, transparent 70%)", pointerEvents: "none",
+        background: "radial-gradient(circle, rgba(124,77,255,0.05) 0%, transparent 70%)", pointerEvents: "none",
       }} />
 
       <Nav view={view} setView={setView} 
         hasShifts={!!completePhone}
         hasTeam={!!completePhone && userPosition === "Supervizor"}
         isAdmin={isAdmin}
-        accent="#E91D63"
-        accentDark="#C2185B" />
+        accent="#7C4DFF"
+        accentDark="#5E35B1" />
 
       <div style={{ position: "relative", zIndex: 1 }}>
-        {view === VIEWS.HOME && <KHomePage setView={setView} />}
-        {view === VIEWS.APPLY && <KApplyPage setView={setView} />}
-        {view === VIEWS.STATUS && <KStatusPage onCompleteDetected={updateCompletePhone} />}
-        {view === VIEWS.SHIFTS && <KShiftsPage phone={completePhone} onLogout={handleLogout} />}
-        {view === VIEWS.TEAM && <KTeamPage phone={completePhone} onLogout={handleLogout} />}
-        {view === VIEWS.ADMIN && <KAdminPage isAdmin={isAdmin} setIsAdmin={setIsAdmin} />}
+        {view === VIEWS.HOME && <UHomePage setView={setView} />}
+        {view === VIEWS.APPLY && <UApplyPage setView={setView} />}
+        {view === VIEWS.STATUS && <UStatusPage onCompleteDetected={updateCompletePhone} />}
+        {view === VIEWS.SHIFTS && <UShiftsPage phone={completePhone} onLogout={handleLogout} />}
+        {view === VIEWS.TEAM && <UTeamPage phone={completePhone} onLogout={handleLogout} />}
+        {view === VIEWS.ADMIN && <UAdminPage isAdmin={isAdmin} setIsAdmin={setIsAdmin} />}
       </div>
 
-      {/* Acces ascuns admin: link mic în footer */}
       <div style={{ textAlign: "center", padding: "8px", fontSize: 10, color: "rgba(232,230,227,0.15)" }}>
         <button onClick={() => setView(VIEWS.ADMIN)} style={{
           background: "transparent", border: "none", color: "inherit", fontSize: "inherit",
@@ -4833,52 +4888,13 @@ function KKapitalApp() {
       </div>
 
       <div style={{ textAlign: "center", padding: "24px 16px 32px", borderTop: "1px solid rgba(255,255,255,0.05)", fontSize: 11, color: "rgba(232,230,227,0.2)", fontFamily: "monospace" }}>
-        Cashless Payment Systems · KAPITAL Festival 2026<br />
+        Cashless Payment Systems · UNTOLD Festival 2026<br />
         Contact: recrutarifestival@gmail.com
       </div>
     </div>
   );
 }
 
-
-
-
-// ============================================
-// UNTOLD APP - placeholder (când vom porni recrutările)
-// ============================================
-function UntoldPlaceholder() {
-  return (
-    <div style={{
-      minHeight: "100vh",
-      background: `linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 50%, #16213e 100%)`,
-      fontFamily: "'Geist', 'DM Sans', system-ui, sans-serif",
-      color: "#e8e6e3",
-      padding: "60px 20px",
-      textAlign: "center",
-    }}>
-      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" />
-      <div style={{ maxWidth: 480, margin: "0 auto", paddingTop: 80 }}>
-        <div style={{ fontSize: 48, marginBottom: 24 }}>🎵</div>
-        <h1 style={{ fontSize: 32, fontWeight: 800, color: "#7C4DFF", margin: "0 0 16px" }}>
-          UNTOLD
-        </h1>
-        <h2 style={{ fontSize: 18, fontWeight: 600, color: "rgba(255,255,255,0.8)", margin: "0 0 24px" }}>
-          Aplicările vor fi deschise în curând
-        </h2>
-        <p style={{ fontSize: 14, color: "rgba(255,255,255,0.5)", lineHeight: 1.6 }}>
-          UNTOLD One are loc 6-9 August 2026.<br/>
-          Vom deschide aplicările cu câteva luni înainte.<br />
-          Pentru întrebări: recrutarifestival@gmail.com
-        </p>
-        <div style={{ marginTop: 32 }}>
-          <a href="https://angajarifestival.ro" style={{
-            color: "rgba(255,255,255,0.4)", fontSize: 12, textDecoration: "underline",
-          }}>← Înapoi la pagina principală</a>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ============================================
 // EXPIRED CARD — afișat când statusul e "Expirat" pe pagina de status
@@ -5027,8 +5043,7 @@ export default function App() {
   }
   
   // Routing
-  if (festivalKey === "kapital") return <KKapitalApp />;
-  if (festivalKey === "untold") return <UntoldPlaceholder />;
+  if (festivalKey === "untold") return <UntoldApp />;
   if (festivalKey === "beachplease") return <BeachPleaseApp />;
   
   // Landing page (root domain)
