@@ -2489,7 +2489,7 @@ function StatusPage({ onCompleteDetected }) {
                   </div>
                 </div>
               )}
-              {status.status === "accepted" && (
+              {(status.status === "accepted" || status.status === "confirmed") && (
                 <AcceptedFlow
                   phone={phone}
                   firstName={status.firstName}
@@ -4759,7 +4759,7 @@ function UStatusPage({ onCompleteDetected }) {
                   </div>
                 </div>
               )}
-              {status.status === "accepted" && (
+              {(status.status === "accepted" || status.status === "confirmed") && (
                 <UAcceptedFlow
                   phone={phone}
                   firstName={status.firstName}
