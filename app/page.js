@@ -2311,6 +2311,12 @@ function StatusPage({ onCompleteDetected }) {
   const [phone, setPhone] = useState("");
   const [status, setStatus] = useState(null);
   const [searching, setSearching] = useState(false);
+  // 2FA cu CNP
+  const [awaitingCnp, setAwaitingCnp] = useState(false);
+  const [cnp, setCnp] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [cnpError, setCnpError] = useState("");
+  const [firstNameForCnp, setFirstNameForCnp] = useState("");
 
   async function checkStatus(phoneToCheck) {
     let targetPhone = (phoneToCheck || phone || "").replace(/[^0-9]/g, "");
@@ -2324,11 +2330,14 @@ function StatusPage({ onCompleteDetected }) {
 
     setSearching(true);
     setStatus(null);
+    setAwaitingCnp(false);
+    setCnp("");
+    setCnpError("");
 
     try {
-      const url = `${API_URL}?action=status&phone=${encodeURIComponent(targetPhone)}&t=${Date.now()}`;
+      // PAS 1: verifică doar telefonul. Backend întoarce firstName + requiresCnp, NU și datele complete.
+      const url = `${API_URL}?action=phoneCheck&phone=${encodeURIComponent(targetPhone)}&t=${Date.now()}`;
       const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
-
       const responseText = await resp.text();
       let result;
       try {
@@ -2341,26 +2350,8 @@ function StatusPage({ onCompleteDetected }) {
 
       if (result.success) {
         if (result.found) {
-          const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Expirat": "expired", "Respins": "rejected", "Confirmat": "confirmed" };
-          setStatus({
-            found: true,
-            status: statusMap[result.status] || "pending",
-            name: result.name,
-            firstName: result.firstName,
-            // Flags documente (backend v7)
-            acordSemnat: result.acordSemnat,
-            declaratieSemnat: result.declaratieSemnat,
-            ciIncarcat: result.ciIncarcat,
-            bancarComplet: result.bancarComplet,
-            titular: result.titular,
-            iban: result.iban,
-            statusFinal: result.statusFinal,
-            position: result.position || "Casier",
-            hasExtension: result.hasExtension || false,
-          });
-          if (result.statusFinal === "Complete" && onCompleteDetected) {
-            onCompleteDetected(targetPhone, result.position || "Casier");
-          }
+          setFirstNameForCnp(result.firstName || "");
+          setAwaitingCnp(true);
         } else {
           setStatus({ found: false });
         }
@@ -2372,6 +2363,57 @@ function StatusPage({ onCompleteDetected }) {
     }
     setSearching(false);
   }
+
+  async function verifyCnp() {
+    const cnpClean = String(cnp).replace(/\D/g, "");
+    if (cnpClean.length !== 13) {
+      setCnpError("CNP-ul trebuie să aibă 13 cifre.");
+      return;
+    }
+    let targetPhone = phone.replace(/[^0-9]/g, "");
+    if (targetPhone.startsWith("40") && targetPhone.length >= 11) targetPhone = "0" + targetPhone.substring(2);
+
+    setVerifying(true);
+    setCnpError("");
+    try {
+      const url = `${API_URL}?action=verifyCnp&phone=${encodeURIComponent(targetPhone)}&cnp=${encodeURIComponent(cnpClean)}&t=${Date.now()}`;
+      const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
+      const result = JSON.parse(await resp.text());
+
+      if (result.success && result.found) {
+        const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Expirat": "expired", "Respins": "rejected", "Confirmat": "confirmed" };
+        setStatus({
+          found: true,
+          status: statusMap[result.status] || "pending",
+          name: result.name,
+          firstName: result.firstName,
+          acordSemnat: result.acordSemnat,
+          declaratieSemnat: result.declaratieSemnat,
+          ciIncarcat: result.ciIncarcat,
+          bancarComplet: result.bancarComplet,
+          titular: result.titular,
+          iban: result.iban,
+          statusFinal: result.statusFinal,
+          position: result.position || "Casier",
+          hasExtension: result.hasExtension || false,
+        });
+        setAwaitingCnp(false);
+        if (result.statusFinal === "Complete" && onCompleteDetected) {
+          onCompleteDetected(targetPhone, result.position || "Casier");
+        }
+      } else {
+        setCnpError(result.error || "CNP invalid.");
+        if (result.locked) {
+          // după blocare, ștergem starea de aşteptare ca să poată reîncerca cu alt telefon
+          setTimeout(() => { setAwaitingCnp(false); setCnp(""); }, 3000);
+        }
+      }
+    } catch (err) {
+      setCnpError("Eroare de conexiune.");
+    }
+    setVerifying(false);
+  }
+
 
   // SILENT refresh - actualizează statusInfo în background fără a reseta UI-ul
   async function refreshStatus() {
@@ -2462,6 +2504,56 @@ function StatusPage({ onCompleteDetected }) {
         <div style={{ textAlign: "center", padding: 40, color: "rgba(232,230,227,0.4)", fontSize: 14 }}>Se caută...</div>
       )}
 
+      {awaitingCnp && !searching && (
+        <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: 24, marginBottom: 16 }}>
+          <div style={{ textAlign: "center", marginBottom: 16 }}>
+            <div style={{ fontSize: 32, marginBottom: 8 }}>🔒</div>
+            <h3 style={{ fontSize: 18, fontWeight: 700, color: "#fff", margin: "0 0 6px" }}>
+              Salut{firstNameForCnp ? `, ${firstNameForCnp}` : ""}!
+            </h3>
+            <p style={{ fontSize: 13, color: "rgba(232,230,227,0.55)", margin: 0 }}>
+              Pentru a-ți vedea datele, introdu CNP-ul tău (13 cifre).
+            </p>
+          </div>
+          <input
+            type="tel"
+            inputMode="numeric"
+            autoComplete="off"
+            value={cnp}
+            onChange={e => {
+              const v = e.target.value.replace(/[^0-9]/g, "").substring(0, 13);
+              setCnp(v);
+              if (cnpError) setCnpError("");
+            }}
+            placeholder="1234567890123"
+            maxLength={13}
+            disabled={verifying}
+            style={{
+              width: "100%", boxSizing: "border-box",
+              background: "rgba(255,255,255,0.06)",
+              border: "1px solid " + (cnpError ? "rgba(239,68,68,0.5)" : "rgba(255,255,255,0.1)"),
+              borderRadius: 12, padding: "14px 16px", fontSize: 18, letterSpacing: 2,
+              color: "#e8e6e3", outline: "none", WebkitAppearance: "none", textAlign: "center", marginBottom: 12,
+            }}
+            onKeyDown={e => e.key === "Enter" && cnp.length === 13 && !verifying && verifyCnp()}
+          />
+          {cnpError && (
+            <div style={{ fontSize: 13, color: "#ef4444", textAlign: "center", marginBottom: 12 }}>{cnpError}</div>
+          )}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={() => { setAwaitingCnp(false); setCnp(""); setCnpError(""); }} disabled={verifying} style={{
+              flex: 1, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 12, padding: "12px 16px", fontSize: 14, color: "rgba(232,230,227,0.7)", cursor: "pointer",
+            }}>Înapoi</button>
+            <button onClick={verifyCnp} disabled={cnp.length !== 13 || verifying} style={{
+              flex: 2, background: cnp.length === 13 && !verifying ? `linear-gradient(135deg, #72F94C, #4AD42F)` : "rgba(255,255,255,0.06)",
+              border: "none", borderRadius: 12, padding: "12px 16px", fontSize: 15, fontWeight: 600,
+              color: cnp.length === 13 && !verifying ? "#0a0a0a" : "rgba(232,230,227,0.3)",
+              cursor: cnp.length === 13 && !verifying ? "pointer" : "default",
+            }}>{verifying ? "Verific..." : "Continuă"}</button>
+          </div>
+        </div>
+      )}
       {status && !searching && (
         <div>
           {status.found ? (
