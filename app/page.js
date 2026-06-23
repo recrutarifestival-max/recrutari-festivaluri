@@ -2938,7 +2938,7 @@ function LandingPage() {
     {
       key: "untold",
       name: "Untold",
-      dateLabel: "6-10 August 2026",
+      dateLabel: "6-9 August 2026",
       location: "Cluj-Napoca",
       enabled: true,
       colors: { accent: "#7C4DFF", accentDark: "#5E35B1" },
@@ -3171,11 +3171,11 @@ function UFAQ() {
   const [open, setOpen] = useState(null);
   const items = [
     { q: "Care e vârsta minimă?", a: "18 ani împliniți la data festivalului." },
-    { q: "Ce modele de ture există și când încep?", a: "Există 3 modele: NNZZN (noapte-noapte-zi-zi-noapte), ZZNNZ (zi-zi-noapte-noapte-zi) sau Oricând (flexibil — coordonatorul îți alocă). Turele de zi încep la ora 15:00, iar cele de noapte în jurul orei 21:00-22:00." },
+    { q: "Ce modele de ture există și când încep?", a: "Există 2 modele: NZZN (noapte-zi-zi-noapte) sau ZNNZ (zi-noapte-noapte-zi). Turele de zi încep la ora 15:00, iar cele de noapte în jurul orei 21:00-22:00." },
     { q: "Când încep training-urile?", a: "Training-urile încep din 3 August 2026 și sunt obligatorii pentru toți membrii echipei. Vei primi detalii exacte după acceptare." },
     { q: "Se oferă cazare?", a: "Nu. Nu se oferă cazare." },
     { q: "Se oferă parcare?", a: "Nu. Nu se oferă loc de parcare. Recomandăm transportul în comun sau organizarea cu alți colegi." },
-    { q: "Voi avea tură în fiecare zi?", a: "Da, vei avea tură în fiecare zi de festival (6-10 August 2026), conform modelului de ture pe care îl alegi." },
+    { q: "Voi avea tură în fiecare zi?", a: "Da, vei avea tură în fiecare zi de festival (6-9 August 2026), conform modelului de ture pe care îl alegi." },
     { q: "Ce se întâmplă dacă nu pot veni o zi?", a: "Anunți coordonatorul din timp și se stabilește recuperarea. Absența neanunțată = restricționare acces." },
     { q: "Am nevoie de experiență?", a: "Nu, oferim training complet. Ai nevoie doar de seriozitate și disponibilitate." },
     { q: "Când aflu dacă sunt acceptat?", a: "Verifici statusul aplicației oricând pe acest site, folosind numărul de telefon." },
@@ -3264,7 +3264,7 @@ function UApplyPage({ setView }) {
         e.dataExpirareCi = "Data expirării trebuie să fie după data eliberării";
       }
       if (form.dataExpirareCi && new Date(form.dataExpirareCi) < new Date(2026, 7, 10)) {
-        e.dataExpirareCi = "CI expiră înainte de finalul festivalului (10 August 2026)";
+        e.dataExpirareCi = "CI expiră înainte de finalul festivalului (9 August 2026)";
       }
       if (!form.domiciliu.trim()) e.domiciliu = "Obligatoriu";
       if (!form.orasCi.trim()) e.orasCi = "Obligatoriu";
@@ -3400,8 +3400,8 @@ function UApplyPage({ setView }) {
         </FormField>
         <FormField label="Ce model de ture preferi?" required error={errors.turaPreferata} hint="Turele de zi încep la ora 15:00, cele de noapte în jurul orei 21-22. N = noapte, Z = zi.">
           <Select value={form.turaPreferata} onChange={v => upd("turaPreferata", v)} options={[
-            "NNZZN (noapte-noapte-zi-zi-noapte)",
-            "ZZNNZ (zi-zi-noapte-noapte-zi)",
+            "NZZN (noapte-zi-zi-noapte)",
+            "ZNNZ (zi-noapte-noapte-zi)",
             "Oricând (flexibil)"
           ]} placeholder="Selectează..." />
         </FormField>
@@ -3509,7 +3509,7 @@ function UApplyPage({ setView }) {
         {[
           { key: "confirm1", text: "Confirm că am citit și înțeles condițiile: plata este de 20 lei/oră, locația e în Cluj-Napoca, nu se oferă cazare/parcare, voi avea tură zilnic." },
           { key: "confirm2", text: "Confirm că datele introduse sunt corecte și reale. Înțeleg că orice neconcordanță duce la excludere." },
-          { key: "confirm3", text: "Mă angajez să fiu disponibil/ă pentru toată durata festivalului (6-10 August) și pentru training-urile premergătoare." },
+          { key: "confirm3", text: "Mă angajez să fiu disponibil/ă pentru toată durata festivalului (6-9 August) și pentru training-urile premergătoare." },
         ].map(c => (
           <label key={c.key} style={{ display: "flex", gap: 10, marginBottom: 14, cursor: "pointer", alignItems: "flex-start" }}>
             <div onClick={() => upd(c.key, !form[c.key])} style={{
