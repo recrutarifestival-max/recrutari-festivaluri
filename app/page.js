@@ -1250,6 +1250,202 @@ function MyShifts({ phone, pastOnly = false }) {
   );
 }
 
+// ===== TRAINING SECTION =====
+// Buton "Programare training" pentru candidați Confirmat. Deschide modal cu:
+//   - dacă nu are rezervare: lista de sloturi + Rezervă
+//   - dacă are rezervare: cardul cu data/ora + Anulează (cu confirmare)
+function TrainingSection({ phone, cnp, firstName }) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [booking, setBooking] = useState(null);    // null = nu are; obiect = are rezervare activă
+  const [slots, setSlots] = useState([]);
+  const [error, setError] = useState("");
+  const [busySlot, setBusySlot] = useState(null);  // slotId în curs de rezervare
+  const [confirmCancel, setConfirmCancel] = useState(false);
+
+  async function refresh() {
+    if (!phone || !cnp) return;
+    setLoading(true); setError("");
+    try {
+      // Cere starea curentă: rezervarea mea + sloturile disponibile
+      const myUrl = `${API_URL}?action=trainingMySlot&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
+      const slotsUrl = `${API_URL}?action=trainingSlots&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
+      const [myResp, slotsResp] = await Promise.all([fetch(myUrl), fetch(slotsUrl)]);
+      const myJson = JSON.parse(await myResp.text());
+      const slotsJson = JSON.parse(await slotsResp.text());
+      if (!myJson.success) { setError(myJson.error || "Nu pot încărca rezervarea."); return; }
+      if (!slotsJson.success) { setError(slotsJson.error || "Nu pot încărca sloturile."); return; }
+      setBooking(myJson.booking || null);
+      setSlots(slotsJson.slots || []);
+    } catch (e) {
+      setError("Eroare de conexiune.");
+    } finally { setLoading(false); }
+  }
+
+  useEffect(() => { if (open) refresh(); /* eslint-disable-next-line */ }, [open]);
+
+  async function bookSlot(slotId) {
+    setBusySlot(slotId); setError("");
+    try {
+      const url = `${API_URL}?action=trainingBook&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&slotId=${encodeURIComponent(slotId)}&t=${Date.now()}`;
+      const resp = await fetch(url);
+      const result = JSON.parse(await resp.text());
+      if (result.success) {
+        setBooking(result.booking);
+        await refresh();
+      } else {
+        setError(result.error || "Nu am putut rezerva slotul.");
+        await refresh();
+      }
+    } catch (e) {
+      setError("Eroare de conexiune.");
+    } finally { setBusySlot(null); }
+  }
+
+  async function cancelBooking() {
+    setLoading(true); setError("");
+    try {
+      const url = `${API_URL}?action=trainingCancel&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
+      const resp = await fetch(url);
+      const result = JSON.parse(await resp.text());
+      if (result.success) {
+        setBooking(null);
+        setConfirmCancel(false);
+        await refresh();
+      } else {
+        setError(result.error || "Nu pot anula.");
+        setConfirmCancel(false);
+      }
+    } catch (e) {
+      setError("Eroare de conexiune.");
+      setConfirmCancel(false);
+    } finally { setLoading(false); }
+  }
+
+  return (
+    <>
+      <button onClick={() => setOpen(true)} style={{
+        width: "100%", background: "rgba(114,249,76,0.08)", border: "1px solid rgba(114,249,76,0.3)",
+        borderRadius: 12, padding: 16, marginBottom: 16, cursor: "pointer",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+      }}>
+        <div style={{ textAlign: "left" }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginBottom: 4 }}>📚 Programare training</div>
+          <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)" }}>
+            {booking ? "Vezi rezervarea ta" : "Alege un slot pentru trainingul de casier"}
+          </div>
+        </div>
+        <div style={{ fontSize: 18, color: "#97C459" }}>›</div>
+      </button>
+
+      {open && (
+        <div style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 100,
+          display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+        }} onClick={() => setOpen(false)}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16,
+            maxWidth: 480, width: "100%", maxHeight: "85vh", overflowY: "auto", padding: 20,
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>Training Casier</div>
+              <button onClick={() => setOpen(false)} style={{
+                background: "transparent", border: "none", color: "rgba(232,230,227,0.6)",
+                fontSize: 24, cursor: "pointer", lineHeight: 1, padding: 4,
+              }}>×</button>
+            </div>
+
+            {error && (
+              <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)",
+                borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 13, color: "#ff8a8a" }}>{error}</div>
+            )}
+
+            {loading && (
+              <div style={{ textAlign: "center", padding: 40, color: "rgba(232,230,227,0.4)", fontSize: 14 }}>Se încarcă...</div>
+            )}
+
+            {!loading && booking && (
+              <div>
+                <div style={{ background: "rgba(114,249,76,0.08)", border: "1px solid rgba(114,249,76,0.3)",
+                  borderRadius: 12, padding: 20, marginBottom: 16, textAlign: "center" }}>
+                  <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
+                  <div style={{ fontSize: 14, color: "rgba(232,230,227,0.7)", marginBottom: 4 }}>Programarea ta:</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 4 }}>{booking.date}</div>
+                  <div style={{ fontSize: 16, color: "#97C459", marginBottom: 8 }}>ora {booking.time}</div>
+                </div>
+
+                {!confirmCancel ? (
+                  <button onClick={() => setConfirmCancel(true)} disabled={loading} style={{
+                    width: "100%", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)",
+                    borderRadius: 10, padding: 12, fontSize: 14, color: "#ff8a8a", cursor: "pointer",
+                  }}>Anulează rezervarea</button>
+                ) : (
+                  <div style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.3)",
+                    borderRadius: 10, padding: 14 }}>
+                    <div style={{ fontSize: 13, color: "rgba(232,230,227,0.85)", marginBottom: 10, textAlign: "center" }}>
+                      Sigur vrei să anulezi rezervarea? Anulările se fac cu cel puțin 48h înainte.
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button onClick={() => setConfirmCancel(false)} disabled={loading} style={{
+                        flex: 1, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
+                        borderRadius: 8, padding: 10, fontSize: 13, color: "rgba(232,230,227,0.7)", cursor: "pointer",
+                      }}>Înapoi</button>
+                      <button onClick={cancelBooking} disabled={loading} style={{
+                        flex: 1, background: "#ef4444", border: "none", borderRadius: 8, padding: 10,
+                        fontSize: 13, fontWeight: 600, color: "#fff", cursor: "pointer",
+                      }}>{loading ? "..." : "Anulează"}</button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!loading && !booking && (
+              <div>
+                <div style={{ fontSize: 13, color: "rgba(232,230,227,0.6)", marginBottom: 14, lineHeight: 1.5 }}>
+                  Alege un slot pentru training. Vei primi email de confirmare.
+                </div>
+                {slots.length === 0 && (
+                  <div style={{ textAlign: "center", padding: 24, color: "rgba(232,230,227,0.4)", fontSize: 13 }}>
+                    Momentan nu sunt sloturi disponibile.
+                  </div>
+                )}
+                {slots.map(s => {
+                  const full = s.available <= 0;
+                  return (
+                    <div key={s.slotId} style={{
+                      background: full ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.04)",
+                      border: "1px solid " + (full ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.1)"),
+                      borderRadius: 10, padding: 12, marginBottom: 8,
+                      display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8,
+                      opacity: full ? 0.5 : 1,
+                    }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: "#fff" }}>{s.date}</div>
+                        <div style={{ fontSize: 13, color: "rgba(232,230,227,0.7)" }}>ora {s.time}</div>
+                        {s.note && <div style={{ fontSize: 11, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>{s.note}</div>}
+                        <div style={{ fontSize: 11, color: full ? "#ff8a8a" : "rgba(151,196,89,0.8)", marginTop: 4 }}>
+                          {full ? "Plin" : `${s.available} locuri disponibile`}
+                        </div>
+                      </div>
+                      <button onClick={() => bookSlot(s.slotId)} disabled={full || busySlot === s.slotId} style={{
+                        background: full ? "rgba(255,255,255,0.04)" : `linear-gradient(135deg, #72F94C, #4AD42F)`,
+                        border: "none", borderRadius: 8, padding: "8px 14px", fontSize: 13, fontWeight: 600,
+                        color: full ? "rgba(232,230,227,0.3)" : "#0a0a0a",
+                        cursor: full || busySlot === s.slotId ? "default" : "pointer",
+                      }}>{busySlot === s.slotId ? "..." : "Rezervă"}</button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
   const [documents, setDocuments] = useState(null);
   const [signModal, setSignModal] = useState(null); // { type, title, docName }
@@ -1414,6 +1610,11 @@ function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
             Ne vedem la Beach Please! 🏖️
           </div>
         </div>
+
+        {/* Training booking — vizibil doar pentru Confirmat */}
+        {statusInfo?.status === "confirmed" && (
+          <TrainingSection phone={phone} cnp={statusInfo?.cnp} firstName={firstName} />
+        )}
 
         <div style={{ background: "rgba(114,249,76,0.06)", border: "1px solid rgba(114,249,76,0.2)", borderRadius: 12, padding: 16, textAlign: "center" }}>
           <div style={{ fontSize: 20, marginBottom: 6 }}>📅</div>
@@ -2387,6 +2588,7 @@ function StatusPage({ onCompleteDetected }) {
           status: statusMap[result.status] || "pending",
           name: result.name,
           firstName: result.firstName,
+          cnp: cnpClean,
           acordSemnat: result.acordSemnat,
           declaratieSemnat: result.declaratieSemnat,
           ciIncarcat: result.ciIncarcat,
