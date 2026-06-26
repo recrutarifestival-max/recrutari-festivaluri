@@ -2236,16 +2236,16 @@ function AdminPage({ isAdmin, setIsAdmin }) {
         </p>
         <input
           type="password"
-          inputMode="numeric"
-          maxLength={6}
+          autoComplete="current-password"
+          maxLength={64}
           value={code}
-          onChange={e => { setCode(e.target.value.replace(/[^0-9]/g, "")); setError(null); }}
-          onKeyDown={e => e.key === "Enter" && code.length === 6 && verifyCode(code)}
-          placeholder="••••••"
+          onChange={e => { setCode(e.target.value); setError(null); }}
+          onKeyDown={e => e.key === "Enter" && code.length >= 6 && verifyCode(code)}
+          placeholder="Cod acces"
           style={{
             width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 12, padding: "16px", fontSize: 24, color: "#e8e6e3", outline: "none",
-            textAlign: "center", letterSpacing: "0.5em", fontFamily: "monospace",
+            borderRadius: 12, padding: "16px", fontSize: 18, color: "#e8e6e3", outline: "none",
+            textAlign: "center", letterSpacing: "0.05em", fontFamily: "monospace",
           }}
         />
         {error && (
@@ -2253,13 +2253,13 @@ function AdminPage({ isAdmin, setIsAdmin }) {
         )}
         <button
           onClick={() => verifyCode(code)}
-          disabled={code.length !== 6 || verifying}
+          disabled={code.length < 6 || verifying}
           style={{
             width: "100%", marginTop: 16,
-            background: code.length === 6 ? `linear-gradient(135deg, #72F94C, #4AD42F)` : "rgba(255,255,255,0.06)",
+            background: code.length >= 6 ? `linear-gradient(135deg, #72F94C, #4AD42F)` : "rgba(255,255,255,0.06)",
             border: "none", borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700,
-            color: code.length === 6 ? "#0a0a0a" : "rgba(232,230,227,0.3)",
-            cursor: code.length === 6 ? "pointer" : "default",
+            color: code.length >= 6 ? "#0a0a0a" : "rgba(232,230,227,0.3)",
+            cursor: code.length >= 6 ? "pointer" : "default",
           }}
         >
           {verifying ? "Verific..." : "Intră"}
@@ -4605,16 +4605,16 @@ function UAdminPage({ isAdmin, setIsAdmin }) {
         </p>
         <input
           type="password"
-          inputMode="numeric"
-          maxLength={6}
+          autoComplete="current-password"
+          maxLength={64}
           value={code}
-          onChange={e => { setCode(e.target.value.replace(/[^0-9]/g, "")); setError(null); }}
-          onKeyDown={e => e.key === "Enter" && code.length === 6 && verifyCode(code)}
-          placeholder="••••••"
+          onChange={e => { setCode(e.target.value); setError(null); }}
+          onKeyDown={e => e.key === "Enter" && code.length >= 6 && verifyCode(code)}
+          placeholder="Cod acces"
           style={{
             width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 12, padding: "16px", fontSize: 24, color: "#e8e6e3", outline: "none",
-            textAlign: "center", letterSpacing: "0.5em", fontFamily: "monospace",
+            borderRadius: 12, padding: "16px", fontSize: 18, color: "#e8e6e3", outline: "none",
+            textAlign: "center", letterSpacing: "0.05em", fontFamily: "monospace",
           }}
         />
         {error && (
@@ -4622,13 +4622,13 @@ function UAdminPage({ isAdmin, setIsAdmin }) {
         )}
         <button
           onClick={() => verifyCode(code)}
-          disabled={code.length !== 6 || verifying}
+          disabled={code.length < 6 || verifying}
           style={{
             width: "100%", marginTop: 16,
-            background: code.length === 6 ? `linear-gradient(135deg, #7C4DFF, #5E35B1)` : "rgba(255,255,255,0.06)",
+            background: code.length >= 6 ? `linear-gradient(135deg, #7C4DFF, #5E35B1)` : "rgba(255,255,255,0.06)",
             border: "none", borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700,
-            color: code.length === 6 ? "#0a0a0a" : "rgba(232,230,227,0.3)",
-            cursor: code.length === 6 ? "pointer" : "default",
+            color: code.length >= 6 ? "#0a0a0a" : "rgba(232,230,227,0.3)",
+            cursor: code.length >= 6 ? "pointer" : "default",
           }}
         >
           {verifying ? "Verific..." : "Intră"}
