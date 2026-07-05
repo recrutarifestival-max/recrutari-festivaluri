@@ -1191,6 +1191,9 @@ function MyShifts({ phone, pastOnly = false }) {
                   ) : (
                     <span style={{ fontSize: 9, color: "#EF9F27", background: "rgba(186,117,23,0.12)", border: "1px solid rgba(186,117,23,0.3)", padding: "2px 6px", borderRadius: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Programată</span>
                   )}
+                  {s.modified && (
+                    <span style={{ fontSize: 9, color: "#4A90E2", background: "rgba(74,144,226,0.12)", border: "1px solid rgba(74,144,226,0.3)", padding: "2px 6px", borderRadius: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Modificat</span>
+                  )}
                 </div>
                 {/* CP-uri (suportă și grupare) */}
                 <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
