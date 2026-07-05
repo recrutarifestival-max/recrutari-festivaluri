@@ -2654,6 +2654,11 @@ function StatusPage({ onCompleteDetected }) {
           hasExtension: result.hasExtension || false,
         });
         setAwaitingCnp(false);
+        // Persistă datele pentru auto-restore la următoarea deschidere/tab
+        try {
+          window.localStorage.setItem("bp_login_phone", targetPhone);
+          window.localStorage.setItem("bp_login_cnp", cnpClean);
+        } catch (e) {}
         if (result.statusFinal === "Complete" && onCompleteDetected) {
           onCompleteDetected(targetPhone, result.position || "Casier");
         }
@@ -2662,11 +2667,6 @@ function StatusPage({ onCompleteDetected }) {
         if (result.locked) {
           // după blocare, ștergem starea de aşteptare ca să poată reîncerca cu alt telefon
           setTimeout(() => { setAwaitingCnp(false); setCnp(""); }, 3000);
-        // Persistă datele pentru auto-restore la următoarea deschidere/tab
-        try {
-          window.localStorage.setItem("bp_login_phone", targetPhone);
-          window.localStorage.setItem("bp_login_cnp", cnpClean);
-        } catch (e) {}
         }
       }
     } catch (err) {
