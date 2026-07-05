@@ -1258,34 +1258,47 @@ function MyShifts({ phone, pastOnly = false }) {
 //   - dacă nu are rezervare: lista de sloturi + Rezervă
 //   - dacă are rezervare: cardul cu data/ora + Anulează (cu confirmare)
 function TrainingSection({ phone, cnp, firstName }) {
-  const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [booking, setBooking] = useState(null);    // null = nu are; obiect = are rezervare activă
+  const TRAINING_MAPS_URL = "https://maps.app.goo.gl/u71CDrotAScyn3MRA";
+
+  const [booking, setBooking] = useState(null);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalLoading, setModalLoading] = useState(false);
   const [slots, setSlots] = useState([]);
   const [error, setError] = useState("");
-  const [busySlot, setBusySlot] = useState(null);  // slotId în curs de rezervare
-  const [confirmCancel, setConfirmCancel] = useState(false);
+  const [busySlot, setBusySlot] = useState(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState("");
 
-  async function refresh() {
-    if (!phone || !cnp) return;
-    setLoading(true); setError("");
+  // La mount: încarcă rezervarea existentă (dacă există)
+  useEffect(() => {
+    if (!phone || !cnp) { setInitialLoading(false); return; }
+    (async () => {
+      try {
+        const url = `${API_URL}?action=trainingMySlot&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
+        const resp = await fetch(url);
+        const result = JSON.parse(await resp.text());
+        if (result.success) setBooking(result.booking || null);
+      } catch (e) {}
+      setInitialLoading(false);
+    })();
+  }, [phone, cnp]);
+
+  async function loadSlots() {
+    setModalLoading(true); setError("");
     try {
-      // Cere starea curentă: rezervarea mea + sloturile disponibile
-      const myUrl = `${API_URL}?action=trainingMySlot&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
-      const slotsUrl = `${API_URL}?action=trainingSlots&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
-      const [myResp, slotsResp] = await Promise.all([fetch(myUrl), fetch(slotsUrl)]);
-      const myJson = JSON.parse(await myResp.text());
-      const slotsJson = JSON.parse(await slotsResp.text());
-      if (!myJson.success) { setError(myJson.error || "Nu pot încărca rezervarea."); return; }
-      if (!slotsJson.success) { setError(slotsJson.error || "Nu pot încărca sloturile."); return; }
-      setBooking(myJson.booking || null);
-      setSlots(slotsJson.slots || []);
+      const url = `${API_URL}?action=trainingSlots&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
+      const resp = await fetch(url);
+      const result = JSON.parse(await resp.text());
+      if (result.success) setSlots(result.slots || []);
+      else setError(result.error || "Nu pot încărca sloturile.");
     } catch (e) {
       setError("Eroare de conexiune.");
-    } finally { setLoading(false); }
+    }
+    setModalLoading(false);
   }
 
-  useEffect(() => { if (open) refresh(); /* eslint-disable-next-line */ }, [open]);
+  useEffect(() => { if (modalOpen) loadSlots(); /* eslint-disable-next-line */ }, [modalOpen]);
 
   async function bookSlot(slotId) {
     setBusySlot(slotId); setError("");
@@ -1294,40 +1307,98 @@ function TrainingSection({ phone, cnp, firstName }) {
       const resp = await fetch(url);
       const result = JSON.parse(await resp.text());
       if (result.success) {
-        setBooking(result.booking);
-        await refresh();
+        // Reîncarcă rezervarea proaspătă (cu bookedAt de la backend)
+        const url2 = `${API_URL}?action=trainingMySlot&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
+        try {
+          const r2 = await fetch(url2);
+          const j2 = JSON.parse(await r2.text());
+          if (j2.success) setBooking(j2.booking || null);
+        } catch (e) {}
+        setModalOpen(false);
       } else {
         setError(result.error || "Nu am putut rezerva slotul.");
-        await refresh();
       }
     } catch (e) {
       setError("Eroare de conexiune.");
-    } finally { setBusySlot(null); }
+    }
+    setBusySlot(null);
   }
 
   async function cancelBooking() {
-    setLoading(true); setError("");
+    if (!confirm("Sigur vrei să anulezi rezervarea? Anulările se fac cu cel puțin 48h înainte.")) return;
+    setCancelling(true); setCancelError("");
     try {
       const url = `${API_URL}?action=trainingCancel&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
       const resp = await fetch(url);
       const result = JSON.parse(await resp.text());
       if (result.success) {
         setBooking(null);
-        setConfirmCancel(false);
-        await refresh();
       } else {
-        setError(result.error || "Nu pot anula.");
-        setConfirmCancel(false);
+        setCancelError(result.error || "Nu pot anula.");
+        setTimeout(() => setCancelError(""), 5000);
       }
     } catch (e) {
-      setError("Eroare de conexiune.");
-      setConfirmCancel(false);
-    } finally { setLoading(false); }
+      setCancelError("Eroare de conexiune.");
+      setTimeout(() => setCancelError(""), 5000);
+    }
+    setCancelling(false);
   }
 
+  if (initialLoading) return null; // nu afișăm nimic până știm statusul rezervării
+
+  // === CAZ 1: are rezervare → card cu detalii + direcții + buton mic anulare ===
+  if (booking) {
+    return (
+      <div style={{
+        background: "rgba(114,249,76,0.08)", border: "1px solid rgba(114,249,76,0.3)",
+        borderRadius: 12, padding: 16, marginBottom: 16,
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 12 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)", marginBottom: 4 }}>📚 Programarea ta training</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>{booking.date}</div>
+            <div style={{ fontSize: 15, color: "#97C459", marginTop: 2 }}>ora {booking.time}</div>
+            {booking.bookedAt && (
+              <div style={{ fontSize: 10, color: "rgba(232,230,227,0.4)", marginTop: 6 }}>
+                Rezervat pe {booking.bookedAt}
+              </div>
+            )}
+          </div>
+          <button
+            onClick={cancelBooking}
+            disabled={cancelling}
+            title="Anulează rezervarea"
+            style={{
+              background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)",
+              borderRadius: 8, padding: "6px 10px", fontSize: 11, color: "#ff8a8a",
+              cursor: cancelling ? "default" : "pointer", whiteSpace: "nowrap",
+            }}
+          >{cancelling ? "..." : "Anulează"}</button>
+        </div>
+
+        <a
+          href={TRAINING_MAPS_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "block", width: "100%", boxSizing: "border-box",
+            background: "rgba(74,144,226,0.1)", border: "1px solid rgba(74,144,226,0.35)",
+            borderRadius: 8, padding: "10px 12px", fontSize: 13, color: "#7BAEE8",
+            textAlign: "center", textDecoration: "none",
+          }}
+        >📍 Cum ajung la training</a>
+
+        {cancelError && (
+          <div style={{ fontSize: 12, color: "#ff8a8a", marginTop: 8, textAlign: "center" }}>{cancelError}</div>
+        )}
+      </div>
+    );
+  }
+
+  // === CAZ 2: nu are rezervare → buton „Programare training" care deschide modal cu sloturi ===
   return (
     <>
-      <button onClick={() => setOpen(true)} style={{
+      <button onClick={() => setModalOpen(true)} style={{
         width: "100%", background: "rgba(114,249,76,0.08)", border: "1px solid rgba(114,249,76,0.3)",
         borderRadius: 12, padding: 16, marginBottom: 16, cursor: "pointer",
         display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -1335,24 +1406,24 @@ function TrainingSection({ phone, cnp, firstName }) {
         <div style={{ textAlign: "left" }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginBottom: 4 }}>📚 Programare training</div>
           <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)" }}>
-            {booking ? "Vezi rezervarea ta" : "Alege un slot pentru trainingul de casier"}
+            Alege un slot pentru trainingul de casier
           </div>
         </div>
         <div style={{ fontSize: 18, color: "#97C459" }}>›</div>
       </button>
 
-      {open && (
+      {modalOpen && (
         <div style={{
           position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 100,
           display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
-        }} onClick={() => setOpen(false)}>
+        }} onClick={() => setModalOpen(false)}>
           <div onClick={e => e.stopPropagation()} style={{
             background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16,
             maxWidth: 480, width: "100%", maxHeight: "85vh", overflowY: "auto", padding: 20,
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
               <div style={{ fontSize: 18, fontWeight: 700, color: "#fff" }}>Training Casier</div>
-              <button onClick={() => setOpen(false)} style={{
+              <button onClick={() => setModalOpen(false)} style={{
                 background: "transparent", border: "none", color: "rgba(232,230,227,0.6)",
                 fontSize: 24, cursor: "pointer", lineHeight: 1, padding: 4,
               }}>×</button>
@@ -1363,47 +1434,11 @@ function TrainingSection({ phone, cnp, firstName }) {
                 borderRadius: 8, padding: 12, marginBottom: 12, fontSize: 13, color: "#ff8a8a" }}>{error}</div>
             )}
 
-            {loading && (
+            {modalLoading && (
               <div style={{ textAlign: "center", padding: 40, color: "rgba(232,230,227,0.4)", fontSize: 14 }}>Se încarcă...</div>
             )}
 
-            {!loading && booking && (
-              <div>
-                <div style={{ background: "rgba(114,249,76,0.08)", border: "1px solid rgba(114,249,76,0.3)",
-                  borderRadius: 12, padding: 20, marginBottom: 16, textAlign: "center" }}>
-                  <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
-                  <div style={{ fontSize: 14, color: "rgba(232,230,227,0.7)", marginBottom: 4 }}>Programarea ta:</div>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 4 }}>{booking.date}</div>
-                  <div style={{ fontSize: 16, color: "#97C459", marginBottom: 8 }}>ora {booking.time}</div>
-                </div>
-
-                {!confirmCancel ? (
-                  <button onClick={() => setConfirmCancel(true)} disabled={loading} style={{
-                    width: "100%", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)",
-                    borderRadius: 10, padding: 12, fontSize: 14, color: "#ff8a8a", cursor: "pointer",
-                  }}>Anulează rezervarea</button>
-                ) : (
-                  <div style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.3)",
-                    borderRadius: 10, padding: 14 }}>
-                    <div style={{ fontSize: 13, color: "rgba(232,230,227,0.85)", marginBottom: 10, textAlign: "center" }}>
-                      Sigur vrei să anulezi rezervarea? Anulările se fac cu cel puțin 48h înainte.
-                    </div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <button onClick={() => setConfirmCancel(false)} disabled={loading} style={{
-                        flex: 1, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
-                        borderRadius: 8, padding: 10, fontSize: 13, color: "rgba(232,230,227,0.7)", cursor: "pointer",
-                      }}>Înapoi</button>
-                      <button onClick={cancelBooking} disabled={loading} style={{
-                        flex: 1, background: "#ef4444", border: "none", borderRadius: 8, padding: 10,
-                        fontSize: 13, fontWeight: 600, color: "#fff", cursor: "pointer",
-                      }}>{loading ? "..." : "Anulează"}</button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {!loading && !booking && (
+            {!modalLoading && (
               <div>
                 <div style={{ fontSize: 13, color: "rgba(232,230,227,0.6)", marginBottom: 14, lineHeight: 1.5 }}>
                   Alege un slot pentru training. Vei primi email de confirmare.
@@ -1448,7 +1483,6 @@ function TrainingSection({ phone, cnp, firstName }) {
     </>
   );
 }
-
 function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
   const [documents, setDocuments] = useState(null);
   const [signModal, setSignModal] = useState(null); // { type, title, docName }
