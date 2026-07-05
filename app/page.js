@@ -1258,7 +1258,7 @@ function MyShifts({ phone, pastOnly = false }) {
 //   - dacă nu are rezervare: lista de sloturi + Rezervă
 //   - dacă are rezervare: cardul cu data/ora + Anulează (cu confirmare)
 function TrainingSection({ phone, cnp, firstName }) {
-  const TRAINING_MAPS_URL = "https://maps.app.goo.gl/u71CDrotAScyn3MRA";
+  const TRAINING_MAPS_URL = "https://maps.app.goo.gl/23Eg9h8Z6RknfSRa9";
 
   const [booking, setBooking] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
