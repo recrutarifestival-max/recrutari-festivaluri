@@ -2522,6 +2522,57 @@ function StatusPage({ onCompleteDetected }) {
   const [cnpError, setCnpError] = useState("");
   const [firstNameForCnp, setFirstNameForCnp] = useState("");
 
+  // Auto-restore login: dacă avem telefon+cnp salvate, refacem verificarea automat la mount.
+  useEffect(() => {
+    try {
+      const savedPhone = window.localStorage.getItem("bp_login_phone");
+      const savedCnp = window.localStorage.getItem("bp_login_cnp");
+      if (savedPhone && savedCnp) {
+        setPhone(savedPhone);
+        // Refetch tăcut, fără să afișăm pasul de CNP
+        (async () => {
+          setSearching(true);
+          try {
+            const url = `${API_URL}?action=verifyCnp&phone=${encodeURIComponent(savedPhone)}&cnp=${encodeURIComponent(savedCnp)}&t=${Date.now()}`;
+            const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
+            const result = JSON.parse(await resp.text());
+            if (result.success && result.found) {
+              const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Expirat": "expired", "Respins": "rejected", "Confirmat": "confirmed" };
+              setStatus({
+                found: true,
+                status: statusMap[result.status] || "pending",
+                name: result.name, firstName: result.firstName, cnp: savedCnp,
+                acordSemnat: result.acordSemnat, declaratieSemnat: result.declaratieSemnat,
+                ciIncarcat: result.ciIncarcat, bancarComplet: result.bancarComplet,
+                titular: result.titular, iban: result.iban,
+                statusFinal: result.statusFinal,
+                position: result.position || "Casier",
+                hasExtension: result.hasExtension || false,
+              });
+              if (result.statusFinal === "Complete" && onCompleteDetected) {
+                onCompleteDetected(savedPhone, result.position || "Casier");
+              }
+            } else {
+              // Datele stocate nu mai sunt valide — curățăm
+              window.localStorage.removeItem("bp_login_phone");
+              window.localStorage.removeItem("bp_login_cnp");
+            }
+          } catch (e) { /* ignoră, cade înapoi la ecranul de login */ }
+          setSearching(false);
+        })();
+      }
+    } catch (e) { /* localStorage indisponibil */ }
+  // eslint-disable-next-line
+  }, []);
+
+  function logout() {
+    try {
+      window.localStorage.removeItem("bp_login_phone");
+      window.localStorage.removeItem("bp_login_cnp");
+    } catch (e) {}
+    setPhone(""); setStatus(null); setCnp(""); setAwaitingCnp(false); setCnpError(""); setFirstNameForCnp("");
+  }
+
   async function checkStatus(phoneToCheck) {
     let targetPhone = (phoneToCheck || phone || "").replace(/[^0-9]/g, "");
     if (targetPhone.startsWith("40") && targetPhone.length >= 11) {
@@ -2611,6 +2662,11 @@ function StatusPage({ onCompleteDetected }) {
         if (result.locked) {
           // după blocare, ștergem starea de aşteptare ca să poată reîncerca cu alt telefon
           setTimeout(() => { setAwaitingCnp(false); setCnp(""); }, 3000);
+        // Persistă datele pentru auto-restore la următoarea deschidere/tab
+        try {
+          window.localStorage.setItem("bp_login_phone", targetPhone);
+          window.localStorage.setItem("bp_login_cnp", cnpClean);
+        } catch (e) {}
         }
       }
     } catch (err) {
@@ -4882,6 +4938,55 @@ function UStatusPage({ onCompleteDetected }) {
   const [cnpError, setCnpError] = useState("");
   const [firstNameForCnp, setFirstNameForCnp] = useState("");
 
+  // Auto-restore login pentru Untold
+  useEffect(() => {
+    try {
+      const savedPhone = window.localStorage.getItem("untold_login_phone");
+      const savedCnp = window.localStorage.getItem("untold_login_cnp");
+      if (savedPhone && savedCnp) {
+        setPhone(savedPhone);
+        (async () => {
+          setSearching(true);
+          try {
+            const url = `${UNTOLD_API_URL}?action=verifyCnp&phone=${encodeURIComponent(savedPhone)}&cnp=${encodeURIComponent(savedCnp)}&t=${Date.now()}`;
+            const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
+            const result = JSON.parse(await resp.text());
+            if (result.success && result.found) {
+              const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Expirat": "expired", "Respins": "rejected", "Confirmat": "confirmed" };
+              setStatus({
+                found: true,
+                status: statusMap[result.status] || "pending",
+                name: result.name, firstName: result.firstName, cnp: savedCnp,
+                acordSemnat: result.acordSemnat, declaratieSemnat: result.declaratieSemnat,
+                ciIncarcat: result.ciIncarcat, bancarComplet: result.bancarComplet,
+                titular: result.titular, iban: result.iban,
+                statusFinal: result.statusFinal,
+                position: result.position || "Casier",
+                hasExtension: result.hasExtension || false,
+              });
+              if (result.statusFinal === "Complete" && onCompleteDetected) {
+                onCompleteDetected(savedPhone, result.position || "Casier");
+              }
+            } else {
+              window.localStorage.removeItem("untold_login_phone");
+              window.localStorage.removeItem("untold_login_cnp");
+            }
+          } catch (e) {}
+          setSearching(false);
+        })();
+      }
+    } catch (e) {}
+  // eslint-disable-next-line
+  }, []);
+
+  function logout() {
+    try {
+      window.localStorage.removeItem("untold_login_phone");
+      window.localStorage.removeItem("untold_login_cnp");
+    } catch (e) {}
+    setPhone(""); setStatus(null); setCnp(""); setAwaitingCnp(false); setCnpError(""); setFirstNameForCnp("");
+  }
+
   async function checkStatus(phoneToCheck) {
     let targetPhone = (phoneToCheck || phone || "").replace(/[^0-9]/g, "");
     if (targetPhone.startsWith("40") && targetPhone.length >= 11) {
@@ -4963,6 +5068,11 @@ function UStatusPage({ onCompleteDetected }) {
           hasExtension: result.hasExtension || false,
         });
         setAwaitingCnp(false);
+        // Persistă datele pentru auto-restore la următoarea deschidere/tab
+        try {
+          window.localStorage.setItem("untold_login_phone", targetPhone);
+          window.localStorage.setItem("untold_login_cnp", cnpClean);
+        } catch (e) {}
         if (result.statusFinal === "Complete" && onCompleteDetected) {
           onCompleteDetected(targetPhone, result.position || "Casier");
         }
