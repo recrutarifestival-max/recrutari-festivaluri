@@ -2323,8 +2323,8 @@ function AdminPage({ isAdmin, setIsAdmin }) {
       )}
       
       {/* Selector poziție */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
-        {["Casier", "Supervizor"].map(p => (
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 16 }}>
+        {["Casier", "Supervizor", "HelpDesk"].map(p => (
           <button key={p} onClick={() => setPosition(p)} style={{
             padding: "12px",
             background: position === p ? "rgba(114,249,76,0.15)" : "rgba(255,255,255,0.04)",
@@ -2339,7 +2339,7 @@ function AdminPage({ isAdmin, setIsAdmin }) {
       {/* Dropdown candidați */}
       <div style={{ marginBottom: 16 }}>
         <label style={{ display: "block", fontSize: 12, color: "rgba(232,230,227,0.6)", marginBottom: 6, fontWeight: 600 }}>
-          {loadingCandidates ? "Se încarcă..." : `${candidates.length} ${position === "Casier" ? "casieri" : "supervizori"} cu Status Complete`}
+          {loadingCandidates ? "Se încarcă..." : `${candidates.length} ${position === "Casier" ? "casieri" : position === "Supervizor" ? "supervizori" : "helpdesk"} cu Status Complete`}
         </label>
         <select 
           value={selectedPhone}
