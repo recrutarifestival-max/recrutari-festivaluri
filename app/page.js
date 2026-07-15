@@ -3936,16 +3936,6 @@ function UAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
         busy={busyDoc === "declaratie"}
       />
 
-      <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginTop: 16, marginBottom: 10 }}>Date bancare</div>
-
-      <BankDetailsCard
-        saved={!!statusInfo?.bancarComplet || optimisticSigned.bank}
-        titular={statusInfo?.titular}
-        iban={statusInfo?.iban}
-        onSave={handleSaveBank}
-        busy={busyDoc === "bank"}
-      />
-
       <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginTop: 16, marginBottom: 10 }}>Documente de încărcat</div>
 
       <CIUploadCard
@@ -3967,7 +3957,6 @@ function UAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
           const done = [
             !!statusInfo?.acordSemnat || optimisticSigned.acord,
             !!statusInfo?.declaratieSemnat || optimisticSigned.declaratie,
-            !!statusInfo?.bancarComplet || optimisticSigned.bank,
             !!statusInfo?.ciIncarcat || optimisticSigned.ci,
           ].filter(Boolean).length;
           return (
