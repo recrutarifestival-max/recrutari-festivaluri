@@ -5339,8 +5339,62 @@ function UStatusPage({ onCompleteDetected }) {
               )}
             </div>
           )}
+          <UntoldContactSection />
         </div>
       )}
+    </div>
+  );
+}
+
+// Contact section pentru Untold — 4 butoane WhatsApp
+function UntoldContactSection() {
+  const contacts = [
+    { name: "Denisa",   phone: "0743345925", display: "0743 345 925" },
+    { name: "Ioana",    phone: "0742644001", display: "0742 644 001" },
+    { name: "Jan",      phone: "0749592652", display: "0749 592 652" },
+    { name: "Cristina", phone: "0757492531", display: "0757 492 531" },
+  ];
+
+  function waLink(phone) {
+    // WhatsApp cere format internațional fără + sau spații
+    const clean = phone.replace(/^0/, "40");
+    return `https://wa.me/${clean}`;
+  }
+
+  return (
+    <div style={{
+      background: "rgba(37,211,102,0.06)", border: "1px solid rgba(37,211,102,0.2)",
+      borderRadius: 16, padding: 20, marginTop: 20,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
+        <span style={{ fontSize: 20 }}>💬</span>
+        <div style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>Ai întrebări?</div>
+      </div>
+      <div style={{ fontSize: 13, color: "rgba(232,230,227,0.6)", marginBottom: 14, lineHeight: 1.5 }}>
+        Scrie-ne pe WhatsApp — răspundem cât mai repede posibil.
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+        {contacts.map(c => (
+          <a
+            key={c.phone}
+            href={waLink(c.phone)}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "flex", flexDirection: "column", gap: 2,
+              padding: "10px 12px",
+              background: "rgba(37,211,102,0.08)",
+              border: "1px solid rgba(37,211,102,0.25)",
+              borderRadius: 10,
+              textDecoration: "none",
+            }}
+          >
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#fff" }}>{c.name}</div>
+            <div style={{ fontSize: 12, color: "rgba(232,230,227,0.55)", fontFamily: "monospace" }}>{c.display}</div>
+          </a>
+        ))}
+      </div>
     </div>
   );
 }
