@@ -2571,7 +2571,7 @@ function StatusPage({ onCompleteDetected }) {
             const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
             const result = JSON.parse(await resp.text());
             if (result.success && result.found) {
-              const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Expirat": "expired", "Respins": "rejected", "Confirmat": "confirmed" };
+              const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Expirat": "expired", "Respins": "rejected", "Confirmat": "confirmed", "Retras": "withdrawn" };
               setStatus({
                 found: true,
                 status: statusMap[result.status] || "pending",
@@ -2670,7 +2670,7 @@ function StatusPage({ onCompleteDetected }) {
       const result = JSON.parse(await resp.text());
 
       if (result.success && result.found) {
-        const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Expirat": "expired", "Respins": "rejected", "Confirmat": "confirmed" };
+        const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Expirat": "expired", "Respins": "rejected", "Confirmat": "confirmed", "Retras": "withdrawn" };
         setStatus({
           found: true,
           status: statusMap[result.status] || "pending",
@@ -2730,7 +2730,7 @@ function StatusPage({ onCompleteDetected }) {
       }
 
       if (result.success && result.found) {
-        const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Expirat": "expired", "Respins": "rejected", "Confirmat": "confirmed" };
+        const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Expirat": "expired", "Respins": "rejected", "Confirmat": "confirmed", "Retras": "withdrawn" };
         setStatus(prev => ({
           ...prev,
           found: true,
@@ -2899,6 +2899,13 @@ function StatusPage({ onCompleteDetected }) {
                   <div style={{ fontSize: 32, marginBottom: 8 }}>❌</div>
                   <div style={{ fontSize: 18, fontWeight: 700, color: "#F09595", marginBottom: 4 }}>Respins</div>
                   <div style={{ fontSize: 13, color: "rgba(232,230,227,0.45)", lineHeight: 1.5 }}>Din păcate, aplicația ta nu a fost acceptată. Mulțumim pentru interes!</div>
+                </div>
+              )}
+              {status.status === "withdrawn" && (
+                <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: 20, textAlign: "center" }}>
+                  <div style={{ fontSize: 32, marginBottom: 8 }}>👋</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 4 }}>Candidatura retrasă</div>
+                  <div style={{ fontSize: 13, color: "rgba(232,230,227,0.55)", lineHeight: 1.5 }}>Te-ai retras din aplicație. Sperăm să ne revedem la o ediție viitoare!</div>
                 </div>
               )}
             </div>
@@ -4998,7 +5005,7 @@ function UStatusPage({ onCompleteDetected }) {
             const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
             const result = JSON.parse(await resp.text());
             if (result.success && result.found) {
-              const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Expirat": "expired", "Respins": "rejected", "Confirmat": "confirmed" };
+              const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Expirat": "expired", "Respins": "rejected", "Confirmat": "confirmed", "Retras": "withdrawn" };
               setStatus({
                 found: true,
                 status: statusMap[result.status] || "pending",
@@ -5096,7 +5103,7 @@ function UStatusPage({ onCompleteDetected }) {
       const result = JSON.parse(await resp.text());
 
       if (result.success && result.found) {
-        const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Expirat": "expired", "Respins": "rejected", "Confirmat": "confirmed" };
+        const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Expirat": "expired", "Respins": "rejected", "Confirmat": "confirmed", "Retras": "withdrawn" };
         setStatus({
           found: true,
           status: statusMap[result.status] || "pending",
@@ -5157,7 +5164,7 @@ function UStatusPage({ onCompleteDetected }) {
       }
       
       if (result.success && result.found) {
-        const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Expirat": "expired", "Respins": "rejected", "Confirmat": "confirmed" };
+        const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Expirat": "expired", "Respins": "rejected", "Confirmat": "confirmed", "Retras": "withdrawn" };
         setStatus(prev => ({
           ...prev,
           found: true,
@@ -5327,6 +5334,17 @@ function UStatusPage({ onCompleteDetected }) {
                   <div style={{ fontSize: 13, color: "rgba(232,230,227,0.45)", lineHeight: 1.5 }}>Din păcate, aplicația ta nu a fost acceptată. Mulțumim pentru interes!</div>
                 </div>
               )}
+              {status.status === "withdrawn" && (
+                <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: 20, textAlign: "center" }}>
+                  <div style={{ fontSize: 32, marginBottom: 8 }}>👋</div>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: "#fff", marginBottom: 4 }}>Candidatura retrasă</div>
+                  <div style={{ fontSize: 13, color: "rgba(232,230,227,0.55)", lineHeight: 1.5 }}>Te-ai retras din aplicație. Sperăm să ne revedem la o ediție viitoare!</div>
+                </div>
+              )}
+              {(status.status === "pending" || status.status === "selected" || status.status === "accepted" || status.status === "confirmed") &&
+                status.statusFinal !== "Complete" && (
+                <UntoldWithdrawSection phone={phone} cnp={status.cnp} onWithdrawn={() => setStatus({ ...status, status: "withdrawn" })} />
+              )}
             </div>
           ) : (
             <div style={{ textAlign: "center", padding: 32, color: "rgba(232,230,227,0.4)" }}>
@@ -5340,6 +5358,113 @@ function UStatusPage({ onCompleteDetected }) {
             </div>
           )}
           <UntoldContactSection />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Buton retragere candidatură pentru Untold — active până la 3 august 2026 10:00
+function UntoldWithdrawSection({ phone, cnp, onWithdrawn }) {
+  const [confirming, setConfirming] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [cutoffPassed, setCutoffPassed] = useState(false);
+
+  async function submitWithdraw() {
+    setSubmitting(true); setError("");
+    try {
+      const url = `${UNTOLD_API_URL}?action=withdraw&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
+      const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
+      const result = JSON.parse(await resp.text());
+      if (result.success) {
+        try {
+          window.localStorage.removeItem("untold_login_phone");
+          window.localStorage.removeItem("untold_login_cnp");
+        } catch (e) {}
+        if (onWithdrawn) onWithdrawn();
+      } else if (result.cutoffPassed) {
+        setCutoffPassed(true);
+        setError(result.error || "Retragerea online nu mai este disponibilă.");
+      } else {
+        setError(result.error || "A apărut o eroare.");
+      }
+    } catch (e) {
+      setError("Eroare de conexiune.");
+    }
+    setSubmitting(false);
+  }
+
+  if (cutoffPassed) {
+    return (
+      <div style={{
+        background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)",
+        borderRadius: 12, padding: 16, marginTop: 12, textAlign: "center",
+      }}>
+        <div style={{ fontSize: 13, color: "rgba(232,230,227,0.6)", lineHeight: 1.5 }}>
+          Retragerea online nu mai este disponibilă. Pentru asistență, contactează-ne pe WhatsApp (numerele de mai jos).
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ marginTop: 12 }}>
+      {!confirming ? (
+        <button
+          onClick={() => setConfirming(true)}
+          style={{
+            width: "100%",
+            background: "rgba(255,255,255,0.03)",
+            border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: 10, padding: "10px 14px",
+            fontSize: 12, color: "rgba(232,230,227,0.5)",
+            cursor: "pointer",
+          }}
+        >
+          Retrage candidatura
+        </button>
+      ) : (
+        <div style={{
+          background: "rgba(239,68,68,0.06)",
+          border: "1px solid rgba(239,68,68,0.25)",
+          borderRadius: 12, padding: 16,
+        }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginBottom: 6 }}>
+            Sigur vrei să te retragi?
+          </div>
+          <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)", marginBottom: 12, lineHeight: 1.5 }}>
+            După retragere, locul tău va fi redistribuit. Vei primi un email de confirmare.
+          </div>
+          {error && (
+            <div style={{ fontSize: 12, color: "#ff8a8a", marginBottom: 10 }}>{error}</div>
+          )}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={() => { setConfirming(false); setError(""); }}
+              disabled={submitting}
+              style={{
+                flex: 1,
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: 8, padding: "10px 12px",
+                fontSize: 13, color: "rgba(232,230,227,0.7)",
+                cursor: submitting ? "default" : "pointer",
+              }}
+            >Nu, renunț</button>
+            <button
+              onClick={submitWithdraw}
+              disabled={submitting}
+              style={{
+                flex: 1,
+                background: "rgba(239,68,68,0.15)",
+                border: "1px solid rgba(239,68,68,0.4)",
+                borderRadius: 8, padding: "10px 12px",
+                fontSize: 13, fontWeight: 600, color: "#ff8a8a",
+                cursor: submitting ? "default" : "pointer",
+              }}
+            >{submitting ? "Se trimite..." : "Da, retrage-mă"}</button>
+          </div>
         </div>
       )}
     </div>
