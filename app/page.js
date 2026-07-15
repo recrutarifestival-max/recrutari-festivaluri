@@ -3283,7 +3283,7 @@ function UFAQ() {
   const [open, setOpen] = useState(null);
   const items = [
     { q: "Care e vârsta minimă?", a: "18 ani împliniți la data festivalului." },
-    { q: "Ce modele de ture există și când încep?", a: "Există 2 modele: NZZN (noapte-zi-zi-noapte) sau ZNNZ (zi-noapte-noapte-zi). Turele de zi încep la ora 15:00, iar cele de noapte în jurul orei 21:00-22:00." },
+    { q: "Ce modele de ture există și când încep?", a: "Există 3 modele: NZZN (noapte-zi-zi-noapte), ZNNZ (zi-noapte-noapte-zi) sau Oricând (flexibil — coordonatorul îți alocă). Turele de zi încep la ora 15:00, iar cele de noapte în jurul orei 21:00-22:00." },
     { q: "Când încep training-urile?", a: "Training-urile încep din 3 August 2026 și sunt obligatorii pentru toți membrii echipei. Vei primi detalii exacte după acceptare." },
     { q: "Se oferă cazare?", a: "Nu. Nu se oferă cazare." },
     { q: "Se oferă parcare?", a: "Nu. Nu se oferă loc de parcare. Recomandăm transportul în comun sau organizarea cu alți colegi." },
@@ -5232,7 +5232,7 @@ function UStatusPage({ onCompleteDetected }) {
         <div style={{ textAlign: "center", padding: 40, color: "rgba(232,230,227,0.4)", fontSize: 14 }}>Se caută...</div>
       )}
 
-            {awaitingCnp && !searching && (
+            {awaitingCnp && !searching && !status && (
         <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: 24, marginBottom: 16 }}>
           <div style={{ textAlign: "center", marginBottom: 16 }}>
             <div style={{ fontSize: 32, marginBottom: 8 }}>🔒</div>
