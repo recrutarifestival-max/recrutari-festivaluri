@@ -2984,25 +2984,37 @@ function BeachPleaseApp() {
       }} />
 
       <Nav view={view} setView={setView} 
-        hasShifts={!!completePhone}
-        hasTeam={!!completePhone && userPosition === "Supervizor"}
-        isAdmin={isAdmin} />
+        hasShifts={false}
+        hasTeam={false}
+        isAdmin={false} />
 
       <div style={{ position: "relative", zIndex: 1 }}>
-        {view === VIEWS.HOME && <HomePage setView={setView} />}
-        {view === VIEWS.APPLY && <ApplyPage setView={setView} />}
-        {view === VIEWS.STATUS && <StatusPage onCompleteDetected={updateCompletePhone} />}
-        {view === VIEWS.SHIFTS && <ShiftsPage phone={completePhone} onLogout={handleLogout} />}
-        {view === VIEWS.TEAM && <TeamPage phone={completePhone} onLogout={handleLogout} />}
-        {view === VIEWS.ADMIN && <AdminPage isAdmin={isAdmin} setIsAdmin={setIsAdmin} />}
-      </div>
-
-      {/* Acces ascuns admin: link mic în footer */}
-      <div style={{ textAlign: "center", padding: "8px", fontSize: 10, color: "rgba(232,230,227,0.15)" }}>
-        <button onClick={() => setView(VIEWS.ADMIN)} style={{
-          background: "transparent", border: "none", color: "inherit", fontSize: "inherit",
-          cursor: "pointer", textDecoration: "underline", padding: 4,
-        }}>admin</button>
+        {/* Festival Beach Please 2026 s-a încheiat. Toate view-urile sunt înlocuite cu ecranul „Completed". */}
+        <div style={{ maxWidth: 500, margin: "60px auto", padding: "40px 24px", textAlign: "center" }}>
+          <div style={{ fontSize: 72, marginBottom: 24 }}>🏖️</div>
+          <div style={{
+            display: "inline-block", padding: "6px 14px", marginBottom: 20,
+            background: "rgba(114,249,76,0.15)", border: "1px solid rgba(114,249,76,0.35)",
+            borderRadius: 999, fontSize: 12, letterSpacing: "0.15em", fontWeight: 700, color: C.accent,
+          }}>COMPLETED</div>
+          <h1 style={{ fontSize: 32, fontWeight: 800, color: "#fff", margin: "0 0 12px", letterSpacing: "-0.02em" }}>
+            Beach Please 2026
+          </h1>
+          <p style={{ fontSize: 15, color: "rgba(232,230,227,0.65)", lineHeight: 1.6, margin: "0 0 32px" }}>
+            Festivalul s-a încheiat. Mulțumim tuturor celor peste 200 de casieri și supervizori care au făcut parte din echipa Cashless Payment Systems!
+          </p>
+          <div style={{
+            background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)",
+            borderRadius: 12, padding: 20, textAlign: "left",
+          }}>
+            <div style={{ fontSize: 13, color: "rgba(232,230,227,0.5)", marginBottom: 8, fontWeight: 600, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+              Următoarea ediție
+            </div>
+            <div style={{ fontSize: 15, color: "#e8e6e3", lineHeight: 1.6 }}>
+              Aplicațiile pentru Beach Please 2027 se vor deschide în luna mai 2027. Urmărește-ne pe rețelele sociale pentru anunțuri.
+            </div>
+          </div>
+        </div>
       </div>
 
       <div style={{ textAlign: "center", padding: "24px 16px 32px", borderTop: "1px solid rgba(255,255,255,0.05)", fontSize: 11, color: "rgba(232,230,227,0.2)", fontFamily: "monospace" }}>
