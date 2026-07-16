@@ -4328,7 +4328,8 @@ function UAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
   const [error, setError] = useState(null);
   const [allComplete, setAllComplete] = useState(false);
   // Poziție aleasă (nu salvată încă, doar local până la 'Trimite tot')
-  const [selectedPosition, setSelectedPosition] = useState(statusInfo?.position || "");
+  // NU pre-selectăm nimic — user trebuie să apese click ca poziția să fie considerată aleasă.
+  const [selectedPosition, setSelectedPosition] = useState("");
   // Optimistic UI: marchează documente ca semnate instant local
   const [optimisticSigned, setOptimisticSigned] = useState({
     acord: false, declaratie: false, ci: false, nda: false, bank: false
