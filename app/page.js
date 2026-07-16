@@ -4045,8 +4045,10 @@ function UAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
         
         {/* Training booking — vizibil doar pentru Confirmat */}
         {statusInfo?.status === "confirmed" && (
-          <TrainingSection phone={phone} cnp={statusInfo?.cnp} firstName={firstName} apiUrl={UNTOLD_API_URL} />
-          <SSMTrainingSection phone={phone} cnp={statusInfo?.cnp} apiUrl={UNTOLD_API_URL} />
+          <>
+            <TrainingSection phone={phone} cnp={statusInfo?.cnp} firstName={firstName} apiUrl={UNTOLD_API_URL} />
+            <SSMTrainingSection phone={phone} cnp={statusInfo?.cnp} apiUrl={UNTOLD_API_URL} />
+          </>
         )}
 
         <div style={{ background: "rgba(124,77,255,0.06)", border: "1px solid rgba(124,77,255,0.2)", borderRadius: 12, padding: 16, textAlign: "center" }}>
