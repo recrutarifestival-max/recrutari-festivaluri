@@ -1257,8 +1257,8 @@ function MyShifts({ phone, pastOnly = false }) {
 // Buton "Programare training" pentru candidați Confirmat. Deschide modal cu:
 //   - dacă nu are rezervare: lista de sloturi + Rezervă
 //   - dacă are rezervare: cardul cu data/ora + Anulează (cu confirmare)
-function TrainingSection({ phone, cnp, firstName, apiUrl }) {
-  const TRAINING_MAPS_URL = "https://maps.app.goo.gl/23Eg9h8Z6RknfSRa9";
+function TrainingSection({ phone, cnp, firstName, apiUrl, mapsUrl }) {
+  const TRAINING_MAPS_URL = mapsUrl || "https://maps.app.goo.gl/23Eg9h8Z6RknfSRa9";
   const API = apiUrl || API_URL;
 
   const [booking, setBooking] = useState(null);
@@ -4046,7 +4046,7 @@ function UAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
         {/* Training booking — vizibil doar pentru Confirmat */}
         {statusInfo?.status === "confirmed" && (
           <>
-            <TrainingSection phone={phone} cnp={statusInfo?.cnp} firstName={firstName} apiUrl={UNTOLD_API_URL} />
+            <TrainingSection phone={phone} cnp={statusInfo?.cnp} firstName={firstName} apiUrl={UNTOLD_API_URL} mapsUrl="https://maps.app.goo.gl/zz3wbXgmXtZcEpTSA" />
             <SSMTrainingSection phone={phone} cnp={statusInfo?.cnp} apiUrl={UNTOLD_API_URL} />
           </>
         )}
