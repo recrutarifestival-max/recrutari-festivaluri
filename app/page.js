@@ -4501,10 +4501,15 @@ function UMyShifts({ phone, pastOnly = false }) {
   const shiftsByDay = {};
   allShifts.forEach(s => {
     const key = s.date || "necunoscut";
-    if (!shiftsByDay[key]) shiftsByDay[key] = { label: s.label, shifts: [] };
+    if (!shiftsByDay[key]) shiftsByDay[key] = { label: s.dayLabel || s.label || s.date, shifts: [] };
     shiftsByDay[key].shifts.push(s);
   });
-  const sortedDays = Object.keys(shiftsByDay).sort((a, b) => a.localeCompare(b));
+  // Sortez după data reală (dd.MM.yyyy → yyyy.MM.dd pentru comparare)
+  const sortedDays = Object.keys(shiftsByDay).sort((a, b) => {
+    const [da, ma, ya] = a.split(".");
+    const [db, mb, yb] = b.split(".");
+    return (ya + ma + da).localeCompare(yb + mb + db);
+  });
 
   return (
     <div>
@@ -4553,7 +4558,7 @@ function UMyShifts({ phone, pastOnly = false }) {
       {sortedDays.map(day => (
         <div key={day} style={{ marginBottom: 14 }}>
           <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em" }}>
-            {shiftsByDay[day].label}
+            {shiftsByDay[day].label} · {day}
           </div>
           {shiftsByDay[day].shifts.map((s, i) => (
             <div key={`${s.date}_${s.cp}_${s.time}_${i}`} style={{
