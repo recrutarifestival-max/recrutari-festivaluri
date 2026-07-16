@@ -4753,31 +4753,18 @@ function UMyShifts({ phone, pastOnly = false }) {
                   👤 Supervizor: <span style={{ color: "rgba(232,230,227,0.85)" }}>{s.supervisor}</span>
                 </div>
               )}
-              {s.teamsByCP && s.teamsByCP.length > 0 ? (
+              {(s.colegCP && s.colegCP.length > 0) || (s.colegiZona && s.colegiZona.length > 0) ? (
                 <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-                  {s.teamsByCP.map((tc, idx) => (
-                    <div key={tc.cp + idx} style={{ marginBottom: idx < s.teamsByCP.length - 1 ? 8 : 0 }}>
-                      <div style={{ fontSize: 11, color: "rgba(232,230,227,0.5)", marginBottom: 3, fontWeight: 600 }}>
-                        <span style={{ color: C.accent }}>{tc.cp}</span>
-                        {tc.zone && <span style={{ color: "rgba(232,230,227,0.5)" }}> · {tc.zone}</span>}
-                        {tc.team && tc.team.length > 0 && <span style={{ color: "rgba(232,230,227,0.4)" }}> · {tc.team.length} casieri</span>}
-                      </div>
-                      {tc.team && tc.team.length > 0 && (
-                        <div style={{ fontSize: 11, color: "rgba(232,230,227,0.7)", lineHeight: 1.6 }}>
-                          {tc.team.join(" • ")}
-                        </div>
-                      )}
+                  {s.colegCP && s.colegCP.length > 0 && (
+                    <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginBottom: 4 }}>
+                      🤝 Coleg CP: <span style={{ color: "#fff" }}>{s.colegCP.join(", ")}</span>
                     </div>
-                  ))}
-                </div>
-              ) : s.team && s.team.length > 0 ? (
-                <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-                  <div style={{ fontSize: 11, color: "rgba(232,230,227,0.5)", marginBottom: 4, fontWeight: 600 }}>
-                    👥 {s.myRole === "Supervizor" ? "Echipa ta" : "Echipa"} ({s.team.length}):
-                  </div>
-                  <div style={{ fontSize: 11, color: "rgba(232,230,227,0.7)", lineHeight: 1.6 }}>
-                    {s.team.join(" • ")}
-                  </div>
+                  )}
+                  {s.colegiZona && s.colegiZona.length > 0 && (
+                    <div style={{ fontSize: 11, color: "rgba(232,230,227,0.55)", lineHeight: 1.5 }}>
+                      👥 Colegi din zonă ({s.colegiZona.length}): {s.colegiZona.join(" • ")}
+                    </div>
+                  )}
                 </div>
               ) : null}
             </div>
