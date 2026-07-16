@@ -3872,6 +3872,191 @@ function UApplyPage({ setView }) {
   );
 }
 
+// Helper: calculează vârsta din data de naștere „dd.mm.yyyy" (formatul folosit de backend)
+function _calcAgeFromDob(dobStr) {
+  if (!dobStr) return null;
+  const parts = String(dobStr).split(/[.\/-]/);
+  if (parts.length !== 3) return null;
+  const dd = parseInt(parts[0], 10), mm = parseInt(parts[1], 10), yyyy = parseInt(parts[2], 10);
+  if (!dd || !mm || !yyyy) return null;
+  const dob = new Date(yyyy, mm - 1, dd);
+  const now = new Date();
+  let age = now.getFullYear() - dob.getFullYear();
+  const m = now.getMonth() - dob.getMonth();
+  if (m < 0 || (m === 0 && now.getDate() < dob.getDate())) age--;
+  return age;
+}
+
+// Card unificat pentru statusul „Complete" — Untold
+function UCompleteInfoCard({ phone, statusInfo }) {
+  const [deptBooking, setDeptBooking] = useState(null);
+  const [ssmBooking, setSsmBooking] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [showWithdraw, setShowWithdraw] = useState(false);
+  const [withdrawing, setWithdrawing] = useState(false);
+  const [withdrawError, setWithdrawError] = useState("");
+
+  const cnp = statusInfo?.cnp || "";
+  const age = _calcAgeFromDob(statusInfo?.dataNasterii);
+
+  // Încarcă cele 2 booking-uri în paralel
+  useEffect(() => {
+    if (!phone || !cnp) { setLoading(false); return; }
+    (async () => {
+      try {
+        const [d, s] = await Promise.all([
+          fetch(`${UNTOLD_API_URL}?action=trainingMySlot&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`, { cache: "no-store" }).then(r => r.json()).catch(() => null),
+          fetch(`${UNTOLD_API_URL}?action=ssmMySlot&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`, { cache: "no-store" }).then(r => r.json()).catch(() => null),
+        ]);
+        if (d?.success && d.booking) setDeptBooking(d.booking);
+        if (s?.success && s.booking) setSsmBooking(s.booking);
+      } catch (e) {}
+      setLoading(false);
+    })();
+  }, [phone, cnp]);
+
+  async function submitWithdraw() {
+    setWithdrawing(true); setWithdrawError("");
+    try {
+      const url = `${UNTOLD_API_URL}?action=withdraw&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
+      const r = await fetch(url, { cache: "no-store", credentials: "omit" });
+      const j = JSON.parse(await r.text());
+      if (j.success) {
+        try {
+          window.localStorage.removeItem("untold_login_phone");
+          window.localStorage.removeItem("untold_login_cnp");
+        } catch (e) {}
+        window.location.reload();
+      } else {
+        setWithdrawError(j.error || "A apărut o eroare.");
+      }
+    } catch (e) { setWithdrawError("Eroare de conexiune."); }
+    setWithdrawing(false);
+  }
+
+  const displayStatus = statusInfo?.status === "confirmed" ? "Confirmat" : "Acceptat";
+
+  return (
+    <div>
+      {/* Header card */}
+      <div style={{ background: "rgba(99,153,34,0.08)", border: "1px solid rgba(99,153,34,0.3)", borderRadius: 16, padding: 20, marginBottom: 12, textAlign: "center" }}>
+        <div style={{ fontSize: 36, marginBottom: 8 }}>🎉</div>
+        <div style={{ fontSize: 20, fontWeight: 700, color: "#97C459", marginBottom: 4 }}>
+          Toate actele au fost verificate
+        </div>
+        <div style={{ fontSize: 12, color: "rgba(232,230,227,0.5)" }}>Ne vedem la Untold!</div>
+      </div>
+
+      {/* Info card */}
+      <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: 18, marginBottom: 12 }}>
+        <InfoRow label="Nume" value={statusInfo?.name || "—"} />
+        {statusInfo?.dataNasterii && <InfoRow label="Data nașterii" value={statusInfo.dataNasterii} />}
+        {age !== null && <InfoRow label="Vârsta" value={`${age} ani`} />}
+        {statusInfo?.position && (
+          <InfoRow
+            label="Poziție"
+            value={<span style={{ padding: "2px 10px", background: "rgba(124,77,255,0.15)", border: "1px solid rgba(124,77,255,0.35)", borderRadius: 999, fontSize: 12, fontWeight: 700, color: "#B39DFF" }}>{statusInfo.position}</span>}
+          />
+        )}
+        <InfoRow
+          label="Training SSM/PSI"
+          value={loading ? "…" : (
+            ssmBooking ? (
+              <span style={{ fontSize: 13, color: "#fff" }}>
+                {ssmBooking.label || `${ssmBooking.date} · ${ssmBooking.time}`}
+                {" "}
+                <a href="https://maps.app.goo.gl/JSb848nzmbAuVGDw7" target="_blank" rel="noopener noreferrer" style={{ color: "#ffc107", fontSize: 11, textDecoration: "none" }}>🗺️ direcții</a>
+              </span>
+            ) : (
+              <a href="#" onClick={e => { e.preventDefault(); window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }); }} style={{ fontSize: 12, color: "#ffc107" }}>Rezervă loc training</a>
+            )
+          )}
+        />
+        <InfoRow
+          label="Training Casier"
+          value={loading ? "…" : (
+            deptBooking ? (
+              <span style={{ fontSize: 13, color: "#fff" }}>
+                {deptBooking.date} · ora {deptBooking.time}
+                {" "}
+                <a href="https://maps.app.goo.gl/zz3wbXgmXtZcEpTSA" target="_blank" rel="noopener noreferrer" style={{ color: "#B39DFF", fontSize: 11, textDecoration: "none" }}>🗺️ direcții</a>
+              </span>
+            ) : (
+              <a href="#" onClick={e => { e.preventDefault(); window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }); }} style={{ fontSize: 12, color: "#B39DFF" }}>Rezervă loc training</a>
+            )
+          )}
+        />
+        <InfoRow
+          label="Status"
+          value={<span style={{ padding: "2px 10px", background: "rgba(99,153,34,0.15)", border: "1px solid rgba(99,153,34,0.35)", borderRadius: 999, fontSize: 12, fontWeight: 700, color: "#97C459" }}>{displayStatus}</span>}
+        />
+
+        {/* Retrage candidatura link */}
+        <div style={{ marginTop: 12, borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 10 }}>
+          {!showWithdraw ? (
+            <button onClick={() => setShowWithdraw(true)} style={{
+              background: "transparent", border: "none", padding: 0,
+              fontSize: 11, color: "rgba(232,230,227,0.4)", cursor: "pointer",
+              textDecoration: "underline",
+            }}>Retrage candidatura</button>
+          ) : (
+            <div style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 10, padding: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "#fff", marginBottom: 4 }}>Sigur vrei să te retragi?</div>
+              <div style={{ fontSize: 11, color: "rgba(232,230,227,0.6)", marginBottom: 10, lineHeight: 1.5 }}>
+                Locul tău va fi redistribuit. Vei primi email de confirmare.
+              </div>
+              {withdrawError && <div style={{ fontSize: 11, color: "#ff8a8a", marginBottom: 8 }}>{withdrawError}</div>}
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={() => { setShowWithdraw(false); setWithdrawError(""); }} disabled={withdrawing} style={{
+                  flex: 1, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)",
+                  borderRadius: 6, padding: "8px", fontSize: 12, color: "rgba(232,230,227,0.7)",
+                  cursor: withdrawing ? "default" : "pointer",
+                }}>Nu, renunț</button>
+                <button onClick={submitWithdraw} disabled={withdrawing} style={{
+                  flex: 1, background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.4)",
+                  borderRadius: 6, padding: "8px", fontSize: 12, fontWeight: 600, color: "#ff8a8a",
+                  cursor: withdrawing ? "default" : "pointer",
+                }}>{withdrawing ? "…" : "Da, retrage-mă"}</button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Training booking cards — vizibile doar dacă nu are booking respectiv */}
+      {statusInfo?.status === "confirmed" && !deptBooking && (
+        <TrainingSection phone={phone} cnp={cnp} firstName={statusInfo?.firstName} apiUrl={UNTOLD_API_URL} mapsUrl="https://maps.app.goo.gl/zz3wbXgmXtZcEpTSA" />
+      )}
+      {statusInfo?.status === "confirmed" && !ssmBooking && (
+        <SSMTrainingSection phone={phone} cnp={cnp} apiUrl={UNTOLD_API_URL} />
+      )}
+
+      {/* Turele mele - placeholder până la 3 August */}
+      <div style={{ background: "rgba(124,77,255,0.06)", border: "1px solid rgba(124,77,255,0.2)", borderRadius: 12, padding: 16, textAlign: "center", marginTop: 12 }}>
+        <div style={{ fontSize: 20, marginBottom: 6 }}>📅</div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginBottom: 4 }}>Turele mele</div>
+        <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)", lineHeight: 1.5 }}>
+          Turele vor fi disponibile în data de 3 August 2026.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Rând de tip label:valoare pentru cardul info
+function InfoRow({ label, value }) {
+  return (
+    <div style={{
+      display: "flex", justifyContent: "space-between", alignItems: "center",
+      padding: "8px 0", borderBottom: "1px solid rgba(255,255,255,0.05)",
+      gap: 12,
+    }}>
+      <div style={{ fontSize: 12, color: "rgba(232,230,227,0.5)", flexShrink: 0 }}>{label}</div>
+      <div style={{ fontSize: 13, color: "#fff", textAlign: "right", wordBreak: "break-word" }}>{value}</div>
+    </div>
+  );
+}
+
 function UAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
   const C = { accent: "#7C4DFF", accentDark: "#5E35B1", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   const [documents, setDocuments] = useState(null);
@@ -4030,46 +4215,7 @@ function UAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
 
   // Display "Complete" state
   if (statusInfo?.statusFinal === "Complete") {
-    return (
-      <div>
-        <div style={{ background: "rgba(99,153,34,0.08)", border: "1px solid rgba(99,153,34,0.3)", borderRadius: 16, padding: 24, textAlign: "center", marginBottom: 16 }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: "#97C459", marginBottom: 8 }}>Totul e gata!</div>
-          {statusInfo?.position && (
-            <div style={{
-              display: "inline-block", marginBottom: 10,
-              padding: "3px 10px", background: "rgba(99,153,34,0.15)",
-              border: "1px solid rgba(99,153,34,0.35)", borderRadius: 999,
-              fontSize: 11, fontWeight: 700, color: "#97C459", letterSpacing: "0.05em",
-            }}>
-              Poziție: {statusInfo.position}
-            </div>
-          )}
-          <div style={{ fontSize: 13, color: "rgba(232,230,227,0.6)", lineHeight: 1.6, maxWidth: 320, margin: "0 auto" }}>
-            Toate documentele tale au fost trimise cu succes. Vei primi în curând un email cu detaliile finale și informații despre training-uri.
-          </div>
-          <div style={{ fontSize: 12, color: "rgba(232,230,227,0.4)", marginTop: 16, fontFamily: "monospace" }}>
-            Ne vedem la Untold! 🏖️
-          </div>
-        </div>
-        
-        {/* Training booking — vizibil doar pentru Confirmat */}
-        {statusInfo?.status === "confirmed" && (
-          <>
-            <TrainingSection phone={phone} cnp={statusInfo?.cnp} firstName={firstName} apiUrl={UNTOLD_API_URL} mapsUrl="https://maps.app.goo.gl/zz3wbXgmXtZcEpTSA" />
-            <SSMTrainingSection phone={phone} cnp={statusInfo?.cnp} apiUrl={UNTOLD_API_URL} />
-          </>
-        )}
-
-        <div style={{ background: "rgba(124,77,255,0.06)", border: "1px solid rgba(124,77,255,0.2)", borderRadius: 12, padding: 16, textAlign: "center" }}>
-          <div style={{ fontSize: 20, marginBottom: 6 }}>📅</div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginBottom: 4 }}>Programul tău e disponibil</div>
-          <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)", lineHeight: 1.5 }}>
-            Mergi la tab-ul <strong style={{ color: C.accent }}>"Turele mele"</strong> din meniul de sus pentru a vedea turele tale.
-          </div>
-        </div>
-      </div>
-    );
+    return <UCompleteInfoCard phone={phone} statusInfo={statusInfo} />;
   }
 
   return (
