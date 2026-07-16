@@ -4599,18 +4599,26 @@ function UAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
           <div style={{ fontSize: 14, fontWeight: 700, color: "#fff", marginBottom: 4 }}>Alege poziția preferată</div>
           <div style={{ fontSize: 11, color: "rgba(232,230,227,0.55)", marginBottom: 12, lineHeight: 1.5 }}>
             Selectează pentru ce poziție ai aplicat. Alegerea se salvează când apeși „Trimite tot".
+            <br />
+            <span style={{ color: "rgba(232,230,227,0.7)" }}>Dacă ai aplicat pentru <strong>top-up</strong>, alege <strong>Casier</strong>.</span>
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-            {["Casier", "Lockers", "LTS", "HelpDesk"].map(pos => {
-              const active = selectedPosition === pos;
+            {[
+              { key: "Casier",   label: "Casier",   desc: "Casier Top-Up" },
+              { key: "Lockers",  label: "Lockers",  desc: "Casier Garderobă" },
+              { key: "LTS",      label: "LTS",      desc: "Local Team Support" },
+              { key: "HelpDesk", label: "HelpDesk", desc: "Operator HelpDesk" },
+            ].map(opt => {
+              const active = selectedPosition === opt.key;
               return (
-                <button key={pos} onClick={() => setSelectedPosition(pos)} style={{
+                <button key={opt.key} onClick={() => setSelectedPosition(opt.key)} style={{
                   background: active ? "rgba(124,77,255,0.25)" : "rgba(255,255,255,0.04)",
                   border: "1px solid " + (active ? "rgba(124,77,255,0.6)" : "rgba(255,255,255,0.08)"),
-                  borderRadius: 10, padding: "12px 14px", fontSize: 14, fontWeight: 600,
-                  color: active ? "#fff" : "rgba(232,230,227,0.75)",
-                  cursor: "pointer", textAlign: "center",
-                }}>{pos}</button>
+                  borderRadius: 10, padding: "12px 10px", cursor: "pointer", textAlign: "center",
+                }}>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: active ? "#fff" : "rgba(232,230,227,0.85)", marginBottom: 2 }}>{opt.label}</div>
+                  <div style={{ fontSize: 10, color: "rgba(232,230,227,0.55)", lineHeight: 1.3 }}>{opt.desc}</div>
+                </button>
               );
             })}
           </div>
