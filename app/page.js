@@ -3715,7 +3715,7 @@ function UAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
   const [allComplete, setAllComplete] = useState(false);
   // Optimistic UI: marchează documente ca semnate instant local
   const [optimisticSigned, setOptimisticSigned] = useState({
-    acord: false, declaratie: false, ci: false, bank: false
+    acord: false, declaratie: false, ci: false, nda: false, bank: false
   });
 
   // Load document URLs when component mounts
@@ -3731,17 +3731,19 @@ function UAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
       .catch(err => setError("Nu pot încărca documentele: " + err.message));
   }, [phone]);
 
-  // Check if all complete (optimistic + real) - Untold: 2 docs + CI
+  // Check if all complete (optimistic + real) - Untold: 3 docs + CI
   useEffect(() => {
     const real = {
       acord: !!statusInfo?.acordSemnat,
       declaratie: !!statusInfo?.declaratieSemnat,
       ci: !!statusInfo?.ciIncarcat,
+      nda: !!statusInfo?.ndaSemnat,
       bank: !!statusInfo?.bancarComplet,
     };
     const all = (real.acord || optimisticSigned.acord) &&
                 (real.declaratie || optimisticSigned.declaratie) &&
                 (real.ci || optimisticSigned.ci) &&
+                (real.nda || optimisticSigned.nda) &&
                 (real.bank || optimisticSigned.bank);
     setAllComplete(all);
   }, [statusInfo, optimisticSigned]);
@@ -3936,6 +3938,15 @@ function UAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
         busy={busyDoc === "declaratie"}
       />
 
+      <DocumentCard
+        title="Acord de Confidențialitate (NDA)"
+        signed={!!statusInfo?.ndaSemnat || optimisticSigned.nda}
+        viewUrl={documents?.nda?.url}
+        pdfUrl={documents?.nda?.pdfUrl}
+        onSign={() => setSignModal({ type: "nda", title: "Semnează Acordul de Confidențialitate", docName: "NDA" })}
+        busy={busyDoc === "nda"}
+      />
+
       <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginTop: 16, marginBottom: 10 }}>Documente de încărcat</div>
 
       <CIUploadCard
@@ -3957,6 +3968,7 @@ function UAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
           const done = [
             !!statusInfo?.acordSemnat || optimisticSigned.acord,
             !!statusInfo?.declaratieSemnat || optimisticSigned.declaratie,
+            !!statusInfo?.ndaSemnat || optimisticSigned.nda,
             !!statusInfo?.ciIncarcat || optimisticSigned.ci,
           ].filter(Boolean).length;
           return (
