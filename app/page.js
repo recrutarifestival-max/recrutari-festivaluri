@@ -1078,12 +1078,20 @@ function MyShifts({ phone, pastOnly = false }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
+  function _parseDateSafe(s) {
+    if (!s) return null;
+    // Format dd.MM.yyyy sau dd/MM/yyyy sau dd-MM-yyyy
+    const m = String(s).match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})$/);
+    if (m) return new Date(parseInt(m[3], 10), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+    // Fallback: ISO sau alt format nativ
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  
   const allShifts = (data?.shifts || []).map(s => {
     let isPast = false;
-    if (s.date) {
-      const shiftDate = new Date(s.date);
-      isPast = shiftDate < today;
-    }
+    const shiftDate = _parseDateSafe(s.date);
+    if (shiftDate) isPast = shiftDate < today;
     return { ...s, isPast };
   });
   
@@ -4442,12 +4450,18 @@ function UMyShifts({ phone, pastOnly = false }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   
+  function _parseDateSafeU(s) {
+    if (!s) return null;
+    const m = String(s).match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})$/);
+    if (m) return new Date(parseInt(m[3], 10), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+    const d = new Date(s);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  
   const allShifts = (data?.shifts || []).map(s => {
     let isPast = false;
-    if (s.date) {
-      const shiftDate = new Date(s.date);
-      isPast = shiftDate < today;
-    }
+    const shiftDate = _parseDateSafeU(s.date);
+    if (shiftDate) isPast = shiftDate < today;
     return { ...s, isPast };
   });
   
