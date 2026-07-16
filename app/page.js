@@ -1257,8 +1257,9 @@ function MyShifts({ phone, pastOnly = false }) {
 // Buton "Programare training" pentru candidați Confirmat. Deschide modal cu:
 //   - dacă nu are rezervare: lista de sloturi + Rezervă
 //   - dacă are rezervare: cardul cu data/ora + Anulează (cu confirmare)
-function TrainingSection({ phone, cnp, firstName }) {
+function TrainingSection({ phone, cnp, firstName, apiUrl }) {
   const TRAINING_MAPS_URL = "https://maps.app.goo.gl/23Eg9h8Z6RknfSRa9";
+  const API = apiUrl || API_URL;
 
   const [booking, setBooking] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -1275,7 +1276,7 @@ function TrainingSection({ phone, cnp, firstName }) {
     if (!phone || !cnp) { setInitialLoading(false); return; }
     (async () => {
       try {
-        const url = `${API_URL}?action=trainingMySlot&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
+        const url = `${API}?action=trainingMySlot&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
         const resp = await fetch(url);
         const result = JSON.parse(await resp.text());
         if (result.success) setBooking(result.booking || null);
@@ -1287,7 +1288,7 @@ function TrainingSection({ phone, cnp, firstName }) {
   async function loadSlots() {
     setModalLoading(true); setError("");
     try {
-      const url = `${API_URL}?action=trainingSlots&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
+      const url = `${API}?action=trainingSlots&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
       const resp = await fetch(url);
       const result = JSON.parse(await resp.text());
       if (result.success) setSlots(result.slots || []);
@@ -1303,12 +1304,12 @@ function TrainingSection({ phone, cnp, firstName }) {
   async function bookSlot(slotId) {
     setBusySlot(slotId); setError("");
     try {
-      const url = `${API_URL}?action=trainingBook&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&slotId=${encodeURIComponent(slotId)}&t=${Date.now()}`;
+      const url = `${API}?action=trainingBook&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&slotId=${encodeURIComponent(slotId)}&t=${Date.now()}`;
       const resp = await fetch(url);
       const result = JSON.parse(await resp.text());
       if (result.success) {
         // Reîncarcă rezervarea proaspătă (cu bookedAt de la backend)
-        const url2 = `${API_URL}?action=trainingMySlot&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
+        const url2 = `${API}?action=trainingMySlot&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
         try {
           const r2 = await fetch(url2);
           const j2 = JSON.parse(await r2.text());
@@ -1328,7 +1329,7 @@ function TrainingSection({ phone, cnp, firstName }) {
     if (!confirm("Sigur vrei să anulezi rezervarea? Anulările se fac cu cel puțin 48h înainte.")) return;
     setCancelling(true); setCancelError("");
     try {
-      const url = `${API_URL}?action=trainingCancel&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
+      const url = `${API}?action=trainingCancel&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
       const resp = await fetch(url);
       const result = JSON.parse(await resp.text());
       if (result.success) {
@@ -1483,6 +1484,171 @@ function TrainingSection({ phone, cnp, firstName }) {
     </>
   );
 }
+
+// Training SSM/PSI — 2 sloturi hardcoded, fără limită de locuri. Doar pentru Untold.
+function SSMTrainingSection({ phone, cnp, apiUrl }) {
+  const API = apiUrl;
+  const SSM_MAPS_URL = "https://maps.app.goo.gl/JSb848nzmbAuVGDw7";
+
+  const [booking, setBooking] = useState(null);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [slots, setSlots] = useState([]);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [busySlot, setBusySlot] = useState(null);
+  const [cancelling, setCancelling] = useState(false);
+
+  useEffect(() => {
+    if (!phone || !cnp) { setInitialLoading(false); return; }
+    (async () => {
+      try {
+        const url = `${API}?action=ssmMySlot&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
+        const r = await fetch(url, { cache: "no-store" });
+        const j = JSON.parse(await r.text());
+        if (j.success && j.booking) setBooking(j.booking);
+      } catch (e) {}
+      setInitialLoading(false);
+    })();
+  }, [phone, cnp, API]);
+
+  async function openModal() {
+    setModalOpen(true); setError(""); setModalLoading(true);
+    try {
+      const url = `${API}?action=ssmSlots&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
+      const r = await fetch(url, { cache: "no-store" });
+      const j = JSON.parse(await r.text());
+      if (j.success) setSlots(j.slots || []);
+      else setError(j.error || "Eroare la încărcare");
+    } catch (e) { setError("Eroare de conexiune"); }
+    setModalLoading(false);
+  }
+
+  async function bookSlot(slotId) {
+    setBusySlot(slotId); setError("");
+    try {
+      const url = `${API}?action=ssmBook&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&slotId=${encodeURIComponent(slotId)}&t=${Date.now()}`;
+      const r = await fetch(url, { cache: "no-store" });
+      const j = JSON.parse(await r.text());
+      if (j.success) {
+        setBooking(j.booking);
+        setModalOpen(false);
+      } else {
+        setError(j.error || "Nu s-a putut rezerva");
+      }
+    } catch (e) { setError("Eroare de conexiune"); }
+    setBusySlot(null);
+  }
+
+  async function cancelBooking() {
+    if (!window.confirm("Sigur vrei să anulezi programarea SSM?")) return;
+    setCancelling(true);
+    try {
+      const url = `${API}?action=ssmCancel&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
+      const r = await fetch(url, { cache: "no-store" });
+      const j = JSON.parse(await r.text());
+      if (j.success) setBooking(null);
+      else setError(j.error || "Nu s-a putut anula");
+    } catch (e) { setError("Eroare de conexiune"); }
+    setCancelling(false);
+  }
+
+  if (initialLoading) return null;
+
+  return (
+    <div style={{ background: "rgba(255,193,7,0.06)", border: "1px solid rgba(255,193,7,0.25)", borderRadius: 14, padding: 18, marginBottom: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+        <span style={{ fontSize: 22 }}>🛡️</span>
+        <div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#fff" }}>Training SSM și PSI</div>
+          <div style={{ fontSize: 11, color: "rgba(232,230,227,0.55)" }}>Obligatoriu pentru toți casierii</div>
+        </div>
+      </div>
+
+      {booking ? (
+        <>
+          <div style={{ background: "rgba(255,255,255,0.04)", borderRadius: 10, padding: 12, marginBottom: 10 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginBottom: 4 }}>{booking.label || `${booking.date} · ${booking.time}`}</div>
+            <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)" }}>📍 Casa de Cultură a Studenților</div>
+            <a href={SSM_MAPS_URL} target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: "#ffc107", textDecoration: "none" }}>🗺️ Vezi pe hartă</a>
+          </div>
+          <button
+            onClick={cancelBooking}
+            disabled={cancelling}
+            style={{
+              width: "100%", background: "transparent", border: "1px solid rgba(226,75,74,0.4)",
+              borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "rgba(232,230,227,0.7)",
+              cursor: cancelling ? "default" : "pointer",
+            }}
+          >{cancelling ? "Se anulează..." : "Anulează programarea"}</button>
+        </>
+      ) : (
+        <button
+          onClick={openModal}
+          style={{
+            width: "100%", background: "rgba(255,193,7,0.15)", border: "1px solid rgba(255,193,7,0.4)",
+            borderRadius: 10, padding: "12px", fontSize: 14, fontWeight: 600, color: "#ffc107",
+            cursor: "pointer",
+          }}
+        >Alege data pentru training SSM/PSI</button>
+      )}
+
+      {error && (
+        <div style={{ fontSize: 12, color: "#ff8a8a", marginTop: 10 }}>{error}</div>
+      )}
+
+      {/* Modal */}
+      {modalOpen && (
+        <div
+          onClick={() => setModalOpen(false)}
+          style={{
+            position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 1000,
+            display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.1)",
+              borderRadius: 16, padding: 20, maxWidth: 400, width: "100%",
+            }}
+          >
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 12 }}>Alege data</div>
+            {modalLoading ? (
+              <div style={{ fontSize: 13, color: "rgba(232,230,227,0.55)" }}>Se încarcă sloturile...</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {slots.map(s => (
+                  <button
+                    key={s.id}
+                    onClick={() => bookSlot(s.id)}
+                    disabled={busySlot === s.id}
+                    style={{
+                      background: "rgba(255,193,7,0.1)", border: "1px solid rgba(255,193,7,0.3)",
+                      borderRadius: 10, padding: "12px 14px", textAlign: "left",
+                      color: "#fff", fontSize: 14, cursor: busySlot === s.id ? "default" : "pointer",
+                    }}
+                  >
+                    {busySlot === s.id ? "Se rezervă..." : s.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            <button
+              onClick={() => setModalOpen(false)}
+              style={{
+                width: "100%", marginTop: 12, background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8,
+                padding: "10px", fontSize: 13, color: "rgba(232,230,227,0.7)", cursor: "pointer",
+              }}
+            >Închide</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function AcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
   const [documents, setDocuments] = useState(null);
   const [signModal, setSignModal] = useState(null); // { type, title, docName }
@@ -3879,7 +4045,8 @@ function UAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
         
         {/* Training booking — vizibil doar pentru Confirmat */}
         {statusInfo?.status === "confirmed" && (
-          <TrainingSection phone={phone} cnp={statusInfo?.cnp} firstName={firstName} />
+          <TrainingSection phone={phone} cnp={statusInfo?.cnp} firstName={firstName} apiUrl={UNTOLD_API_URL} />
+          <SSMTrainingSection phone={phone} cnp={statusInfo?.cnp} apiUrl={UNTOLD_API_URL} />
         )}
 
         <div style={{ background: "rgba(124,77,255,0.06)", border: "1px solid rgba(124,77,255,0.2)", borderRadius: 12, padding: 16, textAlign: "center" }}>
