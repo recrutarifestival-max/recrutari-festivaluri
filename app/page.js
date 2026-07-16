@@ -4224,6 +4224,8 @@ function UAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
   const [busyDoc, setBusyDoc] = useState(null); // "acord" | "declaratie" | "ci"
   const [error, setError] = useState(null);
   const [allComplete, setAllComplete] = useState(false);
+  // Poziție aleasă (nu salvată încă, doar local până la 'Trimite tot')
+  const [selectedPosition, setSelectedPosition] = useState(statusInfo?.position || "");
   // Optimistic UI: marchează documente ca semnate instant local
   const [optimisticSigned, setOptimisticSigned] = useState({
     acord: false, declaratie: false, ci: false, nda: false, bank: false
@@ -4366,11 +4368,13 @@ function UAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
       const resp = await fetch(UNTOLD_API_URL, {
         method: "POST",
         headers: { "Content-Type": "text/plain" },
-        body: JSON.stringify({ action: "finalize", phone: phone }),
+        body: JSON.stringify({ action: "finalize", phone: phone, position: selectedPosition }),
       });
       const result = await resp.json();
       if (result.success) {
         await refreshStatus();
+      } else {
+        setError(result.error || "A apărut o eroare.");
       }
     } catch (err) {
       setError("Eroare conexiune: " + err.message);
@@ -4486,15 +4490,39 @@ function UAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
             </>
           );
         })()}
-        <button onClick={handleFinalize} disabled={!allComplete || busyDoc} style={{
+
+        {/* Selector poziție */}
+        <div style={{ background: "rgba(124,77,255,0.06)", border: "1px solid rgba(124,77,255,0.25)", borderRadius: 12, padding: 16, marginBottom: 12 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#fff", marginBottom: 4 }}>Alege poziția preferată</div>
+          <div style={{ fontSize: 11, color: "rgba(232,230,227,0.55)", marginBottom: 12, lineHeight: 1.5 }}>
+            Selectează pentru ce poziție ai aplicat. Alegerea se salvează când apeși „Trimite tot".
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            {["Casier", "Lockers", "LTS", "HelpDesk"].map(pos => {
+              const active = selectedPosition === pos;
+              return (
+                <button key={pos} onClick={() => setSelectedPosition(pos)} style={{
+                  background: active ? "rgba(124,77,255,0.25)" : "rgba(255,255,255,0.04)",
+                  border: "1px solid " + (active ? "rgba(124,77,255,0.6)" : "rgba(255,255,255,0.08)"),
+                  borderRadius: 10, padding: "12px 14px", fontSize: 14, fontWeight: 600,
+                  color: active ? "#fff" : "rgba(232,230,227,0.75)",
+                  cursor: "pointer", textAlign: "center",
+                }}>{pos}</button>
+              );
+            })}
+          </div>
+        </div>
+
+        <button onClick={handleFinalize} disabled={!allComplete || !selectedPosition || busyDoc} style={{
           width: "100%",
-          background: allComplete ? `linear-gradient(135deg, #7C4DFF, #5E35B1)` : "rgba(255,255,255,0.06)",
-          border: allComplete ? "none" : "1px solid rgba(255,255,255,0.1)",
+          background: (allComplete && selectedPosition) ? `linear-gradient(135deg, #7C4DFF, #5E35B1)` : "rgba(255,255,255,0.06)",
+          border: (allComplete && selectedPosition) ? "none" : "1px solid rgba(255,255,255,0.1)",
           borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700,
-          color: allComplete ? "#0a0a0a" : "rgba(232,230,227,0.3)",
-          cursor: allComplete && !busyDoc ? "pointer" : "default",
+          color: (allComplete && selectedPosition) ? "#0a0a0a" : "rgba(232,230,227,0.3)",
+          cursor: (allComplete && selectedPosition && !busyDoc) ? "pointer" : "default",
         }}>
           {busyDoc === "finalize" ? "Se finalizează..." : 
+           !selectedPosition ? "Alege o poziție" :
            allComplete ? "✓ Trimite tot" : "Completează toate documentele"}
         </button>
       </div>
