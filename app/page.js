@@ -3904,6 +3904,19 @@ function UCompleteInfoCard({ phone, statusInfo }) {
   const [withdrawing, setWithdrawing] = useState(false);
   const [withdrawError, setWithdrawError] = useState("");
 
+  // Stări pentru modalele de rezervare
+  const [deptModalOpen, setDeptModalOpen] = useState(false);
+  const [deptSlots, setDeptSlots] = useState([]);
+  const [deptModalLoading, setDeptModalLoading] = useState(false);
+  const [deptBusySlot, setDeptBusySlot] = useState(null);
+  const [deptModalError, setDeptModalError] = useState("");
+
+  const [ssmModalOpen, setSsmModalOpen] = useState(false);
+  const [ssmSlots, setSsmSlots] = useState([]);
+  const [ssmModalLoading, setSsmModalLoading] = useState(false);
+  const [ssmBusySlot, setSsmBusySlot] = useState(null);
+  const [ssmModalError, setSsmModalError] = useState("");
+
   const cnp = statusInfo?.cnp || "";
   const age = _calcAgeFromDob(statusInfo?.dataNasterii);
 
@@ -3944,6 +3957,66 @@ function UCompleteInfoCard({ phone, statusInfo }) {
 
   const displayStatus = statusInfo?.status === "confirmed" ? "Confirmat" : "Acceptat";
 
+  // Deschide modal training dept (Casier)
+  async function openDeptModal() {
+    setDeptModalOpen(true); setDeptModalError(""); setDeptModalLoading(true);
+    try {
+      const url = `${UNTOLD_API_URL}?action=trainingSlots&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
+      const r = await fetch(url, { cache: "no-store" });
+      const j = JSON.parse(await r.text());
+      if (j.success) setDeptSlots(j.slots || []);
+      else setDeptModalError(j.error || "Eroare la încărcare");
+    } catch (e) { setDeptModalError("Eroare de conexiune"); }
+    setDeptModalLoading(false);
+  }
+
+  async function bookDeptSlot(slotId) {
+    setDeptBusySlot(slotId); setDeptModalError("");
+    try {
+      const url = `${UNTOLD_API_URL}?action=trainingBook&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&slotId=${encodeURIComponent(slotId)}&t=${Date.now()}`;
+      const r = await fetch(url, { cache: "no-store" });
+      const j = JSON.parse(await r.text());
+      if (j.success) {
+        // Reîncarc booking-ul
+        const my = await fetch(`${UNTOLD_API_URL}?action=trainingMySlot&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`, { cache: "no-store" }).then(r => r.json()).catch(() => null);
+        if (my?.success && my.booking) setDeptBooking(my.booking);
+        setDeptModalOpen(false);
+      } else {
+        setDeptModalError(j.error || "Nu s-a putut rezerva");
+      }
+    } catch (e) { setDeptModalError("Eroare de conexiune"); }
+    setDeptBusySlot(null);
+  }
+
+  // Deschide modal training SSM
+  async function openSsmModal() {
+    setSsmModalOpen(true); setSsmModalError(""); setSsmModalLoading(true);
+    try {
+      const url = `${UNTOLD_API_URL}?action=ssmSlots&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
+      const r = await fetch(url, { cache: "no-store" });
+      const j = JSON.parse(await r.text());
+      if (j.success) setSsmSlots(j.slots || []);
+      else setSsmModalError(j.error || "Eroare la încărcare");
+    } catch (e) { setSsmModalError("Eroare de conexiune"); }
+    setSsmModalLoading(false);
+  }
+
+  async function bookSsmSlot(slotId) {
+    setSsmBusySlot(slotId); setSsmModalError("");
+    try {
+      const url = `${UNTOLD_API_URL}?action=ssmBook&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&slotId=${encodeURIComponent(slotId)}&t=${Date.now()}`;
+      const r = await fetch(url, { cache: "no-store" });
+      const j = JSON.parse(await r.text());
+      if (j.success) {
+        setSsmBooking(j.booking);
+        setSsmModalOpen(false);
+      } else {
+        setSsmModalError(j.error || "Nu s-a putut rezerva");
+      }
+    } catch (e) { setSsmModalError("Eroare de conexiune"); }
+    setSsmBusySlot(null);
+  }
+
   return (
     <div>
       {/* Header card */}
@@ -3976,7 +4049,7 @@ function UCompleteInfoCard({ phone, statusInfo }) {
                 <a href="https://maps.app.goo.gl/JSb848nzmbAuVGDw7" target="_blank" rel="noopener noreferrer" style={{ color: "#ffc107", fontSize: 11, textDecoration: "none" }}>🗺️ direcții</a>
               </span>
             ) : (
-              <a href="#" onClick={e => { e.preventDefault(); window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }); }} style={{ fontSize: 12, color: "#ffc107" }}>Rezervă loc training</a>
+              <a href="#" onClick={e => { e.preventDefault(); openSsmModal(); }} style={{ fontSize: 12, color: "#ffc107" }}>Rezervă loc training</a>
             )
           )}
         />
@@ -3990,7 +4063,7 @@ function UCompleteInfoCard({ phone, statusInfo }) {
                 <a href="https://maps.app.goo.gl/zz3wbXgmXtZcEpTSA" target="_blank" rel="noopener noreferrer" style={{ color: "#B39DFF", fontSize: 11, textDecoration: "none" }}>🗺️ direcții</a>
               </span>
             ) : (
-              <a href="#" onClick={e => { e.preventDefault(); window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }); }} style={{ fontSize: 12, color: "#B39DFF" }}>Rezervă loc training</a>
+              <a href="#" onClick={e => { e.preventDefault(); openDeptModal(); }} style={{ fontSize: 12, color: "#B39DFF" }}>Rezervă loc training</a>
             )
           )}
         />
@@ -3999,13 +4072,17 @@ function UCompleteInfoCard({ phone, statusInfo }) {
           value={<span style={{ padding: "2px 10px", background: "rgba(99,153,34,0.15)", border: "1px solid rgba(99,153,34,0.35)", borderRadius: 999, fontSize: 12, fontWeight: 700, color: "#97C459" }}>{displayStatus}</span>}
         />
 
-        {/* Retrage candidatura link */}
-        <div style={{ marginTop: 12, borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 10 }}>
+        {/* Retrage candidatura button — roșu, incadrat, centrat */}
+        <div style={{ marginTop: 14, borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 14, textAlign: "center" }}>
           {!showWithdraw ? (
             <button onClick={() => setShowWithdraw(true)} style={{
-              background: "transparent", border: "none", padding: 0,
-              fontSize: 11, color: "rgba(232,230,227,0.4)", cursor: "pointer",
-              textDecoration: "underline",
+              background: "rgba(239,68,68,0.1)",
+              border: "1px solid rgba(239,68,68,0.5)",
+              borderRadius: 10,
+              padding: "10px 20px",
+              fontSize: 13, fontWeight: 600, color: "#ff8a8a",
+              cursor: "pointer",
+              letterSpacing: "0.02em",
             }}>Retrage candidatura</button>
           ) : (
             <div style={{ background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 10, padding: 12 }}>
@@ -4031,14 +4108,6 @@ function UCompleteInfoCard({ phone, statusInfo }) {
         </div>
       </div>
 
-      {/* Training booking cards — vizibile doar dacă nu are booking respectiv */}
-      {statusInfo?.status === "confirmed" && !deptBooking && (
-        <TrainingSection phone={phone} cnp={cnp} firstName={statusInfo?.firstName} apiUrl={UNTOLD_API_URL} mapsUrl="https://maps.app.goo.gl/zz3wbXgmXtZcEpTSA" />
-      )}
-      {statusInfo?.status === "confirmed" && !ssmBooking && (
-        <SSMTrainingSection phone={phone} cnp={cnp} apiUrl={UNTOLD_API_URL} />
-      )}
-
       {/* Turele mele - placeholder până la 3 August */}
       <div style={{ background: "rgba(124,77,255,0.06)", border: "1px solid rgba(124,77,255,0.2)", borderRadius: 12, padding: 16, textAlign: "center", marginTop: 12 }}>
         <div style={{ fontSize: 20, marginBottom: 6 }}>📅</div>
@@ -4047,6 +4116,89 @@ function UCompleteInfoCard({ phone, statusInfo }) {
           Turele vor fi disponibile în data de 3 August 2026.
         </div>
       </div>
+
+      {/* Modal rezervare training Casier (dept) */}
+      {deptModalOpen && (
+        <div onClick={() => setDeptModalOpen(false)} style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 1000,
+          display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 16, padding: 20, maxWidth: 400, width: "100%", maxHeight: "80vh", overflowY: "auto",
+          }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 12 }}>Alege slot pentru training Casier</div>
+            {deptModalLoading ? (
+              <div style={{ fontSize: 13, color: "rgba(232,230,227,0.55)" }}>Se încarcă sloturile...</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {deptSlots.length === 0 && <div style={{ fontSize: 12, color: "rgba(232,230,227,0.4)" }}>Nu sunt sloturi disponibile.</div>}
+                {deptSlots.map(s => {
+                  const full = s.available <= 0;
+                  return (
+                    <button key={s.slotId} onClick={() => bookDeptSlot(s.slotId)} disabled={full || deptBusySlot === s.slotId} style={{
+                      background: full ? "rgba(255,255,255,0.04)" : "rgba(124,77,255,0.12)",
+                      border: "1px solid " + (full ? "rgba(255,255,255,0.08)" : "rgba(124,77,255,0.35)"),
+                      borderRadius: 10, padding: "12px 14px", textAlign: "left",
+                      color: full ? "rgba(232,230,227,0.4)" : "#fff",
+                      fontSize: 13, cursor: full || deptBusySlot === s.slotId ? "default" : "pointer",
+                    }}>
+                      <div style={{ fontWeight: 600 }}>{s.date} · ora {s.time}</div>
+                      {s.note && <div style={{ fontSize: 11, color: "rgba(232,230,227,0.55)", marginTop: 2 }}>{s.note}</div>}
+                      <div style={{ fontSize: 11, marginTop: 3, color: full ? "#ff8a8a" : "rgba(151,196,89,0.85)" }}>
+                        {full ? "Plin" : `${s.available} locuri disponibile`}
+                        {deptBusySlot === s.slotId && " · Se rezervă..."}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {deptModalError && <div style={{ fontSize: 12, color: "#ff8a8a", marginTop: 10 }}>{deptModalError}</div>}
+            <button onClick={() => setDeptModalOpen(false)} style={{
+              width: "100%", marginTop: 12, background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8,
+              padding: "10px", fontSize: 13, color: "rgba(232,230,227,0.7)", cursor: "pointer",
+            }}>Închide</button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal rezervare training SSM/PSI */}
+      {ssmModalOpen && (
+        <div onClick={() => setSsmModalOpen(false)} style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 1000,
+          display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 16, padding: 20, maxWidth: 400, width: "100%",
+          }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 12 }}>Alege data pentru training SSM/PSI</div>
+            {ssmModalLoading ? (
+              <div style={{ fontSize: 13, color: "rgba(232,230,227,0.55)" }}>Se încarcă sloturile...</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {ssmSlots.map(s => (
+                  <button key={s.id} onClick={() => bookSsmSlot(s.id)} disabled={ssmBusySlot === s.id} style={{
+                    background: "rgba(255,193,7,0.1)", border: "1px solid rgba(255,193,7,0.3)",
+                    borderRadius: 10, padding: "12px 14px", textAlign: "left",
+                    color: "#fff", fontSize: 14, cursor: ssmBusySlot === s.id ? "default" : "pointer",
+                  }}>
+                    {ssmBusySlot === s.id ? "Se rezervă..." : s.label}
+                  </button>
+                ))}
+              </div>
+            )}
+            {ssmModalError && <div style={{ fontSize: 12, color: "#ff8a8a", marginTop: 10 }}>{ssmModalError}</div>}
+            <button onClick={() => setSsmModalOpen(false)} style={{
+              width: "100%", marginTop: 12, background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8,
+              padding: "10px", fontSize: 13, color: "rgba(232,230,227,0.7)", cursor: "pointer",
+            }}>Închide</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -4557,7 +4709,7 @@ function UMyShifts({ phone, pastOnly = false }) {
 
       {sortedDays.map(day => (
         <div key={day} style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em" }}>
             {shiftsByDay[day].label} · {day}
           </div>
           {shiftsByDay[day].shifts.map((s, i) => (
