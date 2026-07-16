@@ -4035,6 +4035,16 @@ function UAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
         <div style={{ background: "rgba(99,153,34,0.08)", border: "1px solid rgba(99,153,34,0.3)", borderRadius: 16, padding: 24, textAlign: "center", marginBottom: 16 }}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div>
           <div style={{ fontSize: 20, fontWeight: 700, color: "#97C459", marginBottom: 8 }}>Totul e gata!</div>
+          {statusInfo?.position && (
+            <div style={{
+              display: "inline-block", marginBottom: 10,
+              padding: "3px 10px", background: "rgba(99,153,34,0.15)",
+              border: "1px solid rgba(99,153,34,0.35)", borderRadius: 999,
+              fontSize: 11, fontWeight: 700, color: "#97C459", letterSpacing: "0.05em",
+            }}>
+              Poziție: {statusInfo.position}
+            </div>
+          )}
           <div style={{ fontSize: 13, color: "rgba(232,230,227,0.6)", lineHeight: 1.6, maxWidth: 320, margin: "0 auto" }}>
             Toate documentele tale au fost trimise cu succes. Vei primi în curând un email cu detaliile finale și informații despre training-uri.
           </div>
@@ -4070,6 +4080,16 @@ function UAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
         <div style={{ fontSize: 18, fontWeight: 700, color: "#97C459", marginBottom: 4 }}>
           Felicitări{firstName ? `, ${firstName}` : ""}!
         </div>
+        {statusInfo?.position && (
+          <div style={{
+            display: "inline-block", marginTop: 6, marginBottom: 6,
+            padding: "3px 10px", background: "rgba(99,153,34,0.15)",
+            border: "1px solid rgba(99,153,34,0.35)", borderRadius: 999,
+            fontSize: 11, fontWeight: 700, color: "#97C459", letterSpacing: "0.05em",
+          }}>
+            Poziție: {statusInfo.position}
+          </div>
+        )}
         <div style={{ fontSize: 13, color: "rgba(232,230,227,0.6)", lineHeight: 1.5 }}>
           Aplicația ta a fost acceptată. Mai ai câțiva pași simpli de făcut.
         </div>
@@ -4330,6 +4350,19 @@ function UMyShifts({ phone, pastOnly = false }) {
           borderRadius: 8, padding: "6px 12px", fontSize: 11, color: "rgba(232,230,227,0.6)", cursor: "pointer",
         }}>{refreshing ? "..." : "🔄"}</button>
       </div>
+
+      {(data?.name || data?.position) && (
+        <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: 12, marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "#fff" }}>{data?.name || ""}</div>
+          {data?.position && (
+            <div style={{
+              padding: "3px 10px", background: "rgba(124,77,255,0.15)",
+              border: "1px solid rgba(124,77,255,0.35)", borderRadius: 999,
+              fontSize: 11, fontWeight: 700, color: "#B39DFF", letterSpacing: "0.05em",
+            }}>{data.position}</div>
+          )}
+        </div>
+      )}
 
       {summary.totalShifts > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 14 }}>
