@@ -4070,8 +4070,13 @@ function UAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
   });
 
   // Load document URLs when component mounts
+  // OPTIMIZARE: dacă documentele au venit deja în statusInfo (via verifyCnp), le folosim direct.
   useEffect(() => {
     if (!phone) return;
+    if (statusInfo?.documents) {
+      setDocuments(statusInfo.documents);
+      return;
+    }
     fetch(`${UNTOLD_API_URL}?action=documents&phone=${encodeURIComponent(phone)}`)
       .then(r => r.json())
       .then(data => {
@@ -4080,7 +4085,7 @@ function UAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
         }
       })
       .catch(err => setError("Nu pot încărca documentele: " + err.message));
-  }, [phone]);
+  }, [phone, statusInfo]);
 
   // Check if all complete (optimistic + real) - Untold: 3 docs + CI
   useEffect(() => {
@@ -5365,6 +5370,9 @@ function UStatusPage({ onCompleteDetected }) {
                 statusFinal: result.statusFinal,
                 position: result.position || "Casier",
                 hasExtension: result.hasExtension || false,
+                ndaSemnat: result.ndaSemnat,
+                dataNasterii: result.dataNasterii,
+                documents: result.documents,
               });
               if (result.statusFinal === "Complete" && onCompleteDetected) {
                 onCompleteDetected(savedPhone, result.position || "Casier");
@@ -5468,6 +5476,9 @@ function UStatusPage({ onCompleteDetected }) {
           statusFinal: result.statusFinal,
           position: result.position || "Casier",
           hasExtension: result.hasExtension || false,
+          ndaSemnat: result.ndaSemnat,
+          dataNasterii: result.dataNasterii,
+          documents: result.documents,
         });
         setAwaitingCnp(false);
         // Persistă datele pentru auto-restore la următoarea deschidere/tab
@@ -5529,6 +5540,9 @@ function UStatusPage({ onCompleteDetected }) {
           statusFinal: result.statusFinal,
           position: result.position || "Casier",
           hasExtension: result.hasExtension || false,
+          ndaSemnat: result.ndaSemnat,
+          dataNasterii: result.dataNasterii,
+          documents: result.documents,
         }));
         if (result.statusFinal === "Complete" && onCompleteDetected) {
           onCompleteDetected(targetPhone, result.position || "Casier");
