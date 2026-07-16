@@ -4781,7 +4781,7 @@ function UMyShifts({ phone, pastOnly = false }) {
                   👤 Supervizor: <span style={{ color: "rgba(232,230,227,0.85)" }}>{s.supervisor}</span>
                 </div>
               )}
-              {(s.colegCP && s.colegCP.length > 0) || (s.colegiZona && s.colegiZona.length > 0) ? (
+              {(s.colegCP && s.colegCP.length > 0) || (s.colegiZona && s.colegiZona.length > 0) || (s.colegi && s.colegi.length > 0) ? (
                 <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
                   {s.colegCP && s.colegCP.length > 0 && (
                     <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginBottom: 4 }}>
@@ -4791,6 +4791,11 @@ function UMyShifts({ phone, pastOnly = false }) {
                   {s.colegiZona && s.colegiZona.length > 0 && (
                     <div style={{ fontSize: 11, color: "rgba(232,230,227,0.55)", lineHeight: 1.5 }}>
                       👥 Colegi din zonă ({s.colegiZona.length}): {s.colegiZona.join(" • ")}
+                    </div>
+                  )}
+                  {s.colegi && s.colegi.length > 0 && (
+                    <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", lineHeight: 1.5 }}>
+                      👥 Colegi de tură ({s.colegi.length}): <span style={{ color: "#fff" }}>{s.colegi.join(" • ")}</span>
                     </div>
                   )}
                 </div>
