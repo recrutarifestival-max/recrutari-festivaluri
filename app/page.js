@@ -4689,20 +4689,20 @@ function UMyShifts({ phone, pastOnly = false }) {
       {summary.totalShifts > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 14 }}>
           <div style={{ background: "rgba(124,77,255,0.08)", border: "1px solid rgba(124,77,255,0.15)", borderRadius: 10, padding: 10, textAlign: "center" }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{summary.totalShifts}</div>
-            <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>ture</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: "#fff" }}>{summary.totalShifts}</div>
+            <div style={{ fontSize: 10, color: "rgba(232,230,227,0.75)", marginTop: 2 }}>ture</div>
           </div>
           <div style={{ background: "rgba(124,77,255,0.08)", border: "1px solid rgba(124,77,255,0.15)", borderRadius: 10, padding: 10, textAlign: "center" }}>
-            <div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{summary.totalHours}</div>
-            <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>ore total</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: "#fff" }}>{summary.totalHours}</div>
+            <div style={{ fontSize: 10, color: "rgba(232,230,227,0.75)", marginTop: 2 }}>ore total</div>
           </div>
           <div style={{ background: "rgba(99,153,34,0.10)", border: "1px solid rgba(99,153,34,0.25)", borderRadius: 10, padding: 10, textAlign: "center" }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: "#97C459" }}>{summary.workedHours}</div>
-            <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>ore lucrate</div>
+            <div style={{ fontSize: 10, color: "rgba(232,230,227,0.75)", marginTop: 2 }}>ore lucrate</div>
           </div>
           <div style={{ background: "rgba(186,117,23,0.08)", border: "1px solid rgba(186,117,23,0.2)", borderRadius: 10, padding: 10, textAlign: "center" }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: "#EF9F27" }}>{summary.remainingHours}</div>
-            <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>ore rămase</div>
+            <div style={{ fontSize: 10, color: "rgba(232,230,227,0.75)", marginTop: 2 }}>ore rămase</div>
           </div>
         </div>
       )}
@@ -4736,10 +4736,10 @@ function UMyShifts({ phone, pastOnly = false }) {
                 <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
                   {s.cps && s.cps.length > 0 ? (
                     s.cps.map(cp => (
-                      <div key={cp} style={{ fontSize: 11, color: C.accent, fontFamily: "monospace", background: "rgba(124,77,255,0.1)", padding: "2px 8px", borderRadius: 6 }}>{cp}</div>
+                      <div key={cp} style={{ fontSize: 11, color: "#fff", fontFamily: "monospace", background: "rgba(124,77,255,0.25)", padding: "2px 8px", borderRadius: 6 }}>{cp}</div>
                     ))
                   ) : s.cp ? (
-                    <div style={{ fontSize: 11, color: C.accent, fontFamily: "monospace", background: "rgba(124,77,255,0.1)", padding: "2px 8px", borderRadius: 6 }}>{s.cp}</div>
+                    <div style={{ fontSize: 11, color: "#fff", fontFamily: "monospace", background: "rgba(124,77,255,0.25)", padding: "2px 8px", borderRadius: 6 }}>{s.cp}</div>
                   ) : null}
                 </div>
               </div>
