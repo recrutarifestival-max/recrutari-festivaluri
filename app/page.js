@@ -3899,6 +3899,7 @@ function _calcAgeFromDob(dobStr) {
 function UCompleteInfoCard({ phone, statusInfo }) {
   const [deptBooking, setDeptBooking] = useState(null);
   const [ssmBooking, setSsmBooking] = useState(null);
+  const [scheduleData, setScheduleData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showWithdraw, setShowWithdraw] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
@@ -3920,17 +3921,19 @@ function UCompleteInfoCard({ phone, statusInfo }) {
   const cnp = statusInfo?.cnp || "";
   const age = _calcAgeFromDob(statusInfo?.dataNasterii);
 
-  // Încarcă cele 2 booking-uri în paralel
+  // Încarcă cele 3 fetch-uri în paralel: dept training, SSM, program
   useEffect(() => {
     if (!phone || !cnp) { setLoading(false); return; }
     (async () => {
       try {
-        const [d, s] = await Promise.all([
+        const [d, s, sched] = await Promise.all([
           fetch(`${UNTOLD_API_URL}?action=trainingMySlot&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`, { cache: "no-store" }).then(r => r.json()).catch(() => null),
           fetch(`${UNTOLD_API_URL}?action=ssmMySlot&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`, { cache: "no-store" }).then(r => r.json()).catch(() => null),
+          fetch(`${UNTOLD_API_URL}?action=schedule&phone=${encodeURIComponent(phone)}&t=${Date.now()}`, { cache: "no-store" }).then(r => r.json()).catch(() => null),
         ]);
         if (d?.success && d.booking) setDeptBooking(d.booking);
         if (s?.success && s.booking) setSsmBooking(s.booking);
+        if (sched?.success) setScheduleData(sched);
       } catch (e) {}
       setLoading(false);
     })();
@@ -4108,14 +4111,114 @@ function UCompleteInfoCard({ phone, statusInfo }) {
         </div>
       </div>
 
-      {/* Turele mele - placeholder până la 3 August */}
-      <div style={{ background: "rgba(124,77,255,0.06)", border: "1px solid rgba(124,77,255,0.2)", borderRadius: 12, padding: 16, textAlign: "center", marginTop: 12 }}>
-        <div style={{ fontSize: 20, marginBottom: 6 }}>📅</div>
-        <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginBottom: 4 }}>Turele mele</div>
-        <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)", lineHeight: 1.5 }}>
-          Turele vor fi disponibile în data de 3 August 2026.
-        </div>
-      </div>
+      {/* Card 3: Sumar ture + Card 4: Următoarea tură */}
+      {(() => {
+        // Nu avem program încă (nu published, empty, sau eroare) → placeholder
+        if (!scheduleData || !scheduleData.published || scheduleData.empty) {
+          return (
+            <div style={{ background: "rgba(124,77,255,0.06)", border: "1px solid rgba(124,77,255,0.2)", borderRadius: 12, padding: 16, textAlign: "center", marginTop: 12 }}>
+              <div style={{ fontSize: 20, marginBottom: 6 }}>📅</div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: "#fff", marginBottom: 4 }}>Turele mele</div>
+              <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)", lineHeight: 1.5 }}>
+                {scheduleData?.message || "Turele vor fi disponibile în data de 3 August 2026."}
+              </div>
+            </div>
+          );
+        }
+
+        // Calculez sumar
+        const shifts = scheduleData.shifts || [];
+        function _parseD(s) {
+          if (!s) return null;
+          const m = String(s).match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})$/);
+          if (m) return new Date(parseInt(m[3], 10), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
+          const d = new Date(s); return isNaN(d.getTime()) ? null : d;
+        }
+        const today = new Date(); today.setHours(0, 0, 0, 0);
+        let totalHours = 0, workedHours = 0, remainingHours = 0;
+        const shiftsWithDate = shifts.map(sh => {
+          const d = _parseD(sh.date);
+          const isPast = d ? d < today : false;
+          const h = sh.hours || 0;
+          totalHours += h;
+          if (isPast) workedHours += h; else remainingHours += h;
+          return { ...sh, _dateObj: d, isPast };
+        });
+        totalHours = Math.round(totalHours * 10) / 10;
+        workedHours = Math.round(workedHours * 10) / 10;
+        remainingHours = Math.round(remainingHours * 10) / 10;
+
+        // Următoarea tură (prima non-past, sortată după dată)
+        const futureShifts = shiftsWithDate
+          .filter(s => !s.isPast)
+          .sort((a, b) => (a._dateObj?.getTime() || 0) - (b._dateObj?.getTime() || 0));
+        const nextShift = futureShifts[0] || null;
+
+        return (
+          <>
+            {/* Card 3: Sumar ture */}
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "rgba(232,230,227,0.75)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>Turele mele</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 12 }}>
+                <div style={{ background: "rgba(124,77,255,0.08)", border: "1px solid rgba(124,77,255,0.15)", borderRadius: 10, padding: 10, textAlign: "center" }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: "#fff" }}>{shifts.length}</div>
+                  <div style={{ fontSize: 10, color: "rgba(232,230,227,0.75)", marginTop: 2 }}>ture</div>
+                </div>
+                <div style={{ background: "rgba(124,77,255,0.08)", border: "1px solid rgba(124,77,255,0.15)", borderRadius: 10, padding: 10, textAlign: "center" }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: "#fff" }}>{totalHours}</div>
+                  <div style={{ fontSize: 10, color: "rgba(232,230,227,0.75)", marginTop: 2 }}>ore total</div>
+                </div>
+                <div style={{ background: "rgba(99,153,34,0.10)", border: "1px solid rgba(99,153,34,0.25)", borderRadius: 10, padding: 10, textAlign: "center" }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: "#97C459" }}>{workedHours}</div>
+                  <div style={{ fontSize: 10, color: "rgba(232,230,227,0.75)", marginTop: 2 }}>ore lucrate</div>
+                </div>
+                <div style={{ background: "rgba(186,117,23,0.08)", border: "1px solid rgba(186,117,23,0.2)", borderRadius: 10, padding: 10, textAlign: "center" }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: "#EF9F27" }}>{remainingHours}</div>
+                  <div style={{ fontSize: 10, color: "rgba(232,230,227,0.75)", marginTop: 2 }}>ore rămase</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 4: Următoarea tură */}
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: "rgba(232,230,227,0.75)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.06em" }}>Următoarea tură</div>
+              {nextShift ? (
+                <div style={{
+                  background: nextShift.isNight ? "rgba(74,144,226,0.08)" : "rgba(255,255,255,0.04)",
+                  border: nextShift.isNight ? "1px solid rgba(74,144,226,0.25)" : "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: 12, padding: 14,
+                }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "#fff", marginBottom: 6, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                    {nextShift.dayLabel} · {nextShift.date}
+                  </div>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: "#fff", display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                    <span>{nextShift.isNight ? "🌙" : "☀️"}</span>
+                    <span>{nextShift.time}</span>
+                  </div>
+                  {nextShift.cp && (
+                    <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginBottom: 3 }}>
+                      <span style={{ color: "#fff", fontFamily: "monospace", background: "rgba(124,77,255,0.25)", padding: "2px 8px", borderRadius: 6, fontSize: 11 }}>{nextShift.cp}</span>
+                    </div>
+                  )}
+                  {nextShift.zone && (
+                    <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginBottom: 3 }}>📍 {nextShift.zone}</div>
+                  )}
+                  {nextShift.supervisor && (
+                    <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)" }}>
+                      👤 Supervizor: <span style={{ color: "rgba(232,230,227,0.85)" }}>{nextShift.supervisor}</span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ background: "rgba(99,153,34,0.08)", border: "1px solid rgba(99,153,34,0.2)", borderRadius: 12, padding: 14, textAlign: "center" }}>
+                  <div style={{ fontSize: 20, marginBottom: 4 }}>🎉</div>
+                  <div style={{ fontSize: 13, color: "rgba(232,230,227,0.75)" }}>Nu mai ai ture următoare — mulțumim!</div>
+                </div>
+              )}
+            </div>
+          </>
+        );
+      })()}
 
       {/* Modal rezervare training Casier (dept) */}
       {deptModalOpen && (
