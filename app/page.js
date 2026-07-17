@@ -3992,6 +3992,28 @@ function UCompleteInfoCard({ phone, statusInfo }) {
   }
 
   // Deschide modal training SSM
+  async function cancelDeptBooking() {
+    if (!window.confirm("Sigur vrei să anulezi programarea la trainingul Casier?")) return;
+    try {
+      const url = `${UNTOLD_API_URL}?action=trainingCancel&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
+      const r = await fetch(url, { cache: "no-store" });
+      const j = JSON.parse(await r.text());
+      if (j.success) setDeptBooking(null);
+      else alert(j.error || "Nu s-a putut anula");
+    } catch (e) { alert("Eroare de conexiune"); }
+  }
+
+  async function cancelSsmBooking() {
+    if (!window.confirm("Sigur vrei să anulezi programarea SSM/PSI?")) return;
+    try {
+      const url = `${UNTOLD_API_URL}?action=ssmCancel&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
+      const r = await fetch(url, { cache: "no-store" });
+      const j = JSON.parse(await r.text());
+      if (j.success) setSsmBooking(null);
+      else alert(j.error || "Nu s-a putut anula");
+    } catch (e) { alert("Eroare de conexiune"); }
+  }
+
   async function openSsmModal() {
     setSsmModalOpen(true); setSsmModalError(""); setSsmModalLoading(true);
     try {
@@ -4050,6 +4072,8 @@ function UCompleteInfoCard({ phone, statusInfo }) {
                 {ssmBooking.label || `${ssmBooking.date} · ${ssmBooking.time}`}
                 {" "}
                 <a href="https://maps.app.goo.gl/JSb848nzmbAuVGDw7" target="_blank" rel="noopener noreferrer" style={{ color: "#ffc107", fontSize: 11, textDecoration: "none" }}>🗺️ direcții</a>
+                {" · "}
+                <a href="#" onClick={e => { e.preventDefault(); cancelSsmBooking(); }} style={{ color: "#ff8a8a", fontSize: 11, textDecoration: "none" }}>× anulează</a>
               </span>
             ) : (
               <a href="#" onClick={e => { e.preventDefault(); openSsmModal(); }} style={{ fontSize: 12, color: "#ffc107" }}>Rezervă loc training</a>
@@ -4064,6 +4088,8 @@ function UCompleteInfoCard({ phone, statusInfo }) {
                 {deptBooking.date} · ora {deptBooking.time}
                 {" "}
                 <a href="https://maps.app.goo.gl/zz3wbXgmXtZcEpTSA" target="_blank" rel="noopener noreferrer" style={{ color: "#B39DFF", fontSize: 11, textDecoration: "none" }}>🗺️ direcții</a>
+                {" · "}
+                <a href="#" onClick={e => { e.preventDefault(); cancelDeptBooking(); }} style={{ color: "#ff8a8a", fontSize: 11, textDecoration: "none" }}>× anulează</a>
               </span>
             ) : (
               <a href="#" onClick={e => { e.preventDefault(); openDeptModal(); }} style={{ fontSize: 12, color: "#B39DFF" }}>Rezervă loc training</a>
