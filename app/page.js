@@ -4737,11 +4737,11 @@ function UMyShifts({ phone, pastOnly = false }) {
   // Programul nu e încă publicat / candidatul nu e Complete
   if (data && !data.published) {
     return (
-      <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 12, padding: 18, textAlign: "center" }}>
+      <div style={{ background: "rgba(124,77,255,0.06)", border: "1px solid rgba(124,77,255,0.2)", borderRadius: 12, padding: 18, textAlign: "center" }}>
         <div style={{ fontSize: 28, marginBottom: 8 }}>📅</div>
-        <div style={{ fontSize: 15, fontWeight: 600, color: "#fff", marginBottom: 6 }}>Programul tău</div>
-        <div style={{ fontSize: 12, color: "rgba(232,230,227,0.5)", lineHeight: 1.6 }}>
-          {data.message || "Programul va fi publicat cu ~7 zile înainte de festival."}
+        <div style={{ fontSize: 15, fontWeight: 600, color: "#fff", marginBottom: 6 }}>Turele mele</div>
+        <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)", lineHeight: 1.6 }}>
+          Turele vor fi disponibile în data de 3 August 2026.
         </div>
       </div>
     );
@@ -4750,16 +4750,12 @@ function UMyShifts({ phone, pastOnly = false }) {
   // Empty - nu am găsit ture pentru tine
   if (data && data.empty) {
     return (
-      <div style={{ background: "rgba(186,117,23,0.08)", border: "1px solid rgba(186,117,23,0.2)", borderRadius: 12, padding: 18, textAlign: "center" }}>
-        <div style={{ fontSize: 28, marginBottom: 8 }}>🤔</div>
-        <div style={{ fontSize: 15, fontWeight: 600, color: "#EF9F27", marginBottom: 6 }}>Nu am găsit turele tale</div>
-        <div style={{ fontSize: 12, color: "rgba(232,230,227,0.5)", lineHeight: 1.6 }}>
-          {data.message || "Contactează coordonatorul pentru detalii."}
+      <div style={{ background: "rgba(124,77,255,0.06)", border: "1px solid rgba(124,77,255,0.2)", borderRadius: 12, padding: 18, textAlign: "center" }}>
+        <div style={{ fontSize: 28, marginBottom: 8 }}>📅</div>
+        <div style={{ fontSize: 15, fontWeight: 600, color: "#fff", marginBottom: 6 }}>Turele mele</div>
+        <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)", lineHeight: 1.6 }}>
+          Turele vor fi disponibile în data de 3 August 2026.
         </div>
-        <button onClick={handleRefresh} disabled={refreshing} style={{
-          marginTop: 12, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
-          borderRadius: 8, padding: "8px 16px", fontSize: 12, color: "rgba(232,230,227,0.7)", cursor: "pointer",
-        }}>{refreshing ? "Se reîncarcă..." : "🔄 Reîncearcă"}</button>
       </div>
     );
   }
