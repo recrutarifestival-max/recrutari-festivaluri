@@ -3913,6 +3913,7 @@ function UCompleteInfoCard({ phone, statusInfo }) {
   const [deptModalError, setDeptModalError] = useState("");
 
   const [ssmModalOpen, setSsmModalOpen] = useState(false);
+  const [turaInfoOpen, setTuraInfoOpen] = useState(false);
   const [ssmSlots, setSsmSlots] = useState([]);
   const [ssmModalLoading, setSsmModalLoading] = useState(false);
   const [ssmBusySlot, setSsmBusySlot] = useState(null);
@@ -4064,6 +4065,22 @@ function UCompleteInfoCard({ phone, statusInfo }) {
             value={<span style={{ padding: "2px 10px", background: "rgba(124,77,255,0.15)", border: "1px solid rgba(124,77,255,0.35)", borderRadius: 999, fontSize: 12, fontWeight: 700, color: "#B39DFF" }}>{statusInfo.position}</span>}
           />
         )}
+        {statusInfo?.turaPreferata && (
+          <InfoRow
+            label="Tip tură"
+            value={(
+              <span style={{ fontSize: 13, color: "#fff", display: "inline-flex", alignItems: "center", gap: 6 }}>
+                {statusInfo.turaPreferata}
+                <button onClick={() => setTuraInfoOpen(true)} style={{
+                  background: "rgba(124,77,255,0.15)", border: "1px solid rgba(124,77,255,0.35)",
+                  borderRadius: "50%", width: 20, height: 20, padding: 0,
+                  fontSize: 11, fontWeight: 700, color: "#B39DFF", cursor: "pointer",
+                  display: "inline-flex", alignItems: "center", justifyContent: "center", lineHeight: 1,
+                }} title="Detalii ture">i</button>
+              </span>
+            )}
+          />
+        )}
         <InfoRow
           label="Training SSM/PSI"
           value={loading ? "…" : (
@@ -4080,22 +4097,35 @@ function UCompleteInfoCard({ phone, statusInfo }) {
             )
           )}
         />
-        <InfoRow
-          label="Training Casier"
-          value={loading ? "…" : (
-            deptBooking ? (
+        {statusInfo?.position === "Supervizor" ? (
+          <InfoRow
+            label="Training Supervizor"
+            value={(
               <span style={{ fontSize: 13, color: "#fff" }}>
-                {deptBooking.date} · ora {deptBooking.time}
+                Miercuri, 5 August 2026, 20:00
                 {" "}
                 <a href="https://maps.app.goo.gl/zz3wbXgmXtZcEpTSA" target="_blank" rel="noopener noreferrer" style={{ color: "#B39DFF", fontSize: 11, textDecoration: "none" }}>🗺️ direcții</a>
-                {" · "}
-                <a href="#" onClick={e => { e.preventDefault(); cancelDeptBooking(); }} style={{ color: "#ff8a8a", fontSize: 11, textDecoration: "none" }}>× anulează</a>
               </span>
-            ) : (
-              <a href="#" onClick={e => { e.preventDefault(); openDeptModal(); }} style={{ fontSize: 12, color: "#B39DFF" }}>Rezervă loc training</a>
-            )
-          )}
-        />
+            )}
+          />
+        ) : (
+          <InfoRow
+            label="Training Casier"
+            value={loading ? "…" : (
+              deptBooking ? (
+                <span style={{ fontSize: 13, color: "#fff" }}>
+                  {deptBooking.date} · ora {deptBooking.time}
+                  {" "}
+                  <a href="https://maps.app.goo.gl/zz3wbXgmXtZcEpTSA" target="_blank" rel="noopener noreferrer" style={{ color: "#B39DFF", fontSize: 11, textDecoration: "none" }}>🗺️ direcții</a>
+                  {" · "}
+                  <a href="#" onClick={e => { e.preventDefault(); cancelDeptBooking(); }} style={{ color: "#ff8a8a", fontSize: 11, textDecoration: "none" }}>× anulează</a>
+                </span>
+              ) : (
+                <a href="#" onClick={e => { e.preventDefault(); openDeptModal(); }} style={{ fontSize: 12, color: "#B39DFF" }}>Rezervă loc training</a>
+              )
+            )}
+          />
+        )}
         <InfoRow
           label="Status"
           value={<span style={{ padding: "2px 10px", background: "rgba(99,153,34,0.15)", border: "1px solid rgba(99,153,34,0.35)", borderRadius: 999, fontSize: 12, fontWeight: 700, color: "#97C459" }}>{displayStatus}</span>}
@@ -4322,6 +4352,44 @@ function UCompleteInfoCard({ phone, statusInfo }) {
             {ssmModalError && <div style={{ fontSize: 12, color: "#ff8a8a", marginTop: 10 }}>{ssmModalError}</div>}
             <button onClick={() => setSsmModalOpen(false)} style={{
               width: "100%", marginTop: 12, background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8,
+              padding: "10px", fontSize: 13, color: "rgba(232,230,227,0.7)", cursor: "pointer",
+            }}>Închide</button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal detalii tipuri de ture */}
+      {turaInfoOpen && (
+        <div onClick={() => setTuraInfoOpen(false)} style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 1000,
+          display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 16, padding: 20, maxWidth: 440, width: "100%", maxHeight: "80vh", overflowY: "auto",
+          }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 14 }}>Detalii ture</div>
+            <div style={{ fontSize: 13, color: "rgba(232,230,227,0.85)", lineHeight: 1.7 }}>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontWeight: 700, color: "#fff", marginBottom: 3 }}>☀️ Tură de zi</div>
+                <div>Începe la <strong>15:00 sau 17:00</strong> și se termină la <strong>22:00, 23:00 sau 24:00</strong>, în funcție de zonă.</div>
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontWeight: 700, color: "#fff", marginBottom: 3 }}>🌙 Tură de noapte</div>
+                <div>Începe la <strong>21:00, 22:00 sau 23:00</strong> și se termină la <strong>04:00 sau 06:00 dimineața</strong>, în funcție de zonă.</div>
+              </div>
+              <div style={{ marginBottom: 12, background: "rgba(124,77,255,0.06)", borderRadius: 8, padding: 10 }}>
+                <div style={{ fontWeight: 700, color: "#fff", marginBottom: 3 }}>🏟️ Polivalentă</div>
+                <div>Tura de zi începe la <strong>18:00</strong>.<br />Tura de noapte începe la <strong>01:00</strong>.</div>
+              </div>
+              <div style={{ background: "rgba(255,193,7,0.06)", borderRadius: 8, padding: 10, marginBottom: 4 }}>
+                <div style={{ fontWeight: 700, color: "#fff", marginBottom: 3 }}>🔁 Tură de rezervă</div>
+                <div>Distribuită în funcție de necesități. <strong>Plătită la fel ca cea principală.</strong></div>
+              </div>
+            </div>
+            <button onClick={() => setTuraInfoOpen(false)} style={{
+              width: "100%", marginTop: 14, background: "rgba(255,255,255,0.05)",
               border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8,
               padding: "10px", fontSize: 13, color: "rgba(232,230,227,0.7)", cursor: "pointer",
             }}>Închide</button>
@@ -5290,6 +5358,11 @@ function UAdminPage({ isAdmin, setIsAdmin }) {
   const [selectedPhone, setSelectedPhone] = useState("");
   const [scheduleData, setScheduleData] = useState(null);
   const [loadingSchedule, setLoadingSchedule] = useState(false);
+
+  // Publicare orar
+  const [schedulePublished, setSchedulePublished] = useState(null); // null = necunoscut
+  const [publishBusy, setPublishBusy] = useState(false);
+  const [publishMessage, setPublishMessage] = useState("");
   
   function getStoredCode() {
     try {
@@ -5335,7 +5408,52 @@ function UAdminPage({ isAdmin, setIsAdmin }) {
     }
     setVerifying(false);
   }
-  
+
+  // Verific statusul publicării la login
+  useEffect(() => {
+    if (!isAdmin) { setSchedulePublished(null); return; }
+    (async () => {
+      try {
+        const url = `${UNTOLD_API_URL}?action=scheduleStatus&code=${encodeURIComponent(code || getStoredCode())}`;
+        const r = await fetch(url, { cache: "no-store" });
+        const j = await r.json();
+        if (j.success) setSchedulePublished(!!j.published);
+      } catch (e) {}
+    })();
+  }, [isAdmin]);
+
+  async function handlePublishSchedule() {
+    setPublishBusy(true); setPublishMessage("");
+    try {
+      const url = `${UNTOLD_API_URL}?action=publishSchedule&code=${encodeURIComponent(code || getStoredCode())}`;
+      const r = await fetch(url, { cache: "no-store" });
+      const j = await r.json();
+      if (j.success) {
+        setSchedulePublished(true);
+        setPublishMessage(j.message || "Orarul a fost publicat.");
+      } else {
+        setPublishMessage("Eroare: " + (j.error || "necunoscut"));
+      }
+    } catch (e) { setPublishMessage("Eroare conexiune."); }
+    setPublishBusy(false);
+  }
+
+  async function handleUnpublishSchedule() {
+    setPublishBusy(true); setPublishMessage("");
+    try {
+      const url = `${UNTOLD_API_URL}?action=unpublishSchedule&code=${encodeURIComponent(code || getStoredCode())}`;
+      const r = await fetch(url, { cache: "no-store" });
+      const j = await r.json();
+      if (j.success) {
+        setSchedulePublished(false);
+        setPublishMessage(j.message || "Orarul a fost ascuns.");
+      } else {
+        setPublishMessage("Eroare: " + (j.error || "necunoscut"));
+      }
+    } catch (e) { setPublishMessage("Eroare conexiune."); }
+    setPublishBusy(false);
+  }
+
   async function loadCandidates(pos) {
     setLoadingCandidates(true);
     setSelectedPhone("");
@@ -5443,6 +5561,41 @@ function UAdminPage({ isAdmin, setIsAdmin }) {
           {error}
         </div>
       )}
+
+      {/* Card publicare orar */}
+      <div style={{ background: "rgba(124,77,255,0.06)", border: "1px solid rgba(124,77,255,0.25)", borderRadius: 12, padding: 16, marginBottom: 16 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#fff", marginBottom: 2 }}>Publicare orar</div>
+            <div style={{ fontSize: 11, color: "rgba(232,230,227,0.55)" }}>
+              Statusul:{" "}
+              {schedulePublished === null ? "verific..." :
+               schedulePublished ? <span style={{ color: "#97C459", fontWeight: 700 }}>Publicat</span> :
+                                   <span style={{ color: "#EF9F27", fontWeight: 700 }}>Nepublicat</span>}
+            </div>
+          </div>
+          {schedulePublished !== null && (
+            schedulePublished ? (
+              <button onClick={handleUnpublishSchedule} disabled={publishBusy} style={{
+                background: "rgba(226,75,74,0.15)", border: "1px solid rgba(226,75,74,0.4)",
+                borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 600, color: "#ff9999",
+                cursor: publishBusy ? "default" : "pointer",
+              }}>{publishBusy ? "…" : "Ascunde"}</button>
+            ) : (
+              <button onClick={handlePublishSchedule} disabled={publishBusy} style={{
+                background: "rgba(99,153,34,0.15)", border: "1px solid rgba(99,153,34,0.4)",
+                borderRadius: 8, padding: "8px 14px", fontSize: 12, fontWeight: 600, color: "#97C459",
+                cursor: publishBusy ? "default" : "pointer",
+              }}>{publishBusy ? "Se publică..." : "🚀 Publică orar"}</button>
+            )
+          )}
+        </div>
+        {publishMessage && (
+          <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginTop: 8, background: "rgba(255,255,255,0.03)", padding: 8, borderRadius: 6 }}>
+            {publishMessage}
+          </div>
+        )}
+      </div>
       
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
         {["Casier", "Supervizor"].map(p => (
@@ -5698,6 +5851,7 @@ function UStatusPage({ onCompleteDetected }) {
                 ndaSemnat: result.ndaSemnat,
                 dataNasterii: result.dataNasterii,
                 documents: result.documents,
+                turaPreferata: result.turaPreferata,
               });
               if (result.statusFinal === "Complete" && onCompleteDetected) {
                 onCompleteDetected(savedPhone, result.position || "Casier");
@@ -5804,6 +5958,7 @@ function UStatusPage({ onCompleteDetected }) {
           ndaSemnat: result.ndaSemnat,
           dataNasterii: result.dataNasterii,
           documents: result.documents,
+          turaPreferata: result.turaPreferata,
         });
         setAwaitingCnp(false);
         // Persistă datele pentru auto-restore la următoarea deschidere/tab
@@ -5868,6 +6023,7 @@ function UStatusPage({ onCompleteDetected }) {
           ndaSemnat: result.ndaSemnat,
           dataNasterii: result.dataNasterii,
           documents: result.documents,
+          turaPreferata: result.turaPreferata,
         }));
         if (result.statusFinal === "Complete" && onCompleteDetected) {
           onCompleteDetected(targetPhone, result.position || "Casier");
