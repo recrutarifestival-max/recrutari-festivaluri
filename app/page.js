@@ -4251,18 +4251,29 @@ function UCompleteInfoCard({ phone, statusInfo }) {
                     <span>{nextShift.isNight ? "🌙" : "☀️"}</span>
                     <span>{nextShift.time}</span>
                   </div>
-                  {nextShift.cp && (
-                    <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginBottom: 3 }}>
-                      <span style={{ color: "#fff", fontFamily: "monospace", background: "rgba(124,77,255,0.25)", padding: "2px 8px", borderRadius: 6, fontSize: 11 }}>{nextShift.cp}</span>
+                  {nextShift.esteRezerva ? (
+                    <div style={{ background: "rgba(255,193,7,0.07)", border: "1px solid rgba(255,193,7,0.2)", borderRadius: 8, padding: "8px 10px" }}>
+                      <div style={{ fontSize: 12, color: "#FFC107", fontWeight: 700, marginBottom: 2 }}>🔁 Tură de rezervă</div>
+                      <div style={{ fontSize: 11, color: "rgba(232,230,227,0.7)", lineHeight: 1.5 }}>
+                        Postul se stabilește în ziua turei, în funcție de necesități. Se plătește la fel ca o tură principală.
+                      </div>
                     </div>
-                  )}
-                  {nextShift.zone && (
-                    <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginBottom: 3 }}>📍 {nextShift.zone}</div>
-                  )}
-                  {nextShift.supervisor && (
-                    <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)" }}>
-                      👤 Supervizor: <span style={{ color: "rgba(232,230,227,0.85)" }}>{nextShift.supervisor}</span>
-                    </div>
+                  ) : (
+                    <>
+                      {nextShift.cp && (
+                        <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginBottom: 3 }}>
+                          <span style={{ color: "#fff", fontFamily: "monospace", background: "rgba(124,77,255,0.25)", padding: "2px 8px", borderRadius: 6, fontSize: 11 }}>{nextShift.cp}</span>
+                        </div>
+                      )}
+                      {nextShift.zone && (
+                        <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginBottom: 3 }}>📍 {nextShift.zone}</div>
+                      )}
+                      {nextShift.supervisor && (
+                        <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)" }}>
+                          👤 Supervizor: <span style={{ color: "rgba(232,230,227,0.85)" }}>{nextShift.supervisor}</span>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               ) : (
@@ -4964,7 +4975,9 @@ function UMyShifts({ phone, pastOnly = false }) {
                   )}
                 </div>
                 <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
-                  {s.cps && s.cps.length > 0 ? (
+                  {s.esteRezerva ? (
+                    <div style={{ fontSize: 10, color: "#FFC107", background: "rgba(255,193,7,0.15)", border: "1px solid rgba(255,193,7,0.4)", padding: "2px 8px", borderRadius: 6, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em" }}>🔁 Rezervă</div>
+                  ) : s.cps && s.cps.length > 0 ? (
                     s.cps.map(cp => (
                       <div key={cp} style={{ fontSize: 11, color: "#fff", fontFamily: "monospace", background: "rgba(124,77,255,0.25)", padding: "2px 8px", borderRadius: 6 }}>{cp}</div>
                     ))
@@ -4973,12 +4986,19 @@ function UMyShifts({ phone, pastOnly = false }) {
                   ) : null}
                 </div>
               </div>
-              {s.zones && s.zones.length > 0 ? (
+              {s.esteRezerva ? (
+                <div style={{ background: "rgba(255,193,7,0.07)", border: "1px solid rgba(255,193,7,0.2)", borderRadius: 8, padding: "8px 10px", marginBottom: 6 }}>
+                  <div style={{ fontSize: 12, color: "#FFC107", fontWeight: 600, marginBottom: 2 }}>Tură de rezervă</div>
+                  <div style={{ fontSize: 11, color: "rgba(232,230,227,0.7)", lineHeight: 1.5 }}>
+                    Postul se stabilește în ziua turei, în funcție de necesități. Se plătește la fel ca o tură principală.
+                  </div>
+                </div>
+              ) : s.zones && s.zones.length > 0 ? (
                 <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginBottom: 4 }}>📍 {s.zones.join(", ")}</div>
               ) : s.zone ? (
                 <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginBottom: 4 }}>📍 {s.zone}</div>
               ) : null}
-              {s.supervisor && s.myRole !== "Supervizor" && (
+              {s.supervisor && s.myRole !== "Supervizor" && !s.esteRezerva && (
                 <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)", marginBottom: 4 }}>
                   👤 Supervizor: <span style={{ color: "rgba(232,230,227,0.85)" }}>{s.supervisor}</span>
                 </div>
@@ -5003,7 +5023,8 @@ function UMyShifts({ phone, pastOnly = false }) {
                   {/* Format vechi (parseScheduleV2): echipa casierului */}
                   {s.team && s.team.length > 0 && (
                     <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", lineHeight: 1.5 }}>
-                      👥 Echipa ({s.team.length}): <span style={{ color: "#fff" }}>{s.team.join(" • ")}</span>
+                      {s.esteRezerva ? "🔁 Colegi de rezervă" : "👥 Echipa"} ({s.team.length}):{" "}
+                      <span style={{ color: "#fff" }}>{s.team.join(" • ")}</span>
                     </div>
                   )}
                   {/* Format vechi: supervizor cu mai multe CP-uri */}
