@@ -4759,6 +4759,7 @@ function UAcceptedFlow({ phone, firstName, statusInfo, refreshStatus }) {
 }
 
 function UMyShifts({ phone, pastOnly = false }) {
+  const [infoKey, setInfoKey] = useState(null);
   const C = { accent: "#7C4DFF", accentDark: "#5E35B1", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -4993,38 +4994,45 @@ function UMyShifts({ phone, pastOnly = false }) {
                     Postul se stabilește în ziua turei, în funcție de necesități. Se plătește la fel ca o tură principală.
                   </div>
                 </div>
-              ) : s.zones && s.zones.length > 0 ? (
-                <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginBottom: 4 }}>📍 {s.zones.join(", ")}</div>
-              ) : s.zone ? (
-                <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginBottom: 4 }}>📍 {s.zone}</div>
+              ) : (s.zones && s.zones.length > 0) || s.zone ? (
+                <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginBottom: 4 }}>
+                  📍 {s.zones && s.zones.length > 0 ? s.zones.join(", ") : s.zone}
+                  <ShiftInfoDot onClick={() => setInfoKey("zona")} />
+                </div>
               ) : null}
               {s.supervisor && s.myRole !== "Supervizor" && !s.esteRezerva && (
                 <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)", marginBottom: 4 }}>
                   👤 Supervizor: <span style={{ color: "rgba(232,230,227,0.85)" }}>{s.supervisor}</span>
+                  <ShiftInfoDot onClick={() => setInfoKey("supervizor")} />
                 </div>
               )}
               {(s.colegCP && s.colegCP.length > 0) || (s.colegiZona && s.colegiZona.length > 0) || (s.colegi && s.colegi.length > 0) || (s.team && s.team.length > 0) || (s.teamsByCP && s.teamsByCP.length > 0) ? (
                 <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                  {/* Echipă */}
+                  {s.team && s.team.length > 0 && (
+                    <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", lineHeight: 1.5, marginBottom: 4 }}>
+                      {s.esteRezerva ? "🔁 Colegi de rezervă" : "👥 Echipa"} ({s.team.length})
+                      {!s.esteRezerva && <ShiftInfoDot onClick={() => setInfoKey("echipa")} />}
+                      {": "}
+                      <span style={{ color: "#fff" }}>{s.team.join(" • ")}</span>
+                    </div>
+                  )}
                   {s.colegCP && s.colegCP.length > 0 && (
                     <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginBottom: 4 }}>
                       🤝 Coleg CP: <span style={{ color: "#fff" }}>{s.colegCP.join(", ")}</span>
                     </div>
                   )}
-                  {s.colegiZona && s.colegiZona.length > 0 && (
-                    <div style={{ fontSize: 11, color: "rgba(232,230,227,0.55)", lineHeight: 1.5 }}>
-                      👥 Colegi din zonă ({s.colegiZona.length}): {s.colegiZona.join(" • ")}
-                    </div>
-                  )}
                   {s.colegi && s.colegi.length > 0 && (
-                    <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", lineHeight: 1.5 }}>
+                    <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", lineHeight: 1.5, marginBottom: 4 }}>
                       👥 Colegi de tură ({s.colegi.length}): <span style={{ color: "#fff" }}>{s.colegi.join(" • ")}</span>
                     </div>
                   )}
-                  {/* Format vechi (parseScheduleV2): echipa casierului */}
-                  {s.team && s.team.length > 0 && (
-                    <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", lineHeight: 1.5 }}>
-                      {s.esteRezerva ? "🔁 Colegi de rezervă" : "👥 Echipa"} ({s.team.length}):{" "}
-                      <span style={{ color: "#fff" }}>{s.team.join(" • ")}</span>
+                  {/* Colegi de zonă */}
+                  {s.colegiZona && s.colegiZona.length > 0 && (
+                    <div style={{ fontSize: 11, color: "rgba(232,230,227,0.55)", lineHeight: 1.5 }}>
+                      👥 Colegi din zonă ({s.colegiZona.length})
+                      <ShiftInfoDot onClick={() => setInfoKey("colegiZona")} />
+                      {": "}{s.colegiZona.join(" • ")}
                     </div>
                   )}
                   {/* Format vechi: supervizor cu mai multe CP-uri */}
@@ -5050,6 +5058,7 @@ function UMyShifts({ phone, pastOnly = false }) {
           ))}
         </div>
       ))}
+      <ShiftInfoModal infoKey={infoKey} onClose={() => setInfoKey(null)} />
     </div>
   );
 }
@@ -5704,7 +5713,70 @@ function UAdminPage({ isAdmin, setIsAdmin }) {
   );
 }
 
+// Explicațiile câmpurilor de pe cardul de tură (Untold).
+const SHIFT_INFO = {
+  zona: {
+    titlu: "Zonă",
+    text: "Reprezintă zona în care este amplasat CreditPoint-ul, pentru o identificare rapidă.",
+  },
+  supervizor: {
+    titlu: "Supervizor",
+    text: "Persoana care te va contacta și care îți va superviza activitatea.",
+  },
+  echipa: {
+    titlu: "Echipă",
+    text: "Persoana cu care vei sta în CreditPoint.",
+  },
+  colegiZona: {
+    titlu: "Colegi de zonă",
+    text: "Ce alte persoane mai sunt pe aceeași zonă ca tine, la același supervizor.",
+  },
+};
+
+// Butonul rotund „i" de lângă fiecare câmp.
+function ShiftInfoDot({ onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label="Informații"
+      style={{
+        background: "rgba(124,77,255,0.15)", border: "1px solid rgba(124,77,255,0.35)",
+        borderRadius: "50%", width: 15, height: 15, padding: 0, marginLeft: 5,
+        fontSize: 9, fontWeight: 700, color: "#B39DFF", cursor: "pointer",
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
+        lineHeight: 1, verticalAlign: "middle", flexShrink: 0,
+      }}
+    >i</button>
+  );
+}
+
+// Modalul care afișează explicația câmpului selectat.
+function ShiftInfoModal({ infoKey, onClose }) {
+  if (!infoKey || !SHIFT_INFO[infoKey]) return null;
+  const info = SHIFT_INFO[infoKey];
+  return (
+    <div onClick={onClose} style={{
+      position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 1000,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+    }}>
+      <div onClick={e => e.stopPropagation()} style={{
+        background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.1)",
+        borderRadius: 16, padding: 20, maxWidth: 380, width: "100%",
+      }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: "#fff", marginBottom: 8 }}>{info.titlu}</div>
+        <div style={{ fontSize: 13, color: "rgba(232,230,227,0.8)", lineHeight: 1.6 }}>{info.text}</div>
+        <button onClick={onClose} style={{
+          width: "100%", marginTop: 16, background: "rgba(255,255,255,0.05)",
+          border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8,
+          padding: "10px", fontSize: 13, color: "rgba(232,230,227,0.7)", cursor: "pointer",
+        }}>Închide</button>
+      </div>
+    </div>
+  );
+}
+
 function UAdminScheduleView({ shifts }) {
+  const [infoKey, setInfoKey] = useState(null);
   const C = { accent: "#7C4DFF", accentDark: "#5E35B1", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -5810,19 +5882,30 @@ function UAdminScheduleView({ shifts }) {
                   ) : null}
                 </div>
               </div>
-              {s.zones && s.zones.length > 0 ? (
-                <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginBottom: 4 }}>📍 {s.zones.join(", ")}</div>
-              ) : s.zone ? (
-                <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginBottom: 4 }}>📍 {s.zone}</div>
+              {(s.zones && s.zones.length > 0) || s.zone ? (
+                <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginBottom: 4 }}>
+                  📍 {s.zones && s.zones.length > 0 ? s.zones.join(", ") : s.zone}
+                  <ShiftInfoDot onClick={() => setInfoKey("zona")} />
+                </div>
               ) : null}
               {s.supervisor && s.myRole !== "Supervizor" && (
                 <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)", marginBottom: 4 }}>
                   👤 Supervizor: <span style={{ color: "rgba(232,230,227,0.85)" }}>{s.supervisor}</span>
+                  <ShiftInfoDot onClick={() => setInfoKey("supervizor")} />
+                </div>
+              )}
+              {s.team && s.team.length > 0 && s.myRole !== "Supervizor" && (
+                <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginBottom: 4, lineHeight: 1.5 }}>
+                  👥 Echipa ({s.team.length})
+                  <ShiftInfoDot onClick={() => setInfoKey("echipa")} />
+                  {": "}<span style={{ color: "#fff" }}>{s.team.join(" • ")}</span>
                 </div>
               )}
               {s.colegiZona && s.colegiZona.length > 0 && (
                 <div style={{ fontSize: 11, color: "rgba(232,230,227,0.55)", marginBottom: 4, lineHeight: 1.5 }}>
-                  👥 Colegi din zonă ({s.colegiZona.length}): {s.colegiZona.join(" • ")}
+                  👥 Colegi din zonă ({s.colegiZona.length})
+                  <ShiftInfoDot onClick={() => setInfoKey("colegiZona")} />
+                  {": "}{s.colegiZona.join(" • ")}
                 </div>
               )}
               {s.teamsByCP && s.teamsByCP.length > 0 ? (
@@ -5856,6 +5939,7 @@ function UAdminScheduleView({ shifts }) {
           ))}
         </div>
       ))}
+      <ShiftInfoModal infoKey={infoKey} onClose={() => setInfoKey(null)} />
     </div>
   );
 }
