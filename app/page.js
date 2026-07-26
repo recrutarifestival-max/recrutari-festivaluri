@@ -5757,26 +5757,26 @@ function UAdminScheduleView({ shifts }) {
     <div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, marginBottom: 14 }}>
         <div style={{ background: "rgba(124,77,255,0.08)", border: "1px solid rgba(124,77,255,0.15)", borderRadius: 10, padding: 10, textAlign: "center" }}>
-          <div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{summary.totalShifts}</div>
-          <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>ture</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: "#fff" }}>{summary.totalShifts}</div>
+          <div style={{ fontSize: 10, color: "rgba(232,230,227,0.75)", marginTop: 2 }}>ture</div>
         </div>
         <div style={{ background: "rgba(124,77,255,0.08)", border: "1px solid rgba(124,77,255,0.15)", borderRadius: 10, padding: 10, textAlign: "center" }}>
-          <div style={{ fontSize: 18, fontWeight: 800, color: C.accent }}>{summary.totalHours}</div>
-          <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>ore total</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: "#fff" }}>{summary.totalHours}</div>
+          <div style={{ fontSize: 10, color: "rgba(232,230,227,0.75)", marginTop: 2 }}>ore total</div>
         </div>
         <div style={{ background: "rgba(99,153,34,0.10)", border: "1px solid rgba(99,153,34,0.25)", borderRadius: 10, padding: 10, textAlign: "center" }}>
           <div style={{ fontSize: 18, fontWeight: 800, color: "#97C459" }}>{summary.workedHours}</div>
-          <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>ore lucrate</div>
+          <div style={{ fontSize: 10, color: "rgba(232,230,227,0.75)", marginTop: 2 }}>ore lucrate</div>
         </div>
         <div style={{ background: "rgba(186,117,23,0.08)", border: "1px solid rgba(186,117,23,0.2)", borderRadius: 10, padding: 10, textAlign: "center" }}>
           <div style={{ fontSize: 18, fontWeight: 800, color: "#EF9F27" }}>{summary.remainingHours}</div>
-          <div style={{ fontSize: 10, color: "rgba(232,230,227,0.5)", marginTop: 2 }}>ore rămase</div>
+          <div style={{ fontSize: 10, color: "rgba(232,230,227,0.75)", marginTop: 2 }}>ore rămase</div>
         </div>
       </div>
       
       {sortedDays.map(day => (
         <div key={day} style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em" }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#fff", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.08em" }}>
             {shiftsByDay[day].label}
           </div>
           {shiftsByDay[day].shifts.map((s, i) => (
@@ -5803,10 +5803,10 @@ function UAdminScheduleView({ shifts }) {
                 <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                   {s.cps && s.cps.length > 0 ? (
                     s.cps.map(cp => (
-                      <div key={cp} style={{ fontSize: 11, color: C.accent, fontFamily: "monospace", background: "rgba(124,77,255,0.1)", padding: "2px 8px", borderRadius: 6 }}>{cp}</div>
+                      <div key={cp} style={{ fontSize: 11, color: "#fff", fontFamily: "monospace", background: "rgba(124,77,255,0.25)", padding: "2px 8px", borderRadius: 6 }}>{cp}</div>
                     ))
                   ) : s.cp ? (
-                    <div style={{ fontSize: 11, color: C.accent, fontFamily: "monospace", background: "rgba(124,77,255,0.1)", padding: "2px 8px", borderRadius: 6 }}>{s.cp}</div>
+                    <div style={{ fontSize: 11, color: "#fff", fontFamily: "monospace", background: "rgba(124,77,255,0.25)", padding: "2px 8px", borderRadius: 6 }}>{s.cp}</div>
                   ) : null}
                 </div>
               </div>
@@ -5820,12 +5820,17 @@ function UAdminScheduleView({ shifts }) {
                   👤 Supervizor: <span style={{ color: "rgba(232,230,227,0.85)" }}>{s.supervisor}</span>
                 </div>
               )}
+              {s.colegiZona && s.colegiZona.length > 0 && (
+                <div style={{ fontSize: 11, color: "rgba(232,230,227,0.55)", marginBottom: 4, lineHeight: 1.5 }}>
+                  👥 Colegi din zonă ({s.colegiZona.length}): {s.colegiZona.join(" • ")}
+                </div>
+              )}
               {s.teamsByCP && s.teamsByCP.length > 0 ? (
                 <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
                   {s.teamsByCP.map((tc, idx) => (
                     <div key={tc.cp + idx} style={{ marginBottom: idx < s.teamsByCP.length - 1 ? 8 : 0 }}>
                       <div style={{ fontSize: 11, color: "rgba(232,230,227,0.5)", marginBottom: 3, fontWeight: 600 }}>
-                        <span style={{ color: C.accent }}>{tc.cp}</span>
+                        <span style={{ color: "#fff" }}>{tc.cp}</span>
                         {tc.zone && <span style={{ color: "rgba(232,230,227,0.5)" }}> · {tc.zone}</span>}
                         {tc.team && tc.team.length > 0 && <span style={{ color: "rgba(232,230,227,0.4)" }}> · {tc.team.length} casieri</span>}
                       </div>
