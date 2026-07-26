@@ -5925,15 +5925,6 @@ function UAdminScheduleView({ shifts }) {
                     </div>
                   ))}
                 </div>
-              ) : s.team && s.team.length > 0 ? (
-                <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-                  <div style={{ fontSize: 11, color: "rgba(232,230,227,0.5)", marginBottom: 4, fontWeight: 600 }}>
-                    👥 Echipa ({s.team.length}):
-                  </div>
-                  <div style={{ fontSize: 11, color: "rgba(232,230,227,0.7)", lineHeight: 1.6 }}>
-                    {s.team.join(" • ")}
-                  </div>
-                </div>
               ) : null}
             </div>
           ))}
