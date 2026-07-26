@@ -4983,7 +4983,7 @@ function UMyShifts({ phone, pastOnly = false }) {
                   👤 Supervizor: <span style={{ color: "rgba(232,230,227,0.85)" }}>{s.supervisor}</span>
                 </div>
               )}
-              {(s.colegCP && s.colegCP.length > 0) || (s.colegiZona && s.colegiZona.length > 0) || (s.colegi && s.colegi.length > 0) ? (
+              {(s.colegCP && s.colegCP.length > 0) || (s.colegiZona && s.colegiZona.length > 0) || (s.colegi && s.colegi.length > 0) || (s.team && s.team.length > 0) || (s.teamsByCP && s.teamsByCP.length > 0) ? (
                 <div style={{ marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(255,255,255,0.05)" }}>
                   {s.colegCP && s.colegCP.length > 0 && (
                     <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", marginBottom: 4 }}>
@@ -4998,6 +4998,29 @@ function UMyShifts({ phone, pastOnly = false }) {
                   {s.colegi && s.colegi.length > 0 && (
                     <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", lineHeight: 1.5 }}>
                       👥 Colegi de tură ({s.colegi.length}): <span style={{ color: "#fff" }}>{s.colegi.join(" • ")}</span>
+                    </div>
+                  )}
+                  {/* Format vechi (parseScheduleV2): echipa casierului */}
+                  {s.team && s.team.length > 0 && (
+                    <div style={{ fontSize: 12, color: "rgba(232,230,227,0.7)", lineHeight: 1.5 }}>
+                      👥 Echipa ({s.team.length}): <span style={{ color: "#fff" }}>{s.team.join(" • ")}</span>
+                    </div>
+                  )}
+                  {/* Format vechi: supervizor cu mai multe CP-uri */}
+                  {s.teamsByCP && s.teamsByCP.length > 0 && (
+                    <div>
+                      {s.teamsByCP.map((tc, ti) => (
+                        <div key={(tc.cp || "") + ti} style={{ marginBottom: ti < s.teamsByCP.length - 1 ? 8 : 0 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: "rgba(232,230,227,0.75)", marginBottom: 2 }}>
+                            {tc.cp}{tc.zone ? " · " + tc.zone : ""}{tc.team && tc.team.length ? " · " + tc.team.length + " casieri" : ""}
+                          </div>
+                          {tc.team && tc.team.length > 0 && (
+                            <div style={{ fontSize: 11, color: "rgba(232,230,227,0.6)", lineHeight: 1.6 }}>
+                              {tc.team.join(" • ")}
+                            </div>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
