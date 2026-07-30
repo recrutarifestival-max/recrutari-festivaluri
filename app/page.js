@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect, useRef } from "react";
 const C = { accent: "#72F94C", accentDark: "#4AD42F", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
 const API_URL = "https://script.google.com/macros/s/AKfycbyAdqPuIqUTTmbKp7p2ljKmo0mPAoByDJPdTVcQqFUbiaRFopL2_XaaZJV22uKU0VRiSA/exec";
 const UNTOLD_API_URL = "https://script.google.com/macros/s/AKfycbwkG2HshB4Eh-OXWmynenhfos6a4oPKriMfmwcBbrLkm4su0zGNkjcBtB0FEz3Lx-8ELA/exec";
+const UNTOLD_WHATSAPP_GROUP = "https://chat.whatsapp.com/JwKziJ2soz90V00Z7b9vJl";
 const VIEWS = { HOME: "home", APPLY: "apply", STATUS: "status", SHIFTS: "shifts", TEAM: "team", ADMIN: "admin" };
 
 function Nav({ view, setView, hasShifts, hasTeam, isAdmin, accent, accentDark }) {
@@ -4052,6 +4053,24 @@ function UCompleteInfoCard({ phone, statusInfo }) {
           Toate actele au fost verificate
         </div>
         <div style={{ fontSize: 12, color: "rgba(232,230,227,0.5)" }}>Ne vedem la Untold!</div>
+      </div>
+
+      {/* Grup WhatsApp */}
+      <div style={{ background: "rgba(37,211,102,0.07)", border: "1px solid rgba(37,211,102,0.3)", borderRadius: 14, padding: 16, marginBottom: 12 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: "#fff", marginBottom: 4 }}>Grupul de WhatsApp</div>
+        <div style={{ fontSize: 12, color: "rgba(232,230,227,0.65)", lineHeight: 1.5, marginBottom: 10 }}>
+          Toate anunțurile importante despre training și ture vin pe grup. Intră astăzi, dacă nu ai făcut-o deja.
+        </div>
+        <a
+          href={UNTOLD_WHATSAPP_GROUP}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{
+            display: "block", textAlign: "center", textDecoration: "none",
+            background: "rgba(37,211,102,0.18)", border: "1px solid rgba(37,211,102,0.5)",
+            borderRadius: 10, padding: "11px", fontSize: 14, fontWeight: 700, color: "#25D366",
+          }}
+        >Intră în grup</a>
       </div>
 
       {/* Info card */}
