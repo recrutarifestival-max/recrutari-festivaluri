@@ -4097,35 +4097,22 @@ function UCompleteInfoCard({ phone, statusInfo }) {
             )
           )}
         />
-        {statusInfo?.position === "Supervizor" ? (
-          <InfoRow
-            label="Training Supervizor"
-            value={(
+        <InfoRow
+          label={statusInfo?.position === "Supervizor" ? "Training Supervizor" : "Training Casier"}
+          value={loading ? "…" : (
+            deptBooking ? (
               <span style={{ fontSize: 13, color: "#fff" }}>
-                Miercuri, 5 August 2026, 20:00
+                {deptBooking.date} · ora {deptBooking.time}
                 {" "}
                 <a href="https://maps.app.goo.gl/zz3wbXgmXtZcEpTSA" target="_blank" rel="noopener noreferrer" style={{ color: "#B39DFF", fontSize: 11, textDecoration: "none" }}>🗺️ direcții</a>
+                {" · "}
+                <a href="#" onClick={e => { e.preventDefault(); cancelDeptBooking(); }} style={{ color: "#ff8a8a", fontSize: 11, textDecoration: "none" }}>× anulează</a>
               </span>
-            )}
-          />
-        ) : (
-          <InfoRow
-            label="Training Casier"
-            value={loading ? "…" : (
-              deptBooking ? (
-                <span style={{ fontSize: 13, color: "#fff" }}>
-                  {deptBooking.date} · ora {deptBooking.time}
-                  {" "}
-                  <a href="https://maps.app.goo.gl/zz3wbXgmXtZcEpTSA" target="_blank" rel="noopener noreferrer" style={{ color: "#B39DFF", fontSize: 11, textDecoration: "none" }}>🗺️ direcții</a>
-                  {" · "}
-                  <a href="#" onClick={e => { e.preventDefault(); cancelDeptBooking(); }} style={{ color: "#ff8a8a", fontSize: 11, textDecoration: "none" }}>× anulează</a>
-                </span>
-              ) : (
-                <a href="#" onClick={e => { e.preventDefault(); openDeptModal(); }} style={{ fontSize: 12, color: "#B39DFF" }}>Rezervă loc training</a>
-              )
-            )}
-          />
-        )}
+            ) : (
+              <a href="#" onClick={e => { e.preventDefault(); openDeptModal(); }} style={{ fontSize: 12, color: "#B39DFF" }}>Rezervă loc training</a>
+            )
+          )}
+        />
         <InfoRow
           label="Status"
           value={<span style={{ padding: "2px 10px", background: "rgba(99,153,34,0.15)", border: "1px solid rgba(99,153,34,0.35)", borderRadius: 999, fontSize: 12, fontWeight: 700, color: "#97C459" }}>{displayStatus}</span>}
@@ -4297,7 +4284,7 @@ function UCompleteInfoCard({ phone, statusInfo }) {
             background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.1)",
             borderRadius: 16, padding: 20, maxWidth: 400, width: "100%", maxHeight: "80vh", overflowY: "auto",
           }}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 12 }}>Alege slot pentru training Casier</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 12 }}>Alege slot pentru training {statusInfo?.position === "Supervizor" ? "Supervizor" : "Casier"}</div>
             {deptModalLoading ? (
               <div style={{ fontSize: 13, color: "rgba(232,230,227,0.55)" }}>Se încarcă sloturile...</div>
             ) : (
