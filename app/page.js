@@ -4116,6 +4116,18 @@ function UCompleteInfoCard({ phone, statusInfo }) {
             )
           )}
         />
+        {statusInfo?.position === "HelpDesk" ? (
+          <InfoRow
+            label="Training HelpDesk"
+            value={(
+              <span style={{ fontSize: 13, color: "#fff" }}>
+                Miercuri, 5 August 2026, 18:30
+                {" "}
+                <a href="https://maps.app.goo.gl/zz3wbXgmXtZcEpTSA" target="_blank" rel="noopener noreferrer" style={{ color: "#B39DFF", fontSize: 11, textDecoration: "none" }}>🗺️ direcții</a>
+              </span>
+            )}
+          />
+        ) : (
         <InfoRow
           label={statusInfo?.position === "Supervizor" ? "Training Supervizor" : "Training Casier"}
           value={loading ? "…" : (
@@ -4132,6 +4144,7 @@ function UCompleteInfoCard({ phone, statusInfo }) {
             )
           )}
         />
+        )}
         <InfoRow
           label="Status"
           value={<span style={{ padding: "2px 10px", background: "rgba(99,153,34,0.15)", border: "1px solid rgba(99,153,34,0.35)", borderRadius: 999, fontSize: 12, fontWeight: 700, color: "#97C459" }}>{displayStatus}</span>}
