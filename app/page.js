@@ -6193,14 +6193,16 @@ function UStatusPage({ onCompleteDetected }) {
           onChange={e => { 
             let v = e.target.value;
             v = v.replace(/[^0-9]/g, "");
-            if (v.startsWith("40") && v.length > 10) v = v.substring(2);
             if (v.startsWith("0040")) v = "0" + v.substring(4);
-            if (v.length > 10) v = v.substring(0, 10);
+            else if (v.startsWith("40") && v.length === 11) v = "0" + v.substring(2);
+            // Limita de 10 cifre era gândită pentru numere româneşti şi tăia numerele
+            // străine (ex. +32 4xx xxx xxx are 11 cifre), făcând login-ul imposibil.
+            if (v.length > 15) v = v.substring(0, 15);
             setPhone(v); 
             setStatus(null); 
           }}
           placeholder="07xxxxxxxx"
-          maxLength={14}
+          maxLength={16}
           style={{
             flex: 1, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)",
             borderRadius: 12, padding: "14px 16px", fontSize: 16, color: "#e8e6e3", outline: "none",
