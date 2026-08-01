@@ -11,6 +11,9 @@ const U_TRAINING_FIX = {
   "HelpDesk": "Miercuri, 5 August 2026, 18:30",
   "Lockers":  "Miercuri, 5 August 2026, 17:00",
 };
+// Poziţii care nu fac trainingul de SSM şi PSI — rândul nu se afişează deloc.
+// Sincronizat cu POZITII_FARA_SSM din backend, care respinge şi rezervarea directă.
+const U_FARA_SSM = ["Lockers"];
 const VIEWS = { HOME: "home", APPLY: "apply", STATUS: "status", SHIFTS: "shifts", TEAM: "team", ADMIN: "admin" };
 
 function Nav({ view, setView, hasShifts, hasTeam, isAdmin, accent, accentDark }) {
@@ -4106,6 +4109,7 @@ function UCompleteInfoCard({ phone, statusInfo }) {
             )}
           />
         )}
+        {U_FARA_SSM.indexOf(statusInfo?.position) < 0 && (
         <InfoRow
           label="Training SSM/PSI"
           value={loading ? "…" : (
@@ -4122,6 +4126,7 @@ function UCompleteInfoCard({ phone, statusInfo }) {
             )
           )}
         />
+        )}
         {U_TRAINING_FIX[statusInfo?.position] ? (
           <InfoRow
             label={`Training ${statusInfo.position}`}
