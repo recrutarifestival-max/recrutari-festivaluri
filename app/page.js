@@ -5,6 +5,12 @@ const C = { accent: "#72F94C", accentDark: "#4AD42F", dark: "#0f0f1a", darkMid: 
 const API_URL = "https://script.google.com/macros/s/AKfycbyAdqPuIqUTTmbKp7p2ljKmo0mPAoByDJPdTVcQqFUbiaRFopL2_XaaZJV22uKU0VRiSA/exec";
 const UNTOLD_API_URL = "https://script.google.com/macros/s/AKfycbwkG2HshB4Eh-OXWmynenhfos6a4oPKriMfmwcBbrLkm4su0zGNkjcBtB0FEz3Lx-8ELA/exec";
 const UNTOLD_WHATSAPP_GROUP = "https://chat.whatsapp.com/JwKziJ2soz90V00Z7b9vJl";
+// Poziţii cu training de departament fix, fără rezervare. Trebuie ţinut sincronizat
+// cu TRAINING_DEPT_FIX din backend, care respinge şi rezervările făcute direct.
+const U_TRAINING_FIX = {
+  "HelpDesk": "Miercuri, 5 August 2026, 18:30",
+  "Lockers":  "Miercuri, 5 August 2026, 17:00",
+};
 const VIEWS = { HOME: "home", APPLY: "apply", STATUS: "status", SHIFTS: "shifts", TEAM: "team", ADMIN: "admin" };
 
 function Nav({ view, setView, hasShifts, hasTeam, isAdmin, accent, accentDark }) {
@@ -4116,12 +4122,12 @@ function UCompleteInfoCard({ phone, statusInfo }) {
             )
           )}
         />
-        {statusInfo?.position === "HelpDesk" ? (
+        {U_TRAINING_FIX[statusInfo?.position] ? (
           <InfoRow
-            label="Training HelpDesk"
+            label={`Training ${statusInfo.position}`}
             value={(
               <span style={{ fontSize: 13, color: "#fff" }}>
-                Miercuri, 5 August 2026, 18:30
+                {U_TRAINING_FIX[statusInfo.position]}
                 {" "}
                 <a href="https://maps.app.goo.gl/zz3wbXgmXtZcEpTSA" target="_blank" rel="noopener noreferrer" style={{ color: "#B39DFF", fontSize: 11, textDecoration: "none" }}>🗺️ direcții</a>
               </span>
