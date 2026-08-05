@@ -2,7 +2,11 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 
 const C = { accent: "#72F94C", accentDark: "#4AD42F", dark: "#0f0f1a", darkMid: "#1a1a2e", darkLight: "#16213e" };
-const UNTOLD_API_URL = "https://script.google.com/macros/s/AKfycbwkG2HshB4Eh-OXWmynenhfos6a4oPKriMfmwcBbrLkm4su0zGNkjcBtB0FEz3Lx-8ELA/exec";
+// Trecem prin proxy-ul nostru (app/api/untold/route.js) in loc sa apelam direct
+// Apps Script. Redirectionarea catre script.googleusercontent.com esua pe unele
+// telefoane si intorcea pagina de login Google in loc de JSON.
+const UNTOLD_API_URL = "/api/untold";
+const UNTOLD_API_DIRECT = "https://script.google.com/macros/s/AKfycbwkG2HshB4Eh-OXWmynenhfos6a4oPKriMfmwcBbrLkm4su0zGNkjcBtB0FEz3Lx-8ELA/exec";
 const UNTOLD_WHATSAPP_GROUP = "https://chat.whatsapp.com/JwKziJ2soz90V00Z7b9vJl";
 // Poziţii cu training de departament fix, fără rezervare. Trebuie ţinut sincronizat
 // cu TRAINING_DEPT_FIX din backend, care respinge şi rezervările făcute direct.
