@@ -41,6 +41,26 @@ async function uFetchJson(url, incercari) {
   return { success: false, _parseFail: true, error: "Serverul nu a raspuns corect. Incearca din nou peste cateva secunde.", _detalii: ultimaEroare };
 }
 
+// Ultimul status cunoscut, tinut local. Il afisam INSTANT la deschidere,
+// apoi improspatam in fundal. Fara asta, omul se uita la un ecran gol cat
+// dureaza raspunsul Apps Script - uneori peste 10 secunde pe telefon.
+const U_STATUS_CACHE = "untold_status_cache";
+
+function uSalveazaStatus(st) {
+  try { window.localStorage.setItem(U_STATUS_CACHE, JSON.stringify({ t: Date.now(), st: st })); } catch (e) {}
+}
+function uCitesteStatus() {
+  try {
+    const raw = window.localStorage.getItem(U_STATUS_CACHE);
+    if (!raw) return null;
+    const o = JSON.parse(raw);
+    if (!o || !o.st) return null;
+    // mai vechi de 24h: nu-l mai aratam
+    if (Date.now() - (o.t || 0) > 24 * 3600 * 1000) return null;
+    return o.st;
+  } catch (e) { return null; }
+}
+
 // Curata tot ce tine browserul in cache pentru site, PASTRAND logarea.
 // Fara asta, oamenii raman pe o versiune veche a paginii si cred ca portalul e stricat;
 // singura solutie era sa-si goleasca manual datele din browser si sa se logheze din nou.
@@ -84,7 +104,8 @@ async function uReincarcaCurat() {
     }
   } catch (e) {}
 
-  // Pun logarea la loc
+  // Pun logarea la loc. NU si cache-ul de date: butonul asta exista tocmai
+  // ca sa forteze date proaspete.
   try {
     if (phone) window.localStorage.setItem("untold_login_phone", phone);
     if (cnp) window.localStorage.setItem("untold_login_cnp", cnp);
@@ -1405,10 +1426,28 @@ function UCompleteInfoCard({ phone, statusInfo }) {
           { cache: "no-store" }
         ).then(r => r.json()).catch(() => null);
 
-        // Programul se afiseaza primul, ca omul sa vada ceva rapid; restul vin dupa.
+        // Orarul din cache local, afisat instant. Se improspateaza mai jos.
+        try {
+          const raw = window.localStorage.getItem("untold_sched_cache");
+          if (raw) {
+            const o = JSON.parse(raw);
+            if (o && o.phone === phone && o.sched && Date.now() - (o.t || 0) < 24 * 3600 * 1000) {
+              setScheduleData(o.sched);
+              setLoading(false);
+            }
+          }
+        } catch (e) {}
+
+        // Programul se cere primul, ca omul sa vada ceva rapid; restul vin dupa.
         // Inainte plecau 4 cereri simultane spre acelasi script, care le executa in coada.
         const sched = await cere("schedule");
-        if (sched?.success) setScheduleData(sched);
+        if (sched?.success) {
+          setScheduleData(sched);
+          try {
+            window.localStorage.setItem("untold_sched_cache",
+              JSON.stringify({ t: Date.now(), phone: phone, sched: sched }));
+          } catch (e) {}
+        }
         setLoading(false);
 
         const [d, s2, rep] = await Promise.all([
@@ -3552,15 +3591,24 @@ function UStatusPage({ onCompleteDetected }) {
       const savedCnp = window.localStorage.getItem("untold_login_cnp");
       if (savedPhone && savedCnp) {
         setPhone(savedPhone);
+
+        // Afisam imediat ce stim deja, ca sa nu astepte reteaua degeaba.
+        const dinCache = uCitesteStatus();
+        if (dinCache) {
+          setStatus(dinCache);
+          if (dinCache.statusFinal === "Complete" && onCompleteDetected) {
+            onCompleteDetected(savedPhone, dinCache.position || "Casier");
+          }
+        }
+
         (async () => {
-          setSearching(true);
+          if (!dinCache) setSearching(true);
           try {
-            const url = `${UNTOLD_API_URL}?action=verifyCnp&phone=${encodeURIComponent(savedPhone)}&cnp=${encodeURIComponent(savedCnp)}&t=${Date.now()}`;
-            const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
-            const result = JSON.parse(await resp.text());
+            const url = `${UNTOLD_API_URL}?action=verifyCnp&phone=${encodeURIComponent(savedPhone)}&cnp=${encodeURIComponent(savedCnp)}`;
+            const result = await uFetchJson(url, 3);
             if (result.success && result.found) {
               const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Expirat": "expired", "Respins": "rejected", "Confirmat": "confirmed", "Retras": "withdrawn" };
-              setStatus({
+              const _st = {
                 found: true,
                 status: statusMap[result.status] || "pending",
                 name: result.name, firstName: result.firstName, cnp: savedCnp,
@@ -3574,13 +3622,17 @@ function UStatusPage({ onCompleteDetected }) {
                 dataNasterii: result.dataNasterii,
                 documents: result.documents,
                 turaPreferata: result.turaPreferata,
-              });
+              };
+              setStatus(_st);
+              uSalveazaStatus(_st);
               if (result.statusFinal === "Complete" && onCompleteDetected) {
                 onCompleteDetected(savedPhone, result.position || "Casier");
               }
-            } else {
+            } else if (!result._parseFail) {
+              // doar daca serverul chiar a spus ca nu exista, nu la eroare de retea
               window.localStorage.removeItem("untold_login_phone");
               window.localStorage.removeItem("untold_login_cnp");
+              window.localStorage.removeItem(U_STATUS_CACHE);
             }
           } catch (e) {}
           setSearching(false);
@@ -3594,6 +3646,8 @@ function UStatusPage({ onCompleteDetected }) {
     try {
       window.localStorage.removeItem("untold_login_phone");
       window.localStorage.removeItem("untold_login_cnp");
+      window.localStorage.removeItem(U_STATUS_CACHE);
+      window.localStorage.removeItem("untold_sched_cache");
     } catch (e) {}
     setPhone(""); setStatus(null); setCnp(""); setAwaitingCnp(false); setCnpError(""); setFirstNameForCnp("");
   }
@@ -3682,6 +3736,21 @@ function UStatusPage({ onCompleteDetected }) {
           documents: result.documents,
           turaPreferata: result.turaPreferata,
         });
+        try {
+          uSalveazaStatus({
+            found: true,
+            status: statusMap[result.status] || "pending",
+            name: result.name, firstName: result.firstName, cnp: cnpClean,
+            acordSemnat: result.acordSemnat, declaratieSemnat: result.declaratieSemnat,
+            ciIncarcat: result.ciIncarcat, bancarComplet: result.bancarComplet,
+            titular: result.titular, iban: result.iban,
+            statusFinal: result.statusFinal,
+            position: result.position || "Casier",
+            hasExtension: result.hasExtension || false,
+            ndaSemnat: result.ndaSemnat, dataNasterii: result.dataNasterii,
+            documents: result.documents, turaPreferata: result.turaPreferata,
+          });
+        } catch (e) {}
         setAwaitingCnp(false);
         // Persistă datele pentru auto-restore la următoarea deschidere/tab
         try {
