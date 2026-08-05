@@ -4202,6 +4202,25 @@ function UCompleteInfoCard({ phone, statusInfo }) {
         />
         )}
         <InfoRow
+          label="Recapitulare"
+          value={loading ? "…" : (
+            repBooking ? (
+              <span style={{ fontSize: 13, color: "#fff" }}>
+                {repBooking.label || `${repBooking.date} · ${repBooking.time}`}
+                {" "}
+                <a href="https://maps.app.goo.gl/zz3wbXgmXtZcEpTSA" target="_blank" rel="noopener noreferrer" style={{ color: "#B39DFF", fontSize: 11, textDecoration: "none" }}>🗺️ direcții</a>
+                {" · "}
+                <a href="#" onClick={e => { e.preventDefault(); cancelRepBooking(); }} style={{ color: "#ff8a8a", fontSize: 11, textDecoration: "none" }}>× anulează</a>
+              </span>
+            ) : (
+              <span style={{ fontSize: 12, color: "rgba(232,230,227,0.55)" }}>
+                opțional{" · "}
+                <a href="#" onClick={e => { e.preventDefault(); openRepModal(); }} style={{ fontSize: 12, color: "#B39DFF" }}>mă înscriu</a>
+              </span>
+            )
+          )}
+        />
+        <InfoRow
           label="Status"
           value={<span style={{ padding: "2px 10px", background: "rgba(99,153,34,0.15)", border: "1px solid rgba(99,153,34,0.35)", borderRadius: 999, fontSize: 12, fontWeight: 700, color: "#97C459" }}>{displayStatus}</span>}
         />
@@ -4437,6 +4456,43 @@ function UCompleteInfoCard({ phone, statusInfo }) {
             )}
             {ssmModalError && <div style={{ fontSize: 12, color: "#ff8a8a", marginTop: 10 }}>{ssmModalError}</div>}
             <button onClick={() => setSsmModalOpen(false)} style={{
+              width: "100%", marginTop: 12, background: "rgba(255,255,255,0.05)",
+              border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8,
+              padding: "10px", fontSize: 13, color: "rgba(232,230,227,0.7)", cursor: "pointer",
+            }}>Închide</button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal înscriere recapitulare */}
+      {repModalOpen && (
+        <div onClick={() => setRepModalOpen(false)} style={{
+          position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", zIndex: 1000,
+          display: "flex", alignItems: "center", justifyContent: "center", padding: 16,
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: "#1a1a2e", border: "1px solid rgba(255,255,255,0.1)",
+            borderRadius: 16, padding: 20, maxWidth: 400, width: "100%",
+          }}>
+            <div style={{ fontSize: 16, fontWeight: 700, color: "#fff", marginBottom: 4 }}>Sesiune de recapitulare</div>
+            <div style={{ fontSize: 12, color: "rgba(232,230,227,0.6)", marginBottom: 12, lineHeight: 1.5 }}>
+              Opțională. Dacă vrei să mai treci o dată prin training, alege intervalul de mai jos.
+            </div>
+            {repModalLoading ? (
+              <div style={{ fontSize: 13, color: "rgba(232,230,227,0.55)" }}>Se încarcă...</div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {repSlots.map(s2 => (
+                  <button key={s2.id} onClick={() => bookRepSlot(s2.id)} disabled={repBusySlot === s2.id} style={{
+                    background: "rgba(124,77,255,0.12)", border: "1px solid rgba(124,77,255,0.35)",
+                    borderRadius: 10, padding: "12px 14px", textAlign: "left",
+                    color: "#fff", fontSize: 14, cursor: repBusySlot === s2.id ? "default" : "pointer",
+                  }}>{repBusySlot === s2.id ? "Se înscrie..." : s2.label}</button>
+                ))}
+              </div>
+            )}
+            {repModalError && <div style={{ fontSize: 12, color: "#ff8a8a", marginTop: 10 }}>{repModalError}</div>}
+            <button onClick={() => setRepModalOpen(false)} style={{
               width: "100%", marginTop: 12, background: "rgba(255,255,255,0.05)",
               border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8,
               padding: "10px", fontSize: 13, color: "rgba(232,230,227,0.7)", cursor: "pointer",
@@ -6240,6 +6296,17 @@ function UStatusPage({ onCompleteDetected }) {
         <p style={{ fontSize: 14, color: "rgba(232,230,227,0.45)" }}>Introdu numărul de telefon cu care ai aplicat</p>
       </div>
 
+      {searching && (
+        <div style={{ height: 3, borderRadius: 2, overflow: "hidden", background: "rgba(255,255,255,0.06)", marginBottom: 10 }}>
+          <div style={{
+            height: "100%", width: "40%", borderRadius: 2,
+            background: "linear-gradient(90deg, transparent, #7C4DFF, transparent)",
+            animation: "uSearchBar 1s linear infinite",
+          }} />
+          <style>{`@keyframes uSearchBar { 0% { transform: translateX(-100%);} 100% { transform: translateX(350%);} }`}</style>
+        </div>
+      )}
+
       <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
         <input
           type="tel"
@@ -6266,11 +6333,13 @@ function UStatusPage({ onCompleteDetected }) {
           }}
           onKeyDown={e => e.key === "Enter" && checkStatus()}
         />
-        <button onClick={() => checkStatus()} disabled={phone.length < 10} style={{
-          background: phone.length >= 10 ? `linear-gradient(135deg, #7C4DFF, #5E35B1)` : "rgba(255,255,255,0.06)",
+        <button onClick={() => checkStatus()} disabled={phone.length < 10 || searching} style={{
+          background: (phone.length >= 10 && !searching) ? `linear-gradient(135deg, #7C4DFF, #5E35B1)` : "rgba(255,255,255,0.06)",
           border: "none", borderRadius: 12, padding: "14px 20px", fontSize: 15, fontWeight: 600,
-          color: phone.length >= 10 ? "#0a0a0a" : "rgba(232,230,227,0.3)", cursor: phone.length >= 10 ? "pointer" : "default",
-        }}>Caută</button>
+          color: (phone.length >= 10 && !searching) ? "#0a0a0a" : "rgba(232,230,227,0.3)",
+          cursor: (phone.length >= 10 && !searching) ? "pointer" : "default",
+          minWidth: 92, whiteSpace: "nowrap",
+        }}>{searching ? "Caut…" : "Caută"}</button>
       </div>
 
       {searching && (
