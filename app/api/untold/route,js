@@ -1,0 +1,74 @@
+// app/api/untold/route.js
+//
+// Proxy intre portal si Apps Script.
+//
+// De ce exista: Apps Script raspunde printr-o redirectionare de la
+// script.google.com catre script.googleusercontent.com. Browserele de pe telefon
+// - mai ales cand utilizatorul e logat cu mai multe conturi Google - nu o urmeaza
+// mereu si primesc pagina de login Google in loc de JSON. Executiile din Apps Script
+// apar "Completed", dar aplicatia vede HTML si pare stricata.
+//
+// Apelul facut de pe serverul Vercel nu are cookie-uri Google, deci redirectionarea
+// se rezolva de fiecare data. Telefonul vorbeste doar cu domeniul nostru.
+
+const APPS_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycbwkG2HshB4Eh-OXWmynenhfos6a4oPKriMfmwcBbrLkm4su0zGNkjcBtB0FEz3Lx-8ELA/exec";
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+function jsonEroare(mesaj, detalii) {
+  return new Response(
+    JSON.stringify({ success: false, error: mesaj, _proxy: true, _detalii: detalii || null }),
+    { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } }
+  );
+}
+
+async function trimite(request, metoda) {
+  const url = new URL(request.url);
+  const tinta = APPS_SCRIPT_URL + "?" + url.searchParams.toString();
+
+  let corp = null;
+  if (metoda === "POST") {
+    try { corp = await request.text(); } catch (e) { corp = null; }
+  }
+
+  // Doua incercari: Apps Script mai da si erori pasagere sub incarcare.
+  let ultima = null;
+  for (let i = 0; i < 2; i++) {
+    try {
+      const r = await fetch(tinta, {
+        method: metoda,
+        redirect: "follow",
+        headers: metoda === "POST" ? { "Content-Type": "text/plain;charset=utf-8" } : {},
+        body: corp,
+        cache: "no-store",
+      });
+      const text = await r.text();
+
+      // Verificam ca e chiar JSON, nu o pagina de eroare Google
+      try {
+        JSON.parse(text);
+        return new Response(text, {
+          status: 200,
+          headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
+        });
+      } catch (e) {
+        ultima = text.slice(0, 200);
+      }
+    } catch (e) {
+      ultima = e.message;
+    }
+    if (i === 0) await new Promise((r) => setTimeout(r, 600));
+  }
+
+  return jsonEroare("Serverul nu a raspuns corect. Incearca din nou peste cateva secunde.", ultima);
+}
+
+export async function GET(request) {
+  return trimite(request, "GET");
+}
+
+export async function POST(request) {
+  return trimite(request, "POST");
+}
