@@ -14,6 +14,33 @@ const U_TRAINING_FIX = {
 // Sincronizat cu POZITII_FARA_SSM din backend, care respinge şi rezervarea directă.
 const U_FARA_SSM = ["Lockers"];
 
+// Apps Script raspunde uneori cu o pagina HTML in loc de JSON: sub incarcare,
+// cand executiile se aglomereaza, sau la o redirectionare esuata. E aleator si
+// loveste orice utilizator. Reincercam de cateva ori inainte sa dam eroare.
+async function uFetchJson(url, incercari) {
+  incercari = incercari || 3;
+  let ultimaEroare = null;
+  for (let i = 0; i < incercari; i++) {
+    try {
+      const sep = url.indexOf("?") >= 0 ? "&" : "?";
+      const resp = await fetch(url + sep + "t=" + Date.now() + "_" + i,
+                               { method: "GET", cache: "no-store", credentials: "omit" });
+      const text = await resp.text();
+      try {
+        return JSON.parse(text);
+      } catch (parseErr) {
+        ultimaEroare = text.slice(0, 80);
+        // raspuns HTML - asteptam putin si reincercam
+        if (i < incercari - 1) await new Promise(r => setTimeout(r, 700 * (i + 1)));
+      }
+    } catch (netErr) {
+      ultimaEroare = netErr.message;
+      if (i < incercari - 1) await new Promise(r => setTimeout(r, 700 * (i + 1)));
+    }
+  }
+  return { success: false, _parseFail: true, error: "Serverul nu a raspuns corect. Incearca din nou peste cateva secunde.", _detalii: ultimaEroare };
+}
+
 // Curata tot ce tine browserul in cache pentru site, PASTRAND logarea.
 // Fara asta, oamenii raman pe o versiune veche a paginii si cred ca portalul e stricat;
 // singura solutie era sa-si goleasca manual datele din browser si sa se logheze din nou.
@@ -3589,14 +3616,10 @@ function UStatusPage({ onCompleteDetected }) {
 
     try {
       // PAS 1: verifică doar telefonul. Backend întoarce firstName + requiresCnp, NU și datele complete.
-      const url = `${UNTOLD_API_URL}?action=phoneCheck&phone=${encodeURIComponent(targetPhone)}&t=${Date.now()}`;
-      const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
-      const responseText = await resp.text();
-      let result;
-      try {
-        result = JSON.parse(responseText);
-      } catch (parseErr) {
-        setStatus({ found: false, error: "Eroare parsare răspuns. Răspuns primit: " + responseText.substring(0, 100) });
+      const url = `${UNTOLD_API_URL}?action=phoneCheck&phone=${encodeURIComponent(targetPhone)}`;
+      const result = await uFetchJson(url, 3);
+      if (result._parseFail) {
+        setStatus({ found: false, error: result.error });
         setSearching(false);
         return;
       }
@@ -3629,9 +3652,13 @@ function UStatusPage({ onCompleteDetected }) {
     setVerifying(true);
     setCnpError("");
     try {
-      const url = `${UNTOLD_API_URL}?action=verifyCnp&phone=${encodeURIComponent(targetPhone)}&cnp=${encodeURIComponent(cnpClean)}&t=${Date.now()}`;
-      const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
-      const result = JSON.parse(await resp.text());
+      const url = `${UNTOLD_API_URL}?action=verifyCnp&phone=${encodeURIComponent(targetPhone)}&cnp=${encodeURIComponent(cnpClean)}`;
+      const result = await uFetchJson(url, 3);
+      if (result._parseFail) {
+        setCnpError(result.error);
+        setVerifying(false);
+        return;
+      }
 
       if (result.success && result.found) {
         const statusMap = { "În așteptare": "pending", "Selectat": "selected", "Acceptat": "accepted", "Expirat": "expired", "Respins": "rejected", "Confirmat": "confirmed", "Retras": "withdrawn" };
