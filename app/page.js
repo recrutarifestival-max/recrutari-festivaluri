@@ -3924,6 +3924,14 @@ function UCompleteInfoCard({ phone, statusInfo }) {
 
   const [ssmModalOpen, setSsmModalOpen] = useState(false);
   const [turaInfoOpen, setTuraInfoOpen] = useState(false);
+
+  // Recapitulare (opţională)
+  const [repBooking, setRepBooking] = useState(null);
+  const [repModalOpen, setRepModalOpen] = useState(false);
+  const [repSlots, setRepSlots] = useState([]);
+  const [repModalLoading, setRepModalLoading] = useState(false);
+  const [repBusySlot, setRepBusySlot] = useState(null);
+  const [repModalError, setRepModalError] = useState("");
   const [ssmSlots, setSsmSlots] = useState([]);
   const [ssmModalLoading, setSsmModalLoading] = useState(false);
   const [ssmBusySlot, setSsmBusySlot] = useState(null);
@@ -3937,14 +3945,16 @@ function UCompleteInfoCard({ phone, statusInfo }) {
     if (!phone || !cnp) { setLoading(false); return; }
     (async () => {
       try {
-        const [d, s, sched] = await Promise.all([
+        const [d, s, sched, rep] = await Promise.all([
           fetch(`${UNTOLD_API_URL}?action=trainingMySlot&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`, { cache: "no-store" }).then(r => r.json()).catch(() => null),
           fetch(`${UNTOLD_API_URL}?action=ssmMySlot&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`, { cache: "no-store" }).then(r => r.json()).catch(() => null),
           fetch(`${UNTOLD_API_URL}?action=schedule&phone=${encodeURIComponent(phone)}&t=${Date.now()}`, { cache: "no-store" }).then(r => r.json()).catch(() => null),
+          fetch(`${UNTOLD_API_URL}?action=repMySlot&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`, { cache: "no-store" }).then(r => r.json()).catch(() => null),
         ]);
         if (d?.success && d.booking) setDeptBooking(d.booking);
         if (s?.success && s.booking) setSsmBooking(s.booking);
         if (sched?.success) setScheduleData(sched);
+        if (rep?.success && rep.booking) setRepBooking(rep.booking);
       } catch (e) {}
       setLoading(false);
     })();
@@ -4021,6 +4031,41 @@ function UCompleteInfoCard({ phone, statusInfo }) {
       const r = await fetch(url, { cache: "no-store" });
       const j = JSON.parse(await r.text());
       if (j.success) setSsmBooking(null);
+      else alert(j.error || "Nu s-a putut anula");
+    } catch (e) { alert("Eroare de conexiune"); }
+  }
+
+  async function openRepModal() {
+    setRepModalOpen(true); setRepModalError(""); setRepModalLoading(true);
+    try {
+      const url = `${UNTOLD_API_URL}?action=repSlots&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
+      const r = await fetch(url, { cache: "no-store" });
+      const j = JSON.parse(await r.text());
+      if (j.success) setRepSlots(j.slots || []);
+      else setRepModalError(j.error || "Eroare la încărcare");
+    } catch (e) { setRepModalError("Eroare de conexiune"); }
+    setRepModalLoading(false);
+  }
+
+  async function bookRepSlot(slotId) {
+    setRepBusySlot(slotId); setRepModalError("");
+    try {
+      const url = `${UNTOLD_API_URL}?action=repBook&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&slotId=${encodeURIComponent(slotId)}&t=${Date.now()}`;
+      const r = await fetch(url, { cache: "no-store" });
+      const j = JSON.parse(await r.text());
+      if (j.success) { setRepBooking(j.booking); setRepModalOpen(false); }
+      else setRepModalError(j.error || "Nu s-a putut înscrie");
+    } catch (e) { setRepModalError("Eroare de conexiune"); }
+    setRepBusySlot(null);
+  }
+
+  async function cancelRepBooking() {
+    if (!window.confirm("Sigur vrei să anulezi înscrierea la recapitulare?")) return;
+    try {
+      const url = `${UNTOLD_API_URL}?action=repCancel&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`;
+      const r = await fetch(url, { cache: "no-store" });
+      const j = JSON.parse(await r.text());
+      if (j.success) setRepBooking(null);
       else alert(j.error || "Nu s-a putut anula");
     } catch (e) { alert("Eroare de conexiune"); }
   }
