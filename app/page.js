@@ -1373,16 +1373,24 @@ function UCompleteInfoCard({ phone, statusInfo }) {
     if (!phone || !cnp) { setLoading(false); return; }
     (async () => {
       try {
-        const [d, s, sched, rep] = await Promise.all([
-          fetch(`${UNTOLD_API_URL}?action=trainingMySlot&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`, { cache: "no-store" }).then(r => r.json()).catch(() => null),
-          fetch(`${UNTOLD_API_URL}?action=ssmMySlot&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`, { cache: "no-store" }).then(r => r.json()).catch(() => null),
-          fetch(`${UNTOLD_API_URL}?action=schedule&phone=${encodeURIComponent(phone)}&t=${Date.now()}`, { cache: "no-store" }).then(r => r.json()).catch(() => null),
-          fetch(`${UNTOLD_API_URL}?action=repMySlot&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}&t=${Date.now()}`, { cache: "no-store" }).then(r => r.json()).catch(() => null),
+        const cere = (act) => fetch(
+          `${UNTOLD_API_URL}?action=${act}&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}`,
+          { cache: "no-store" }
+        ).then(r => r.json()).catch(() => null);
+
+        // Programul se afiseaza primul, ca omul sa vada ceva rapid; restul vin dupa.
+        // Inainte plecau 4 cereri simultane spre acelasi script, care le executa in coada.
+        const sched = await cere("schedule");
+        if (sched?.success) setScheduleData(sched);
+        setLoading(false);
+
+        const [d, s2, rep] = await Promise.all([
+          cere("trainingMySlot"), cere("ssmMySlot"), cere("repMySlot"),
         ]);
         if (d?.success && d.booking) setDeptBooking(d.booking);
-        if (s?.success && s.booking) setSsmBooking(s.booking);
-        if (sched?.success) setScheduleData(sched);
+        if (s2?.success && s2.booking) setSsmBooking(s2.booking);
         if (rep?.success && rep.booking) setRepBooking(rep.booking);
+        return;
       } catch (e) {}
       setLoading(false);
     })();
