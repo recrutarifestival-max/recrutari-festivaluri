@@ -160,6 +160,41 @@ async function uReincarcaCurat() {
   window.location.replace(u.toString());
 }
 
+// Buton mare de reimprospatare: retrimite cererile catre server.
+// Diferit de "Reincarca": nu reincarca pagina si nu atinge logarea, doar
+// cere din nou datele. Util cand o cerere a esuat si omul vrea sa reincerce.
+function UBigRefresh({ onRefresh, eticheta }) {
+  const [busy, setBusy] = useState(false);
+  const [gata, setGata] = useState(false);
+  return (
+    <button
+      onClick={async () => {
+        if (busy) return;
+        setBusy(true); setGata(false);
+        try { await onRefresh(); setGata(true); setTimeout(() => setGata(false), 2000); }
+        catch (e) {}
+        setBusy(false);
+      }}
+      style={{
+        width: "100%", marginTop: 12, marginBottom: 12,
+        background: gata ? "rgba(99,153,34,0.18)" : "rgba(124,77,255,0.15)",
+        border: "1px solid " + (gata ? "rgba(99,153,34,0.5)" : "rgba(124,77,255,0.45)"),
+        borderRadius: 12, padding: "14px", fontSize: 15, fontWeight: 700,
+        color: gata ? "#97C459" : "#B39DFF",
+        cursor: busy ? "default" : "pointer",
+        display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+      }}
+    >
+      <span style={{
+        display: "inline-block",
+        animation: busy ? "uSpin 0.9s linear infinite" : "none",
+      }}>↻</span>
+      {busy ? "Se actualizeaza..." : (gata ? "Actualizat" : (eticheta || "Actualizeaza datele"))}
+      <style>{`@keyframes uSpin { from { transform: rotate(0deg);} to { transform: rotate(360deg);} }`}</style>
+    </button>
+  );
+}
+
 function UReincarcaButton({ style }) {
   const [busy, setBusy] = useState(false);
   return (
@@ -1459,43 +1494,39 @@ function UCompleteInfoCard({ phone, statusInfo }) {
   const cnp = statusInfo?.cnp || "";
   const age = _calcAgeFromDob(statusInfo?.dataNasterii);
 
-  // Încarcă cele 3 fetch-uri în paralel: dept training, SSM, program
+  // Cere orarul de la server si il salveaza local. Apelata la deschidere
+  // si de butonul de actualizare.
+  async function incarcaOrar() {
+    if (!phone) return;
+    const url = `${UNTOLD_API_URL}?action=schedule&phone=${encodeURIComponent(phone)}`;
+    const sched = await uFetchJson(url, 3);
+    if (sched && sched.success) {
+      setScheduleData(sched);
+      try {
+        window.localStorage.setItem("untold_sched_cache",
+          JSON.stringify({ t: Date.now(), phone: phone, sched: sched }));
+      } catch (e) {}
+    }
+    setLoading(false);
+  }
+
   useEffect(() => {
     if (!phone || !cnp) { setLoading(false); return; }
-    (async () => {
-      try {
-        const cere = (act) => fetch(
-          `${UNTOLD_API_URL}?action=${act}&phone=${encodeURIComponent(phone)}&cnp=${encodeURIComponent(cnp)}`,
-          { cache: "no-store" }
-        ).then(r => r.json()).catch(() => null);
 
-        // Orarul din cache local, afisat instant. Se improspateaza mai jos.
-        try {
-          const raw = window.localStorage.getItem("untold_sched_cache");
-          if (raw) {
-            const o = JSON.parse(raw);
-            if (o && o.phone === phone && o.sched && Date.now() - (o.t || 0) < 24 * 3600 * 1000) {
-              setScheduleData(o.sched);
-              setLoading(false);
-            }
-          }
-        } catch (e) {}
-
-        // Trainingurile s-au incheiat, deci nu le mai interogam.
-        // Ramane o singura cerere la deschiderea portalului: orarul.
-        const sched = await cere("schedule");
-        if (sched?.success) {
-          setScheduleData(sched);
-          try {
-            window.localStorage.setItem("untold_sched_cache",
-              JSON.stringify({ t: Date.now(), phone: phone, sched: sched }));
-          } catch (e) {}
+    // Orarul din cache local, afisat instant. Se improspateaza imediat dupa.
+    try {
+      const raw = window.localStorage.getItem("untold_sched_cache");
+      if (raw) {
+        const o = JSON.parse(raw);
+        if (o && o.phone === phone && o.sched && Date.now() - (o.t || 0) < 24 * 3600 * 1000) {
+          setScheduleData(o.sched);
+          setLoading(false);
         }
-        setLoading(false);
-        return;
-      } catch (e) {}
-      setLoading(false);
-    })();
+      }
+    } catch (e) {}
+
+    // Trainingurile s-au incheiat, deci ramane o singura cerere la deschidere.
+    incarcaOrar();
   }, [phone, cnp]);
 
   async function submitWithdraw() {
@@ -1743,6 +1774,8 @@ function UCompleteInfoCard({ phone, statusInfo }) {
           )}
         </div>
       </div>
+
+      <UBigRefresh onRefresh={incarcaOrar} />
 
       {/* Card 3: Sumar ture + Card 4: Următoarea tură */}
       {(() => {
@@ -2537,6 +2570,8 @@ function UMyShifts({ phone, pastOnly = false }) {
         }}>{refreshing ? "..." : "🔄"}</button>
       </div>
 
+      <UBigRefresh onRefresh={handleRefresh} />
+
       {(data?.name || data?.position) && (
         <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, padding: 12, marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
           <div style={{ fontSize: 14, fontWeight: 600, color: "#fff" }}>{data?.name || ""}</div>
@@ -2861,6 +2896,8 @@ function UTeamPage({ phone, onLogout }) {
           borderRadius: 8, padding: "6px 12px", fontSize: 11, color: "rgba(232,230,227,0.6)", cursor: "pointer",
         }}>{refreshing ? "..." : "🔄"}</button>
       </div>
+
+      <UBigRefresh onRefresh={handleRefresh} />
       
       {loading && (
         <div style={{ textAlign: "center", padding: 24, color: "rgba(232,230,227,0.4)", fontSize: 13 }}>
