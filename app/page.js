@@ -14,6 +14,49 @@ const U_TRAINING_FIX = {
 // Sincronizat cu POZITII_FARA_SSM din backend, care respinge şi rezervarea directă.
 const U_FARA_SSM = ["Lockers"];
 
+// In orar, o tura care incepe dupa miezul noptii e scrisa in coloana zilei
+// PRECEDENTE: cine apare joi la 01:00 intra de fapt vineri la 1 dimineata.
+// Fara un avertisment explicit, oamenii se prezinta cu o zi mai devreme.
+const U_ZILE_RO = ["Duminica", "Luni", "Marti", "Miercuri", "Joi", "Vineri", "Sambata"];
+
+function uIncepeDupaMiezulNoptii(time) {
+  const m = String(time || "").match(/^\s*(\d{1,2})[:.]/);
+  if (!m) return false;
+  const h = parseInt(m[1], 10);
+  // turele de zi incep cel mai devreme la 11:30, deci orice sub 11 e dupa miezul noptii
+  return !isNaN(h) && h < 11;
+}
+
+function uZiuaUrmatoare(dateStr) {
+  if (!dateStr) return null;
+  const t = String(dateStr);
+  let d = null;
+  let m = t.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) d = new Date(+m[1], +m[2] - 1, +m[3]);
+  else {
+    m = t.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})$/);
+    if (m) d = new Date(+m[3], +m[2] - 1, +m[1]);
+  }
+  if (!d || isNaN(d.getTime())) return null;
+  d.setDate(d.getDate() + 1);
+  const dd = ("0" + d.getDate()).slice(-2);
+  const mm = ("0" + (d.getMonth() + 1)).slice(-2);
+  return { zi: U_ZILE_RO[d.getDay()], data: dd + "." + mm + "." + d.getFullYear() };
+}
+
+function uAvertismentNoapte(s) {
+  if (!s || !uIncepeDupaMiezulNoptii(s.time)) return null;
+  const urm = uZiuaUrmatoare(s.date);
+  if (!urm) return null;
+  const ziCurenta = String(s.label || "").split(",")[0].trim();
+  return {
+    scurt: ziCurenta ? (ziCurenta + " spre " + urm.zi) : ("spre " + urm.zi),
+    lung: "Intri " + urm.zi.toLowerCase() + ", " + urm.data + ", la ora " +
+          String(s.time || "").split("-")[0].trim() + " \u2014 adica in noaptea de " +
+          (ziCurenta ? ziCurenta.toLowerCase() : "ziua respectiva") + " spre " + urm.zi.toLowerCase() + ".",
+  };
+}
+
 // Apps Script raspunde uneori cu o pagina HTML in loc de JSON: sub incarcare,
 // cand executiile se aglomereaza, sau la o redirectionare esuata. E aleator si
 // loveste orice utilizator. Reincercam de cateva ori inainte sa dam eroare.
@@ -1847,6 +1890,14 @@ function UCompleteInfoCard({ phone, statusInfo }) {
                     <span>{nextShift.isNight ? "🌙" : "☀️"}</span>
                     <span>{nextShift.time}</span>
                   </div>
+                  {uAvertismentNoapte(nextShift) && (
+                    <div style={{ background: "rgba(255,193,7,0.1)", border: "1px solid rgba(255,193,7,0.35)", borderRadius: 8, padding: "8px 10px", marginBottom: 6 }}>
+                      <div style={{ fontSize: 12, color: "#FFC107", fontWeight: 700, marginBottom: 2 }}>Atentie la ziua de intrare</div>
+                      <div style={{ fontSize: 11, color: "rgba(232,230,227,0.8)", lineHeight: 1.5 }}>
+                        {uAvertismentNoapte(nextShift).lung}
+                      </div>
+                    </div>
+                  )}
                   {nextShift.esteRezerva ? (
                     <div style={{ background: "rgba(255,193,7,0.07)", border: "1px solid rgba(255,193,7,0.2)", borderRadius: 8, padding: "8px 10px" }}>
                       <div style={{ fontSize: 12, color: "#FFC107", fontWeight: 700, marginBottom: 2 }}>🔁 Tură de rezervă</div>
@@ -2599,6 +2650,11 @@ function UMyShifts({ phone, pastOnly = false }) {
                   {s.isNight && <span>🌙</span>}
                   {s.isNight === false && <span>☀️</span>}
                   <span>{s.time || "—"}</span>
+                  {uAvertismentNoapte(s) && (
+                    <span style={{ fontSize: 9, color: "#FFC107", background: "rgba(255,193,7,0.15)", border: "1px solid rgba(255,193,7,0.45)", padding: "2px 6px", borderRadius: 4, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      {uAvertismentNoapte(s).scurt}
+                    </span>
+                  )}
                   {s.myRole === "Supervizor" && (
                     <span style={{ fontSize: 9, color: "#FFB347", background: "rgba(255,179,71,0.12)", border: "1px solid rgba(255,179,71,0.3)", padding: "2px 6px", borderRadius: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Supervizor</span>
                   )}
@@ -2620,6 +2676,15 @@ function UMyShifts({ phone, pastOnly = false }) {
                   ) : null}
                 </div>
               </div>
+              {uAvertismentNoapte(s) && (
+                <div style={{ background: "rgba(255,193,7,0.1)", border: "1px solid rgba(255,193,7,0.35)", borderRadius: 8, padding: "8px 10px", marginBottom: 6 }}>
+                  <div style={{ fontSize: 12, color: "#FFC107", fontWeight: 700, marginBottom: 2 }}>Atentie la ziua de intrare</div>
+                  <div style={{ fontSize: 11, color: "rgba(232,230,227,0.8)", lineHeight: 1.5 }}>
+                    {uAvertismentNoapte(s).lung}
+                  </div>
+                </div>
+              )}
+
               {s.esteRezerva ? (
                 <div style={{ background: "rgba(255,193,7,0.07)", border: "1px solid rgba(255,193,7,0.2)", borderRadius: 8, padding: "8px 10px", marginBottom: 6 }}>
                   <div style={{ fontSize: 12, color: "#FFC107", fontWeight: 600, marginBottom: 2 }}>Tură de rezervă</div>
@@ -2926,6 +2991,11 @@ function UTeamPage({ phone, onLogout }) {
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.accent, marginBottom: 4, textTransform: "uppercase", letterSpacing: "0.08em" }}>{s.label}</div>
                   <div style={{ fontSize: 16, fontWeight: 700, color: "#fff" }}>
                     {s.isNight ? "🌙" : "☀️"} {s.time}
+                    {uAvertismentNoapte(s) && (
+                      <span style={{ fontSize: 10, marginLeft: 8, color: "#FFC107", background: "rgba(255,193,7,0.15)", border: "1px solid rgba(255,193,7,0.45)", padding: "2px 6px", borderRadius: 4, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", verticalAlign: "middle" }}>
+                        {uAvertismentNoapte(s).scurt}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "flex-end" }}>
@@ -3513,6 +3583,11 @@ function UAdminScheduleView({ shifts }) {
                   {s.isNight && <span>🌙</span>}
                   {s.isNight === false && <span>☀️</span>}
                   <span>{s.time || "—"}</span>
+                  {uAvertismentNoapte(s) && (
+                    <span style={{ fontSize: 9, color: "#FFC107", background: "rgba(255,193,7,0.15)", border: "1px solid rgba(255,193,7,0.45)", padding: "2px 6px", borderRadius: 4, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      {uAvertismentNoapte(s).scurt}
+                    </span>
+                  )}
                   {s.myRole === "Supervizor" && (
                     <span style={{ fontSize: 9, color: "#FFB347", background: "rgba(255,179,71,0.12)", border: "1px solid rgba(255,179,71,0.3)", padding: "2px 6px", borderRadius: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Supervizor</span>
                   )}
