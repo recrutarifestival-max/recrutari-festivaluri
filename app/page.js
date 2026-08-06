@@ -1481,8 +1481,8 @@ function UCompleteInfoCard({ phone, statusInfo }) {
           }
         } catch (e) {}
 
-        // Programul se cere primul, ca omul sa vada ceva rapid; restul vin dupa.
-        // Inainte plecau 4 cereri simultane spre acelasi script, care le executa in coada.
+        // Trainingurile s-au incheiat, deci nu le mai interogam.
+        // Ramane o singura cerere la deschiderea portalului: orarul.
         const sched = await cere("schedule");
         if (sched?.success) {
           setScheduleData(sched);
@@ -1492,13 +1492,6 @@ function UCompleteInfoCard({ phone, statusInfo }) {
           } catch (e) {}
         }
         setLoading(false);
-
-        const [d, s2, rep] = await Promise.all([
-          cere("trainingMySlot"), cere("ssmMySlot"), cere("repMySlot"),
-        ]);
-        if (d?.success && d.booking) setDeptBooking(d.booking);
-        if (s2?.success && s2.booking) setSsmBooking(s2.booking);
-        if (rep?.success && rep.booking) setRepBooking(rep.booking);
         return;
       } catch (e) {}
       setLoading(false);
@@ -1699,71 +1692,16 @@ function UCompleteInfoCard({ phone, statusInfo }) {
             )}
           />
         )}
-        {U_FARA_SSM.indexOf(statusInfo?.position) < 0 && (
+        {/* Trainingurile s-au incheiat: afisam Completed, fara interogari catre server.
+            Asta scoate 3 din cele 4 cereri de la deschiderea portalului. */}
         <InfoRow
           label="Training SSM/PSI"
-          value={loading ? "…" : (
-            ssmBooking ? (
-              <span style={{ fontSize: 13, color: "#fff" }}>
-                {ssmBooking.label || `${ssmBooking.date} · ${ssmBooking.time}`}
-                {" "}
-                <a href="https://maps.app.goo.gl/JSb848nzmbAuVGDw7" target="_blank" rel="noopener noreferrer" style={{ color: "#ffc107", fontSize: 11, textDecoration: "none" }}>🗺️ direcții</a>
-                {" · "}
-                <a href="#" onClick={e => { e.preventDefault(); cancelSsmBooking(); }} style={{ color: "#ff8a8a", fontSize: 11, textDecoration: "none" }}>× anulează</a>
-              </span>
-            ) : (
-              <a href="#" onClick={e => { e.preventDefault(); openSsmModal(); }} style={{ fontSize: 12, color: "#ffc107" }}>Rezervă loc training</a>
-            )
-          )}
+          value={<span style={{ padding: "2px 10px", background: "rgba(99,153,34,0.15)", border: "1px solid rgba(99,153,34,0.35)", borderRadius: 999, fontSize: 12, fontWeight: 700, color: "#97C459" }}>Completed</span>}
         />
-        )}
-        {U_TRAINING_FIX[statusInfo?.position] ? (
-          <InfoRow
-            label={`Training ${statusInfo.position}`}
-            value={(
-              <span style={{ fontSize: 13, color: "#fff" }}>
-                {U_TRAINING_FIX[statusInfo.position]}
-                {" "}
-                <a href="https://maps.app.goo.gl/zz3wbXgmXtZcEpTSA" target="_blank" rel="noopener noreferrer" style={{ color: "#B39DFF", fontSize: 11, textDecoration: "none" }}>🗺️ direcții</a>
-              </span>
-            )}
-          />
-        ) : (
         <InfoRow
-          label={statusInfo?.position === "Supervizor" ? "Training Supervizor" : "Training Casier"}
-          value={loading ? "…" : (
-            deptBooking ? (
-              <span style={{ fontSize: 13, color: "#fff" }}>
-                {deptBooking.date} · ora {deptBooking.time}
-                {" "}
-                <a href="https://maps.app.goo.gl/zz3wbXgmXtZcEpTSA" target="_blank" rel="noopener noreferrer" style={{ color: "#B39DFF", fontSize: 11, textDecoration: "none" }}>🗺️ direcții</a>
-                {" · "}
-                <a href="#" onClick={e => { e.preventDefault(); cancelDeptBooking(); }} style={{ color: "#ff8a8a", fontSize: 11, textDecoration: "none" }}>× anulează</a>
-              </span>
-            ) : (
-              <a href="#" onClick={e => { e.preventDefault(); openDeptModal(); }} style={{ fontSize: 12, color: "#B39DFF" }}>Rezervă loc training</a>
-            )
-          )}
-        />
-        )}
-        <InfoRow
-          label="Recapitulare"
-          value={loading ? "…" : (
-            repBooking ? (
-              <span style={{ fontSize: 13, color: "#fff" }}>
-                {repBooking.label || `${repBooking.date} · ${repBooking.time}`}
-                {" "}
-                <a href="https://maps.app.goo.gl/zz3wbXgmXtZcEpTSA" target="_blank" rel="noopener noreferrer" style={{ color: "#B39DFF", fontSize: 11, textDecoration: "none" }}>🗺️ direcții</a>
-                {" · "}
-                <a href="#" onClick={e => { e.preventDefault(); cancelRepBooking(); }} style={{ color: "#ff8a8a", fontSize: 11, textDecoration: "none" }}>× anulează</a>
-              </span>
-            ) : (
-              <span style={{ fontSize: 12, color: "rgba(232,230,227,0.55)" }}>
-                opțional{" · "}
-                <a href="#" onClick={e => { e.preventDefault(); openRepModal(); }} style={{ fontSize: 12, color: "#B39DFF" }}>mă înscriu</a>
-              </span>
-            )
-          )}
+          label={statusInfo?.position === "Supervizor" ? "Training Supervizor"
+               : (U_TRAINING_FIX[statusInfo?.position] ? `Training ${statusInfo.position}` : "Training Casier")}
+          value={<span style={{ padding: "2px 10px", background: "rgba(99,153,34,0.15)", border: "1px solid rgba(99,153,34,0.35)", borderRadius: 999, fontSize: 12, fontWeight: 700, color: "#97C459" }}>Completed</span>}
         />
         <InfoRow
           label="Status"
@@ -2810,13 +2748,15 @@ function UTeamPage({ phone, onLogout }) {
   async function loadTeam() {
     setError(null);
     try {
-      const url = `${UNTOLD_API_URL}?action=team&phone=${encodeURIComponent(phone)}&t=${Date.now()}`;
-      const resp = await fetch(url, { method: "GET", cache: "no-store", credentials: "omit" });
-      const text = await resp.text();
-      const result = JSON.parse(text);
+      const url = `${UNTOLD_API_URL}?action=team&phone=${encodeURIComponent(phone)}`;
+      const result = await uFetchJson(url, 3);
       if (result.success) {
         setData(result);
-      } else {
+        try {
+          window.localStorage.setItem("untold_team_cache",
+            JSON.stringify({ t: Date.now(), phone: phone, data: result }));
+        } catch (e) {}
+      } else if (!result._parseFail) {
         setError(result.error || "Eroare la încărcarea echipei");
       }
     } catch (err) {
@@ -2825,9 +2765,21 @@ function UTeamPage({ phone, onLogout }) {
     setLoading(false);
     setRefreshing(false);
   }
-  
+
   useEffect(() => {
-    if (phone) loadTeam();
+    if (!phone) return;
+    // Afisam instant ce stim deja, apoi improspatam in fundal.
+    try {
+      const raw = window.localStorage.getItem("untold_team_cache");
+      if (raw) {
+        const o = JSON.parse(raw);
+        if (o && o.phone === phone && o.data && Date.now() - (o.t || 0) < 24 * 3600 * 1000) {
+          setData(o.data);
+          setLoading(false);
+        }
+      }
+    } catch (e) {}
+    loadTeam();
   }, [phone]);
   
   async function handleRefresh() {
@@ -3736,6 +3688,7 @@ function UStatusPage({ onCompleteDetected }) {
       window.localStorage.removeItem("untold_login_cnp");
       window.localStorage.removeItem(U_STATUS_CACHE);
       window.localStorage.removeItem("untold_sched_cache");
+      window.localStorage.removeItem("untold_team_cache");
     } catch (e) {}
     setPhone(""); setStatus(null); setCnp(""); setAwaitingCnp(false); setCnpError(""); setFirstNameForCnp("");
   }
