@@ -2663,6 +2663,11 @@ function UMyShifts({ phone, pastOnly = false }) {
                       {uAvertismentNoapte(s).scurt}
                     </span>
                   )}
+                  {s.modified && (
+                    <span style={{ fontSize: 9, color: "#B39DFF", background: "rgba(124,77,255,0.18)", border: "1px solid rgba(124,77,255,0.5)", padding: "2px 6px", borderRadius: 4, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      Modificat
+                    </span>
+                  )}
                   {s.myRole === "Supervizor" && (
                     <span style={{ fontSize: 9, color: "#FFB347", background: "rgba(255,179,71,0.12)", border: "1px solid rgba(255,179,71,0.3)", padding: "2px 6px", borderRadius: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>Supervizor</span>
                   )}
@@ -3610,6 +3615,11 @@ function UAdminScheduleView({ shifts }) {
                   {uAvertismentNoapte(s) && (
                     <span style={{ fontSize: 9, color: "#FFC107", background: "rgba(255,193,7,0.15)", border: "1px solid rgba(255,193,7,0.45)", padding: "2px 6px", borderRadius: 4, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
                       {uAvertismentNoapte(s).scurt}
+                    </span>
+                  )}
+                  {s.modified && (
+                    <span style={{ fontSize: 9, color: "#B39DFF", background: "rgba(124,77,255,0.18)", border: "1px solid rgba(124,77,255,0.5)", padding: "2px 6px", borderRadius: 4, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                      Modificat
                     </span>
                   )}
                   {s.myRole === "Supervizor" && (
