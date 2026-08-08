@@ -44,6 +44,39 @@ function uZiuaUrmatoare(dateStr) {
   return { zi: U_ZILE_RO[d.getDay()], data: dd + "." + mm + "." + d.getFullYear() };
 }
 
+// Momentul real de inceput si de sfarsit al unei ture, ca obiecte Date.
+// Doua reguli: turele care incep dupa miezul noptii apartin zilei URMATOARE
+// fata de coloana in care sunt scrise, iar cele care trec prin miezul noptii
+// se termina a doua zi.
+function uIntervalReal(s) {
+  if (!s || !s.date) return null;
+  const t = String(s.date);
+  let d = null;
+  let m = t.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (m) d = new Date(+m[1], +m[2] - 1, +m[3]);
+  else {
+    m = t.match(/^(\d{1,2})[.\/-](\d{1,2})[.\/-](\d{4})$/);
+    if (m) d = new Date(+m[3], +m[2] - 1, +m[1]);
+  }
+  if (!d || isNaN(d.getTime())) return null;
+
+  const ore = String(s.time || "").match(/(\d{1,2})[:.](\d{2})\s*[-\u2013]\s*(\d{1,2})[:.](\d{2})/);
+  if (!ore) return null;
+  const hS = +ore[1], mS = +ore[2], hE = +ore[3], mE = +ore[4];
+
+  const inceput = new Date(d);
+  // tura care incepe dupa miezul noptii e scrisa in ziua precedenta
+  if (hS < 11) inceput.setDate(inceput.getDate() + 1);
+  inceput.setHours(hS, mS, 0, 0);
+
+  const sfarsit = new Date(inceput);
+  sfarsit.setHours(hE, mE, 0, 0);
+  // trece prin miezul noptii
+  if (sfarsit <= inceput) sfarsit.setDate(sfarsit.getDate() + 1);
+
+  return { inceput: inceput, sfarsit: sfarsit };
+}
+
 function uAvertismentNoapte(s) {
   if (!s || !uIncepeDupaMiezulNoptii(s.time)) return null;
   const urm = uZiuaUrmatoare(s.date);
@@ -1800,15 +1833,17 @@ function UCompleteInfoCard({ phone, statusInfo }) {
           if (m) return new Date(parseInt(m[3], 10), parseInt(m[2], 10) - 1, parseInt(m[1], 10));
           const d = new Date(s); return isNaN(d.getTime()) ? null : d;
         }
-        const today = new Date(); today.setHours(0, 0, 0, 0);
+        const acum = new Date();
         let totalHours = 0, workedHours = 0, remainingHours = 0;
         const shiftsWithDate = shifts.map(sh => {
-          const d = _parseD(sh.date);
-          const isPast = d ? d < today : false;
+          const iv = uIntervalReal(sh);
+          // O tura e "trecuta" cand s-a TERMINAT, nu cand a trecut ziua ei.
+          // Altfel, cine iese la 23:00 vede tot acea tura ca "urmatoarea" pana la miezul noptii.
+          const isPast = iv ? iv.sfarsit <= acum : false;
           const h = sh.hours || 0;
           totalHours += h;
           if (isPast) workedHours += h; else remainingHours += h;
-          return { ...sh, _dateObj: d, isPast };
+          return { ...sh, _dateObj: iv ? iv.inceput : _parseD(sh.date), _sfarsit: iv ? iv.sfarsit : null, isPast };
         });
         totalHours = Math.round(totalHours * 10) / 10;
         workedHours = Math.round(workedHours * 10) / 10;
